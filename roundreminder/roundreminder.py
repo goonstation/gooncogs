@@ -18,7 +18,7 @@ class RoundReminder(commands.Cog):
         return ''.join(c for c in text.lower() if c.isalnum())
 
     @commands.command()
-    async def nextround(self, ctx: commands.Context, search_text: Optional[str]):
+    async def nextround(self, ctx: commands.Context, *, search_text: Optional[str]):
         """Notifies you about the next round or the next round with server or map name containing `search_text`."""
         async with self.config.user(ctx.author).match_strings() as match_strings:
             match_strings.append(self.normalize(search_text))
