@@ -26,7 +26,7 @@ class EditablePosts(commands.Cog):
     
     @editable_posts.command()
     @checks.admin()
-    async def create(self, ctx: commands.Context, channel: discord.TextChannel, title: Optional[str]):
+    async def create(self, ctx: commands.Context, channel: discord.TextChannel, *, title: Optional[str]):
         embed = discord.Embed(title=title or "[reserved post]", color=await ctx.embed_color())
         msg = await channel.send(embed=embed)
         await self.config.custom("editable_posts", msg.id).editable.set(True)
