@@ -1,0 +1,16 @@
+{
+    "name": "GithubStuff",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Various GitHub-related useful things. TODO better description.",
+    "description": "Various GitHub-related useful things. TODO better description.",
+    "requirements": [
+        "githubpy",
+	"requests"
+    ],
+    "tags": [
+	"git",
+	"github"
+    ]
+}
