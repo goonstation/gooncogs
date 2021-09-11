@@ -1,0 +1,15 @@
+{
+    "name": "LoudVideos"
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Sends a warning message when a video is too loud.",
+    "description": "Sends a warning message when a video is too loud.",
+    "install_msg": "This bot will now warn when a video that is too loud gets posted. Please install `ffmpeg` on your system if it is not installed already.",
+    "requirements": [
+	"youtube_dl"
+    ],
+    "tags": [
+	"video"
+    ]
+}
