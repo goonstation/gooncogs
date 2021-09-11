@@ -11,10 +11,18 @@ class InlineCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        # TODO: aliases
-        if message.author.bot:
+        if message.guild is None or self.bot.user == message.author:
             return
+
+        if await self.bot.cog_disabled_in_guild(self, message.guild):
+            return
+
+        valid_user = isinstance(message.author, discord.Member) and not message.author.bot
+        if not valid_user:
+            return
+
         tasks = []
+        # TODO: aliases
         for command in re.findall(r"\[(.*?)\]", message.content):
             prefix = await self.bot.get_prefix(message)
             if isinstance(prefix, list):
