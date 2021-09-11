@@ -1,0 +1,17 @@
+{
+    "name": "GoonMisc",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Misc/fun stuff for Goonstation servers.",
+    "description": "Stuff specific to Goonstation that didn't fit elsewhere.",
+    "requirements": [
+        "githubpy",
+	"requests"
+    ],
+    "tags": [
+	"fun",
+	"misc"
+    ],
+    "end_user_data_statement": ""
+}
