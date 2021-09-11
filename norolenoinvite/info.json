@@ -1,0 +1,13 @@
+{
+    "name": "NoRoleNoInvite",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Deletes invite messages from roleless users.",
+    "description": "Deletes server invite messages from users without roles.",
+    "install_msg": "This cog deletes all invite messages sent by roleless users. Starts enabled in all servers by default. Use core commands to disable the cog on a per-server basis.",
+    "tags": [
+        "administration"
+    ],
+    "end_user_data_statement": "This cog doesn't store anything at all."
+}
