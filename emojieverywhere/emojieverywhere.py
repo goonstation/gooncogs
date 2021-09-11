@@ -5,7 +5,6 @@ import requests
 import discord
 import contextlib
 import io
-from github import Github
 from redbot.core import commands, Config, checks
 from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path
