@@ -1,0 +1,15 @@
+{
+    "name": "BetterReports",
+    "author": [
+	"RedBot development team",
+        "pali (pali#0439)"
+    ],
+    "short": "Send reports to server administrators.",
+    "description": "Fork of built-in Reports module which improves functionality. Lets users send (anonymous or non-anonymous) reports to the server administrators.",
+    "install_msg": "",
+    "tags": [
+        "administration",
+        "reports"
+    ],
+    "end_user_data_statement": ""
+}
