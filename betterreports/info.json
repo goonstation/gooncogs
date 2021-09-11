@@ -7,6 +7,9 @@
     "short": "Send reports to server administrators.",
     "description": "Fork of built-in Reports module which improves functionality. Lets users send (anonymous or non-anonymous) reports to the server administrators.",
     "install_msg": "",
+    "requirements": [
+        "discord-py-slash-command"
+    ],
     "tags": [
         "administration",
         "reports"
