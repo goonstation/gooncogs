@@ -55,7 +55,7 @@ class EditablePosts(commands.Cog):
 
     @editable_posts.command()
     @checks.admin()
-    async def remove(self, ctx: commands.Context, message: discord.Message, *):
+    async def remove(self, ctx: commands.Context, message: discord.Message):
         if not await self.valid_message(message):
             return
         await message.delete(message)
