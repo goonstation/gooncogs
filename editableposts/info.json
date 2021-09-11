@@ -1,0 +1,11 @@
+{
+    "name": "EditablePosts",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Lets administrators create and edit posts via the bot.",
+    "description": "Lets administrators create and edit posts via the bot. For example for a rules post etc.",
+    "tags": [
+	"administration"
+    ]
+}
