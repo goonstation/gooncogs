@@ -1,0 +1,14 @@
+{
+    "name": "InlineCommands",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Lets people use commands in-line in messages using [command].",
+    "description": "Lets people use commands in-line in messages by putting them in square brackets.",
+    "install_msg": "Users can now put commands in square brackets in messages to use them in-line.",
+    "tags": [
+        "qol",
+	"commands"
+    ],
+    "end_user_data_statement": "This cog doesn't store anything at all."
+}
