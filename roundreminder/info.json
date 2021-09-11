@@ -1,0 +1,12 @@
+{
+    "name": "RoundReminder",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Lets people set reminders for when a next Goonstation round is starting.",
+    "description": "Lets people set reminders for when a next Goonstation round is starting.",
+    "tags": [
+	 "ss13",
+	 "reminder"
+    ]
+}
