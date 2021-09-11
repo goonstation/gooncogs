@@ -1,0 +1,9 @@
+{
+    "author" : ["pali (pali#0439)"],
+    "install_msg" : "Goonstatioon cogs",
+    "name" : "gooncogs",
+    "short" : "gooncogs",
+    "requirements": [],
+    "description" : "Goonstation cogs",
+    "tags" : ["Fun", "SS13", "Utility", "Administration"]
+}
