@@ -1,0 +1,12 @@
+{
+    "name": "RoleStuff",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Role management for Goonstation server.",
+    "description": "Role management for Goonstation server. This is pretty much hardcoded and very specific. Don't install this elsewhere please.",
+    "tags": [
+	"administration",
+	"roles"
+    ]
+}
