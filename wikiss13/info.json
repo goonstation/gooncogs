@@ -1,0 +1,16 @@
+{
+    "name": "WikiSS13",
+    "author": [
+        "PhasecoreX (PhasecoreX#0635)",
+	"pali (pali#0439)"
+    ],
+    "short": "Look up articles on Goonstation Wiki.",
+    "description": "Allows for looking up terms on Goonstation Wiki, and having the results displayed in chat. Fork of https://github.com/PhasecoreX/PCXCogs/tree/master/wikipedia that has been mutilated to work with a different wiki.",
+    "requirements": ["python-dateutil"],
+    "tags": [
+        "utility",
+        "wiki",
+	"ss13"
+    ],
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users."
+}
