@@ -55,6 +55,14 @@ class EditablePosts(commands.Cog):
 
     @editable_posts.command()
     @checks.admin()
+    async def remove(self, ctx: commands.Context, message: discord.Message):
+        if not await self.valid_message(message):
+            return
+        await message.delete()
+        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+
+    @editable_posts.command()
+    @checks.admin()
     async def list(self, ctx: commands.Context):
         messages = []
         for msg_id, data in (await self.config.custom("editable_posts").all()).items():
