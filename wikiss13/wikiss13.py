@@ -35,8 +35,7 @@ class Wikiss13(commands.Cog):
                 'Connection': "keep-alive",
                 'Upgrade-Insecure-Requests': "1",
                 'Cache-Control': "max-age=0",
-                'TE': "Trailers",
-                'Cookie' : "mybb[lastvisit]=1605562137; mybb[lastactive]=1605562314; loginattempts=1; mybbuser=4113_2MLTuWVYJItLPwfSoCcaJhxtTXe1pXimk7Aryps7XE4yBzDii0; mybb[announcements]=0; goonwiki_wiki_UserID=1207; goonwiki_wiki_UserName=Pali6; goonwiki_wiki_Token=9b4828784a7d721c3702168db69acb14; mybb[threadread]=a%3A1%3A%7Bi%3A15403%3Bi%3A1605561439%3B%7D; mybb[forumread]=a%3A1%3A%7Bi%3A39%3Bi%3A1605562137%3B%7D; goonwiki_wiki__session=rnq1v3cn0np5mal6dg83n6eohrb76m66; sid=d6c10052705edc0af336ab9725aec786; __cfduid=d1373585f888cc96a7594e6ce5e2a1f241615998035; cpPosTime=1617909183.8182"
+                'TE': "Trailers"
             }
     WIKI_URL = "https://wiki.ss13.co"
     API_URL = WIKI_URL + "/api.php"
