@@ -6,7 +6,7 @@
     ],
     "short": "Look up articles on Goonstation Wiki.",
     "description": "Allows for looking up terms on Goonstation Wiki, and having the results displayed in chat. Fork of https://github.com/PhasecoreX/PCXCogs/tree/master/wikipedia that has been mutilated to work with a different wiki.",
-    "requirements": ["python-dateutil"],
+    "requirements": ["python-dateutil", "Levenshtein"],
     "tags": [
         "utility",
         "wiki",
