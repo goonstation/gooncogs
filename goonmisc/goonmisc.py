@@ -249,4 +249,4 @@ class GoonMisc(commands.Cog):
     @checks.admin()
     async def anontalk(self, ctx: commands.Context, channel: discord.TextChannel, *, message: str):
         """Admin command to send a message to a channel through the bot without identifying yourself."""
-        await channel.send("\N{LARGE RED SQUARE}__admin message__\N{LARGE RED SQUARE}\n" + message)
+        await channel.send("\N{LARGE RED SQUARE} __admin message__ \N{LARGE RED SQUARE}\n" + message)
