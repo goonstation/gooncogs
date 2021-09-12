@@ -1,0 +1,16 @@
+{
+    "name": "TimeStamp",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Lets people generate discord smart timestamps from human readable time description.",
+    "description": "Lets people generate discord smart timestamps from human readable time description.",
+    "requirements": [
+	"dateparser"
+    ],
+    "tags": [
+        "time",
+	"utility"
+    ],
+    "end_user_data_statement": "This cog doesn't store anything at all."
+}
