@@ -163,7 +163,7 @@ class RoleStuff(commands.Cog):
                             await self.debug_channel.send(f"Gave {self.player_role.name} to {author.mention}.")
                             return
 
-            if message.content.startswith(".link") or message.content.startswith("!link"):
+            if message.content.startswith(".link") or message.content.startswith("!link") or message.content.startswith("]debuglink"):
                 tries = 10
                 while self.player_role not in message.author.roles and tries > 0:
                     tries -= 1
