@@ -1,0 +1,13 @@
+{
+    "name": "WorldTopic",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Library cog to send messages to BYOND servers' /world/Topic() procedure.",
+    "description": "Library cog to send messages to BYOND servers' /world/Topic() procedure.",
+    "tags": [
+	"ss13",
+	"byond",
+	"library"
+    ]
+}
