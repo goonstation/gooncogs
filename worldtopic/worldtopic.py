@@ -106,7 +106,7 @@ class WorldTopic(commands.Cog):
         except (asyncio.exceptions.TimeoutError, TimeoutError) as e:
             await ctx.send("Request timed out.")
             return
-        except asyncio.exceptions.ConnectionRefusedError:
+        except ConnectionRefusedError:
             await ctx.send("Connection refused.")
             return
         elapsed = time.time() - start_time
