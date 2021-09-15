@@ -47,17 +47,13 @@ class PinOrder(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_message_edit(self, payload):
-        try:
-            if not payload.data['pinned']:
-                return
-            channel = self.bot.get_channel(payload.channel_id)
-            pins = await self.config.channel(channel).pins()
-            if not pins:
-                return
-            await self.refresh_pins(channel)
-        except:
-            import traceback
-            return await self.bot.send_to_owners(traceback.format_exc())
+        if not payload.data.get('pinned'):
+            return
+        channel = self.bot.get_channel(payload.channel_id)
+        pins = await self.config.channel(channel).pins()
+        if not pins:
+            return
+        await self.refresh_pins(channel)
 
     @commands.group()
     @checks.has_permissions(manage_messages=True)
