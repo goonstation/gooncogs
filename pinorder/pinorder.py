@@ -46,14 +46,15 @@ class PinOrder(commands.Cog):
             self.refreshes.remove(channel)
 
     @commands.Cog.listener()
-    async def on_message_edit(self, before: discord.Message, after: discord.Message):
+    async def on_raw_message_edit(self, payload):
         try:
-            if before.pinned or not after.pinned:
+            if not payload.data['pinned']:
                 return
-            pins = await self.config.channel(after.channel).pins()
+            channel = self.bot.get_channel(payload.channel_id)
+            pins = await self.config.channel(channel).pins()
             if not pins:
                 return
-            await self.refresh_pins(after.channel)
+            await self.refresh_pins(channel)
         except:
             import traceback
             return await self.bot.send_to_owners(traceback.format_exc())
