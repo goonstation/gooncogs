@@ -128,7 +128,7 @@ class GoonServers(commands.Cog):
         if status_info['time']:
             result_parts.append(f"time: {status_info['time']}")
         if status_info['shuttle_eta']:
-            result_parts.append(f"{status_info['shuttle']} shuttle {status_info['shuffle_eta']}")
+            result_parts.append(f"{status_info['shuttle']} shuttle {status_info['shuttle_eta']}")
         return result_parts
 
     def generate_status_text(self, status_info, embed_url=False):
