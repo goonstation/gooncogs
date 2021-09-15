@@ -1,0 +1,12 @@
+{
+    "name": "GoonServers",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Cog to store list of Goonstation servers and query their status.",
+    "description": "Cog to store list of Goonstation servers and query their status.",
+    "tags": [
+	"ss13",
+	"byond"
+    ]
+}
