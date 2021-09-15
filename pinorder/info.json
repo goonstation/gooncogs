@@ -1,0 +1,11 @@
+{
+    "name": "PinOrder",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Cog that lets you set some pins to be always on top of the pin list.",
+    "description": "Cog that lets you set some pins to be always on top of the pin list.",
+    "tags": [
+	"pins"
+    ]
+}
