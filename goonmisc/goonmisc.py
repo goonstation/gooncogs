@@ -197,7 +197,7 @@ class GoonMisc(commands.Cog):
                         alt_index[letter] += 1
                     if alternative:
                         emojis.append(alternative)
-        emojis = emojis[:19]
+        # emojis = emojis[:19]
         for emoji in emojis:
             if emoji is None:
                 continue
