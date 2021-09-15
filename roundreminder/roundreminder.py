@@ -15,6 +15,8 @@ class RoundReminder(commands.Cog):
         self.config.register_user(**self.default_user_settings)
 
     def normalize(self, text):
+        if text is None:
+            return text
         return ''.join(c for c in text.lower() if c.isalnum())
 
     @commands.command()
