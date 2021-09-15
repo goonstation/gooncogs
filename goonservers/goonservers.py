@@ -6,10 +6,14 @@ from redbot.core.bot import Red
 from typing import *
 import socket
 import re
+from collections import OrderedDict
 
 class GoonServers(commands.Cog):
     INITIAL_CHECK_TIMEOUT = 0.2
     ALLOW_ADHOC = True
+    COLOR_GOON = discord.Colour.from_rgb(222, 190, 49)
+    COLOR_OTHER = discord.Colour.from_rgb(130, 130, 222)
+    COLOR_ERROR = discord.Colour.from_rgb(220, 150, 150)
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -67,7 +71,7 @@ class GoonServers(commands.Cog):
         minutes, seconds = divmod(remainder, 60)
         return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
 
-    def status_format_elapsed(self, status, skip_elapsed=False):
+    def status_format_elapsed(self, status):
         elapsed = status.get('elapsed') or status.get('round_duration') or status.get('stationtime')
         if elapsed == 'pre':
             elapsed = "preround"
@@ -75,82 +79,84 @@ class GoonServers(commands.Cog):
             elapsed = "finished"
         elif elapsed is not None:
             try:
-                elapsed = self.seconds_to_hhmmss(int(float(elapsed))) + ("" if skip_elapsed else " elapsed")
+                elapsed = self.seconds_to_hhmmss(int(elapsed))
             except ValueError:
                 pass
         return elapsed
 
-    async def get_status_text(self, server, worldtopic, embed_url=False):
-        result = f"**{server['full_name']}**"
-        if embed_url and 'url' in server and server['url']:
-            result = f"[{result}]({server['url']})"
-        result += " "
+    async def get_status_info(self, server, worldtopic):
+        result = OrderedDict()
+        result['full_name'] = server.get('full_name') or server['host']
+        result['url'] = server.get('url')
+        result['type'] = server['type']
+        result['error'] = None
         try:
             response = await worldtopic.send((server['host'], server['port']), 'status')
         except (asyncio.exceptions.TimeoutError, TimeoutError) as e:
-            return result + "Server not responding"
+            result['error'] = "Server not responding."
+            return result
         except (socket.gaierror, ConnectionRefusedError) as e:
-            return result + "Unable to connect."
+            result['error'] = "Unable to connect."
+            return result
         status = worldtopic.params_to_dict(response)
-        if 'station_name' in status:
-            result += f"{status['station_name'] or ''} | "
-        players = int(status['players']) if 'players' in status else None
-        if players is not None:
-            players_plural = 's' if players != 1 else ''
-            result += f"{status['players']} player{players_plural}"
-        if 'map_name' in status:
-            result += f" | map: {status['map_name']}"
-        if 'mode' in status and status['mode'] != 'secret':
-            result += f" | mode: {status['mode']}"
-        elapsed = self.status_format_elapsed(status)
-        if elapsed is not None:
-            result += f" | {elapsed}"
+        result['station_name'] = status.get('station_name')
+        result['players'] = int(status['players']) if 'players' in status else None
+        result['map'] = status.get('map_name')
+        result['mode'] = status.get('mode')
+        result['time'] = self.status_format_elapsed(status)
+        result['shuttle'] = None
+        result['shuttle_eta'] = None
         if 'shuttle_time' in status and status['shuttle_time'] != 'welp':
-            shuttle_time = int(float(status['shuttle_time']))
+            shuttle_time = int(status['shuttle_time'])
             if shuttle_time != 360:
                 eta = 'ETA' if shuttle_time >= 0 else 'ETD'
                 shuttle_time = abs(shuttle_time)
-                result += f" | {self.seconds_to_hhmmss(shuttle_time)} shuttle {eta}"
-        if not embed_url and 'url' in server and server['url']:
-            result += f" {server['url']}"
+                result['shuttle'] = self.seconds_to_hhmmss(shuttle_time)
+                result['shuttle_eta'] = eta
         return result
 
-    async def get_status_embed(self, server, worldtopic):
+    def status_result_parts(self, status_info):
+        result_parts = []
+        if status_info['station_name']:
+            result_parts.append(status_info['station_name'])
+        if status_info['players'] is not None:
+            result_parts.append(f"{status_info['players']} player" + ('s' if status_info['players'] != 1 else ''))
+        if status_info['map']:
+            result_parts.append(f"map: {status_info['map']}")
+        if status_info['mode'] and status_info['mode'] != "secret":
+            result_parts.append(f"map: {status_info['mode']}")
+        if status_info['time']:
+            result_parts.append(f"time: {status_info['time']}")
+        if status_info['shuttle_eta']:
+            result_parts.append(f"{status_info['shuttle']} shuttle {status_info['shuffle_eta']}")
+        return result_parts
+
+    def generate_status_text(self, status_info, embed_url=False):
+        result = f"**{status_info['full_name']}**"
+        if embed_url and status_info['url']:
+            result = f"[{result}]({status_info['url']})"
+        result += " "
+        if status_info['error']:
+            return result + status_info['error']
+        result += " | ".join(self.status_result_parts(status_info))
+        if not embed_url and status_info['url']:
+            result += " " + status_info['url']
+        return result
+
+    def get_status_embed(self, status_info):
         embed = discord.Embed(type='article')
-        embed.colour = discord.Colour.from_rgb(220, 150, 150)
-        embed.title = server['full_name']
-        if 'url' in server and server['url']:
-            embed.url = server['url']
-        try:
-            response = await worldtopic.send((server['host'], server['port']), 'status')
-        except (asyncio.exceptions.TimeoutError, TimeoutError) as e:
-            embed.description = "Server not responding"
+        embed.title = status_info['full_name']
+        if status_info['url']:
+            embed.url = status_info['url']
+        if status_info['error']:
+            embed.description = status_info['error']
+            embed.colour = self.COLOR_ERROR 
             return embed
-        except ConnectionRefusedError:
-            embed.description = "Unable to connect"
-            return embed
-        if server['type'] == 'goon':
-            embed.colour = discord.Colour.from_rgb(222, 190, 49)
+        if status_info['type'] == 'goon':
+            embed.colour = self.COLOR_GOON
         else:
-            embed.colour = discord.Colour.from_rgb(150, 150, 220)
-        status = worldtopic.params_to_dict(response)
-        if 'station_name' in status:
-            embed.title += f" ({status['station_name']})"
-        if 'players' in status:
-            embed.add_field(inline=True, name="players", value=status['players'])
-        if 'map_name' in status:
-            embed.add_field(inline=True, name="map", value=status['map_name'])
-        if 'mode' in status and status['mode'] != 'secret':
-            embed.add_field(inline=True, name="mode", value=status['mode'])
-        elapsed = self.status_format_elapsed(status, skip_elapsed=True)
-        if elapsed is not None:
-            embed.add_field(inline=True, name="elapsed", value=elapsed)
-        if 'shuttle_time' in status and status['shuttle_time'] != 'welp':
-            shuttle_time = int(float(status['shuttle_time']))
-            if shuttle_time != 360:
-                eta = 'ETA' if shuttle_time >= 0 else 'ETD'
-                shuttle_time = abs(shuttle_time)
-                embed.add_field(inline=True, name=f"shuttle {eta}", value=self.seconds_to_hhmmss(shuttle_time))
+            embed.colour = self.COLOR_OTHER
+        embed.description = " | ".join(self.status_result_parts(status_info))
         return embed
 
     @commands.command()
@@ -165,14 +171,14 @@ class GoonServers(commands.Cog):
         servers = self.resolve_server_or_category(name)
         if not servers:
             return await ctx.send("Unknown server.")
-        futures = [asyncio.Task(self.get_status_text(s, worldtopic)) for s in servers]
+        futures = [asyncio.Task(self.get_status_info(s, worldtopic)) for s in servers]
         done, pending = [], futures
         message = None
         async with ctx.typing():
             while pending:
                 when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
                 done, pending = await asyncio.wait(pending, timeout=self.INITIAL_CHECK_TIMEOUT, return_when=when)
-                message_text = '\n'.join(f.result() for f in futures if f.done())
+                message_text = '\n'.join(self.generate_status_text(f.result()) for f in futures if f.done())
                 if not done:
                     continue
                 if message is None:
@@ -192,20 +198,20 @@ class GoonServers(commands.Cog):
         if not servers:
             return await ctx.send("Unknown server.")
         if len(servers) == 1:
-            return await ctx.send(embed=await self.get_status_embed(servers[0], worldtopic))
-        futures = [asyncio.Task(self.get_status_text(s, worldtopic, embed_url=True)) for s in servers]
+            return await ctx.send(embed=self.get_status_embed(await self.get_status_info(servers[0], worldtopic)))
+        futures = [asyncio.Task(self.get_status_info(s, worldtopic)) for s in servers]
         done, pending = [], futures
         message = None
         embed = discord.Embed()
         all_goon = all(server['type'] == 'goon' for server in servers)
         if all_goon:
-            embed.colour = discord.Colour.from_rgb(222, 190, 49)
+            embed.colour = self.COLOR_GOON
         else:
-            embed.colour = discord.Colour.from_rgb(190, 190, 222)
+            embed.colour = self.COLOR_OTHER
         while pending:
             when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
             done, pending = await asyncio.wait(pending, timeout=self.INITIAL_CHECK_TIMEOUT, return_when=when)
-            message_text = '\n'.join(f.result() for f in futures if f.done())
+            message_text = '\n'.join(self.generate_status_text(f.result(), embed_url=True) for f in futures if f.done())
             embed.description = message_text
             if not done:
                 continue
