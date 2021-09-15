@@ -197,7 +197,11 @@ class GoonServers(commands.Cog):
         done, pending = [], futures
         message = None
         embed = discord.Embed()
-        embed.colour = discord.Colour.from_rgb(222, 190, 49)
+        all_goon = all(server['type'] == 'goon' for server in servers)
+        if all_goon:
+            embed.colour = discord.Colour.from_rgb(222, 190, 49)
+        else:
+            embed.colour = discord.Colour.from_rgb(190, 190, 222)
         while pending:
             when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
             done, pending = await asyncio.wait(pending, timeout=self.INITIAL_CHECK_TIMEOUT, return_when=when)
