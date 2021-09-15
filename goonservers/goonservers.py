@@ -162,7 +162,7 @@ class GoonServers(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(10, wait=False)
-    async def check(self, ctx: commands.Context, name: str = 'all'):
+    async def checkclassic(self, ctx: commands.Context, name: str = 'all'):
         """
         Checks the status of a Goonstation server of servers.
         `name` can be either numeric server id, the server's name, a server category like "all" or even server address.
@@ -189,7 +189,7 @@ class GoonServers(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(10, wait=False)
-    async def checkfancy(self, ctx: commands.Context, name: str = 'all'):
+    async def check(self, ctx: commands.Context, name: str = 'all'):
         """Checks the status of a Goonstation server of servers.
             `name` can be either numeric server id, the server's name or a server category like "all".
         """
