@@ -6,6 +6,8 @@ from redbot.core.bot import Red
 from typing import *
 import socket
 import re
+import datetime
+import random
 from collections import OrderedDict
 
 class GoonServers(commands.Cog):
@@ -14,6 +16,7 @@ class GoonServers(commands.Cog):
     COLOR_GOON = discord.Colour.from_rgb(222, 190, 49)
     COLOR_OTHER = discord.Colour.from_rgb(130, 130, 222)
     COLOR_ERROR = discord.Colour.from_rgb(220, 150, 150)
+
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -59,10 +62,11 @@ class GoonServers(commands.Cog):
         return None
 
     def resolve_server_or_category(self, name):
+        name = name.lower()
         single_server = self.resolve_server(name)
         if single_server is not None:
             return [single_server]
-        if name.lower() not in self.categories:
+        if name not in self.categories:
             return []
         return [self.resolve_server(x) for x in self.categories[name]]
 
@@ -143,8 +147,9 @@ class GoonServers(commands.Cog):
             result += " " + status_info['url']
         return result
 
-    def get_status_embed(self, status_info):
-        embed = discord.Embed(type='article')
+    def generate_status_embed(self, status_info, embed=None):
+        if embed is None:
+            embed = discord.Embed()
         embed.title = status_info['full_name']
         if status_info['url']:
             embed.url = status_info['url']
@@ -167,6 +172,13 @@ class GoonServers(commands.Cog):
         Checks the status of a Goonstation server of servers.
         `name` can be either numeric server id, the server's name, a server category like "all" or even server address.
         """
+
+        if name.lower() in self.CHECK_GIMMICKS:
+            result = await self.CHECK_GIMMICKS[name.lower()](self, ctx)
+            if result:
+                await ctx.send(result)
+                return
+
         worldtopic = self.bot.get_cog('WorldTopic')
         servers = self.resolve_server_or_category(name)
         if not servers:
@@ -193,29 +205,53 @@ class GoonServers(commands.Cog):
         """Checks the status of a Goonstation server of servers.
             `name` can be either numeric server id, the server's name or a server category like "all".
         """
+        embed = discord.Embed()
+        embed.colour = self.COLOR_GOON
+
+        if name.lower() in self.CHECK_GIMMICKS:
+            result = await self.CHECK_GIMMICKS[name.lower()](self, ctx)
+            if result:
+                embed.description = result
+                await ctx.send(embed=embed)
+                return
+
         worldtopic = self.bot.get_cog('WorldTopic')
         servers = self.resolve_server_or_category(name)
         if not servers:
             return await ctx.send("Unknown server.")
-        if len(servers) == 1:
-            return await ctx.send(embed=self.get_status_embed(await self.get_status_info(servers[0], worldtopic)))
+        single_server_embed = len(servers) == 1
         futures = [asyncio.Task(self.get_status_info(s, worldtopic)) for s in servers]
         done, pending = [], futures
         message = None
-        embed = discord.Embed()
         all_goon = all(server['type'] == 'goon' for server in servers)
-        if all_goon:
-            embed.colour = self.COLOR_GOON
-        else:
+        if not all_goon:
             embed.colour = self.COLOR_OTHER
         while pending:
             when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
             done, pending = await asyncio.wait(pending, timeout=self.INITIAL_CHECK_TIMEOUT, return_when=when)
-            message_text = '\n'.join(self.generate_status_text(f.result(), embed_url=True) for f in futures if f.done())
-            embed.description = message_text
+            if not single_server_embed:
+                message_text = '\n'.join(self.generate_status_text(f.result(), embed_url=True) for f in futures if f.done())
+                embed.description = message_text
+            else:
+                for f in futures:
+                    if f.done():
+                        embed = self.generate_status_embed(f.result(), embed)
             if not done:
                 continue
             if message is None:
                 message = await ctx.send(embed=embed)
             else:
                 await message.edit(embed=embed)
+
+    async def _check_gimmick_oven(self, ctx: commands.Context):
+        ts = int(datetime.datetime.now().timestamp())
+        ts += random.randint(1, 60 * 60)
+        return f"The cookies will be done <t:{ts}:R>."
+
+    async def _check_gimmick_goonstation(self, ctx: commands.Context):
+        return f"Goonstation: dead, sorry, go home."
+
+    CHECK_GIMMICKS = {
+            'oven': _check_gimmick_oven,
+            'goonstation': _check_gimmick_goonstation,
+        }
