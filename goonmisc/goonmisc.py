@@ -266,10 +266,10 @@ class GoonMisc(commands.Cog):
         fg = PIL.Image.open(datapath / "logo_g.png").convert('RGBA')
 
         async def make_paint(arg, attachment_index):
-            if arg and '.' not in arg:
+            if len(ctx.message.attachments) > attachment_index:
+                arg = ctx.message.attachments[attachment_index].url
+            elif arg and '.' not in arg:
                 return PIL.Image.new('RGBA', bg.size, color=arg)
-            if not arg and len(ctx.message.attachments) > attachment_index:
-                arg = ctx.message.attachments[0].url
             if arg is None:
                 return None
             async with aiohttp.ClientSession() as session:
@@ -292,7 +292,7 @@ class GoonMisc(commands.Cog):
             return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment).")
 
         try:
-            fg_paint = await make_paint(foreground, 1)
+            fg_paint = await make_paint(background if len(ctx.message.attachments) > 0 else foreground, 1)
         except ValueError:
             return await ctx.send(f"Unknown foreground color {foreground}.")
         except PIL.UnidentifiedImageError:
