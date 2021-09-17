@@ -7,7 +7,9 @@
     "description": "Stuff specific to Goonstation that didn't fit elsewhere.",
     "requirements": [
         "githubpy",
-	"requests"
+	"requests",
+	"pillow",
+	"aiohttp"
     ],
     "tags": [
 	"fun",

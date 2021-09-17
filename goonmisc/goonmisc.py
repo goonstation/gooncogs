@@ -5,7 +5,7 @@ import os.path
 from github import Github
 from redbot.core import commands, Config, checks
 from redbot.core.bot import Red
-from redbot.core.data_manager import cog_data_path
+from redbot.core.data_manager import cog_data_path, bundled_data_path
 from concurrent.futures.thread import ThreadPoolExecutor
 from typing import *
 import requests
@@ -13,6 +13,9 @@ from collections import defaultdict
 import datetime
 import re
 import bisect
+import PIL
+import io
+import aiohttp
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -250,3 +253,59 @@ class GoonMisc(commands.Cog):
     async def anontalk(self, ctx: commands.Context, channel: discord.TextChannel, *, message: str):
         """Admin command to send a message to a channel through the bot without identifying yourself."""
         await channel.send("\N{LARGE RED SQUARE} __admin message__ \N{LARGE RED SQUARE}\n" + message)
+
+    @commands.command()
+    async def makelogo(self, ctx: commands.Context, background: Optional[str], foreground: Optional[str]):
+        """
+        Creates a variant of the Goonstation logo with given background and foreground.
+        Both background and foreground can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message.
+        """
+
+        datapath = bundled_data_path(self)
+        bg = PIL.Image.open(datapath / "logo_bg.png").convert('RGBA')
+        fg = PIL.Image.open(datapath / "logo_g.png").convert('RGBA')
+
+        async def make_paint(arg, attachment_index):
+            if arg and '.' not in arg:
+                return PIL.Image.new('RGBA', bg.size, color=arg)
+            if not arg and len(ctx.message.attachments) > attachment_index:
+                arg = ctx.message.attachments[0].url
+            if arg is None:
+                return None
+            async with aiohttp.ClientSession() as session:
+                async with session.get(arg) as response:
+                    image = PIL.Image.open(io.BytesIO(await response.read()))
+                    scale_factor = max(bsize / isize for bsize, isize in zip(bg.size, image.size))
+                    if scale_factor > 1:
+                        image = image.resize((int(s * scale_factor) for s in image.size))
+                    return image
+
+        try:
+            bg_paint = await make_paint(background, 0)
+        except ValueError:
+            return await ctx.send(f"Unknown background color {background}.")
+        except PIL.UnidentifiedImageError:
+            return await ctx.send(f"Cannot read background image.")
+        if bg_paint:
+            bg = PIL.ImageChops.multiply(bg, bg_paint.convert('RGBA'))
+        else:
+            return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment).")
+
+        try:
+            fg_paint = await make_paint(foreground, 1)
+        except ValueError:
+            return await ctx.send(f"Unknown foreground color {foreground}.")
+        except PIL.UnidentifiedImageError:
+            return await ctx.send(f"Cannot read foreground image.")
+        if fg_paint:
+            fg = PIL.ImageChops.multiply(fg, fg_paint.convert('RGBA'))
+
+        bg.paste(fg, (0, 0), fg)
+
+        img_data = io.BytesIO()
+        bg.save(img_data, format='png')
+        img_data.seek(0)
+        img_file = discord.File(img_data, filename="logo.png")
+        await ctx.send(file=img_file)
+
+
