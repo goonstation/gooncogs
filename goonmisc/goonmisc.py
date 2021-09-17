@@ -307,7 +307,7 @@ class GoonMisc(commands.Cog):
             scale_factors = [bsize / isize for bsize, isize in zip(bg.size, image.size)]
             scale_factor = max(scale_factors)
             if scale_factor != 1.:
-                image = image.resize((int(s * scale_factor) for s in image.size))
+                image = image.resize((int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC)
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
                 center_x = image.size[0] / 2
