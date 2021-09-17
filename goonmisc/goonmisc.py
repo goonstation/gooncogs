@@ -255,10 +255,12 @@ class GoonMisc(commands.Cog):
         await channel.send("\N{LARGE RED SQUARE} __admin message__ \N{LARGE RED SQUARE}\n" + message)
 
     @commands.command()
-    async def makelogo(self, ctx: commands.Context, background: Optional[str], foreground: Optional[str]):
+    async def makelogo(self, ctx: commands.Context,
+            background: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+            foreground: Optional[Union[discord.Member, discord.PartialEmoji, str]]):
         """
         Creates a variant of the Goonstation logo with given background and foreground.
-        Both background and foreground can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message.
+        Both background and foreground can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
         """
 
         datapath = bundled_data_path(self)
@@ -266,19 +268,26 @@ class GoonMisc(commands.Cog):
         fg = PIL.Image.open(datapath / "logo_g.png").convert('RGBA')
 
         async def make_paint(arg, attachment_index):
+            img_bytes = None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
+            elif isinstance(arg, discord.Member):
+                img_bytes = await arg.avatar_url_as(format='png').read()
+            elif isinstance(arg, discord.PartialEmoji):
+                img_bytes = await arg.url_as(format='png').read()
             elif arg and '.' not in arg:
                 return PIL.Image.new('RGBA', bg.size, color=arg)
-            if arg is None:
+            if arg is None and img_bytes is None:
                 return None
-            async with aiohttp.ClientSession() as session:
-                async with session.get(arg) as response:
-                    image = PIL.Image.open(io.BytesIO(await response.read()))
-                    scale_factor = max(bsize / isize for bsize, isize in zip(bg.size, image.size))
-                    if scale_factor > 1:
-                        image = image.resize((int(s * scale_factor) for s in image.size))
-                    return image
+            if img_bytes is None:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(arg) as response:
+                        img_bytes = await response.read()
+            image = PIL.Image.open(io.BytesIO(img_bytes))
+            scale_factor = max(bsize / isize for bsize, isize in zip(bg.size, image.size))
+            if scale_factor > 1:
+                image = image.resize((int(s * scale_factor) for s in image.size))
+            return image
 
         try:
             bg_paint = await make_paint(background, 0)
@@ -289,7 +298,7 @@ class GoonMisc(commands.Cog):
         if bg_paint:
             bg = PIL.ImageChops.multiply(bg, bg_paint.convert('RGBA'))
         else:
-            return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment).")
+            return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
 
         try:
             fg_paint = await make_paint(background if len(ctx.message.attachments) > 0 else foreground, 1)
