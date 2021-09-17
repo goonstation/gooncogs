@@ -16,6 +16,7 @@ import bisect
 import PIL
 import io
 import aiohttp
+import colorsys
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -254,7 +255,22 @@ class GoonMisc(commands.Cog):
         """Admin command to send a message to a channel through the bot without identifying yourself."""
         await channel.send("\N{LARGE RED SQUARE} __admin message__ \N{LARGE RED SQUARE}\n" + message)
 
+    def _pretty_paint(self, img, from_col, to_col):
+        from_hsv = colorsys.rgb_to_hsv(*from_col)
+        to_hsv = colorsys.rgb_to_hsv(*to_col)
+        def transform(p):
+            r, g, b, a = p
+            h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            h += to_hsv[0] - from_hsv[0]
+            s *= to_hsv[1] / from_hsv[1]
+            v *= to_hsv[2] / from_hsv[2]
+            ro, go, bo = colorsys.hsv_to_rgb(h, s, v)
+            return (int(ro * 255), int(go * 255), int(bo * 255), a)
+        img.putdata(list(map(transform, img.convert('RGBA').getdata())))
+
     @commands.command()
+    @commands.cooldown(1, 1)
+    @commands.max_concurrency(1, wait=True)
     async def makelogo(self, ctx: commands.Context,
             background: Optional[Union[discord.Member, discord.PartialEmoji, str]],
             foreground: Optional[Union[discord.Member, discord.PartialEmoji, str]]):
@@ -304,16 +320,32 @@ class GoonMisc(commands.Cog):
                     ))
             return image
 
-        try:
-            bg_paint = await make_paint(background, 0)
-        except ValueError:
-            return await ctx.send(f"Unknown background color {background}.")
-        except PIL.UnidentifiedImageError:
-            return await ctx.send(f"Cannot read background image.")
-        if bg_paint:
-            bg = PIL.ImageChops.multiply(bg, bg_paint.convert('RGBA'))
+        bg_color = None
+        if isinstance(background, str) and len(background) > 0 and background[0] == '!':
+            try:
+                bg_color = PIL.ImageColor.getrgb(background[1:])
+            except ValueError:
+                pass
+        if bg_color is not None:
+            bg = PIL.Image.open(datapath / "logo_bg_color.png")
+            executor = ThreadPoolExecutor(max_workers=1)
+            async with ctx.typing():
+                await asyncio.get_running_loop().run_in_executor(executor, self._pretty_paint,
+                        bg,
+                        PIL.ImageColor.getrgb("#eced42"),
+                        bg_color
+                    )
         else:
-            return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
+            try:
+                bg_paint = await make_paint(background, 0)
+            except ValueError:
+                return await ctx.send(f"Unknown background color {background}.")
+            except PIL.UnidentifiedImageError:
+                return await ctx.send(f"Cannot read background image.")
+            if bg_paint:
+                bg = PIL.ImageChops.multiply(bg, bg_paint.convert('RGBA'))
+            else:
+                return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
 
         try:
             fg_paint = await make_paint(background if len(ctx.message.attachments) > 0 else foreground, 1)
