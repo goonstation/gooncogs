@@ -284,8 +284,9 @@ class GoonMisc(commands.Cog):
                     async with session.get(arg) as response:
                         img_bytes = await response.read()
             image = PIL.Image.open(io.BytesIO(img_bytes))
-            scale_factor = max(bsize / isize for bsize, isize in zip(bg.size, image.size))
-            if scale_factor > 1:
+            scale_factors = [bsize / isize for bsize, isize in zip(bg.size, image.size)]
+            scale_factor = max(scale_factors)
+            if scale_factor != 1.:
                 image = image.resize((int(s * scale_factor) for s in image.size))
             return image
 
