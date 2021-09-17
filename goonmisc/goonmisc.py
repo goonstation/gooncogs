@@ -269,12 +269,16 @@ class GoonMisc(commands.Cog):
 
         async def make_paint(arg, attachment_index):
             img_bytes = None
+            if arg is None:
+                return None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
             elif isinstance(arg, discord.Member):
                 img_bytes = await arg.avatar_url_as(format='png').read()
             elif isinstance(arg, discord.PartialEmoji):
                 img_bytes = await arg.url_as(format='png').read()
+            elif ord(arg[0]) > 127:
+                arg = "https://twemoji.maxcdn.com/v/latest/72x72/{}.png".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg))
             elif arg and '.' not in arg:
                 return PIL.Image.new('RGBA', bg.size, color=arg)
             if arg is None and img_bytes is None:
