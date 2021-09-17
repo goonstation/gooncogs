@@ -269,10 +269,10 @@ class GoonMisc(commands.Cog):
 
         async def make_paint(arg, attachment_index):
             img_bytes = None
-            if arg is None:
-                return None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
+            if arg is None:
+                return None
             elif isinstance(arg, discord.Member):
                 img_bytes = await arg.avatar_url_as(format='png').read()
             elif isinstance(arg, discord.PartialEmoji):
@@ -292,6 +292,16 @@ class GoonMisc(commands.Cog):
             scale_factor = max(scale_factors)
             if scale_factor != 1.:
                 image = image.resize((int(s * scale_factor) for s in image.size))
+            if image.size[0] != image.size[1]:
+                half_new_size = min(image.size) / 2
+                center_x = image.size[0] / 2
+                center_y = image.size[1] / 2
+                image = image.crop((
+                    int(center_x - half_new_size),
+                    int(center_y - half_new_size),
+                    int(center_x + half_new_size),
+                    int(center_y + half_new_size)
+                    ))
             return image
 
         try:
