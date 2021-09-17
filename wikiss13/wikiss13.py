@@ -64,7 +64,7 @@ class Wikiss13(commands.Cog):
 
     @commands.command(aliases=["wiki13", "w13"])
     async def wikiss13(self, ctx: commands.Context, *, query: str):
-        """Get information from Wikipedia."""
+        """Get information from Goonstation Wiki."""
         async with ctx.typing():
             payload = self.generate_payload(query)
             async with aiohttp.ClientSession() as session:
@@ -138,7 +138,7 @@ class Wikiss13(commands.Cog):
             await menu(ctx, embeds, DEFAULT_CONTROLS, timeout=60.0)
 
     def generate_payload(self, query: str):
-        """Generate the payload for Wikipedia based on a query string."""
+        """Generate the payload for Goonstation Wiki based on a query string."""
         query_tokens = query.split()
         payload = {
             # Main module
