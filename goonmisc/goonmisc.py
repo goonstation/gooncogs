@@ -303,8 +303,8 @@ class GoonMisc(commands.Cog):
             if img_bytes is None:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(arg) as response:
-                        img_bytes = await response.read()
-                if arg.endswith(".svg"):
+                        img_bytes = await response.read() if response.status == 200 else b""
+                if arg.endswith(".svg") and len(img_bytes):
                     img_bytes = cairosvg.svg2png(bytestring=img_bytes, parent_width=bg.size[0], parent_height=bg.size[1])
             image = PIL.Image.open(io.BytesIO(img_bytes))
             scale_factors = [bsize / isize for bsize, isize in zip(bg.size, image.size)]
