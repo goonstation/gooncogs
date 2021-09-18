@@ -17,6 +17,7 @@ import PIL
 import io
 import aiohttp
 import colorsys
+import cairosvg
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -294,7 +295,7 @@ class GoonMisc(commands.Cog):
             elif isinstance(arg, discord.PartialEmoji):
                 img_bytes = await arg.url_as(format='png').read()
             elif ord(arg[0]) > 127:
-                arg = "https://twemoji.maxcdn.com/v/latest/72x72/{}.png".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg))
+                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg))
             elif arg and '.' not in arg:
                 return PIL.Image.new('RGBA', bg.size, color=arg)
             if arg is None and img_bytes is None:
@@ -303,6 +304,8 @@ class GoonMisc(commands.Cog):
                 async with aiohttp.ClientSession() as session:
                     async with session.get(arg) as response:
                         img_bytes = await response.read()
+                if arg.endswith(".svg"):
+                    img_bytes = cairosvg.svg2png(bytestring=img_bytes, parent_width=bg.size[0], parent_height=bg.size[1])
             image = PIL.Image.open(io.BytesIO(img_bytes))
             scale_factors = [bsize / isize for bsize, isize in zip(bg.size, image.size)]
             scale_factor = max(scale_factors)

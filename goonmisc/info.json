@@ -9,7 +9,9 @@
         "githubpy",
 	"requests",
 	"pillow",
-	"aiohttp"
+	"aiohttp",
+	"colorsys",
+	"cairosvg"
     ],
     "tags": [
 	"fun",
