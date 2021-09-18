@@ -356,7 +356,7 @@ class GoonMisc(commands.Cog):
         if fg_paint:
             fg = PIL.ImageChops.multiply(fg, fg_paint.convert('RGBA'))
 
-        bg.paste(fg, (0, 0), fg)
+        bg.paste(fg.convert('RGB'), (0, 0), fg)
 
         img_data = io.BytesIO()
         bg.save(img_data, format='png')
