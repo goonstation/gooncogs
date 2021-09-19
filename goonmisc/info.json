@@ -10,7 +10,6 @@
 	"requests",
 	"pillow",
 	"aiohttp",
-	"colorsys",
 	"cairosvg"
     ],
     "tags": [
