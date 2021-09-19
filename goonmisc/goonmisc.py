@@ -281,7 +281,7 @@ class GoonMisc(commands.Cog):
         """
 
         datapath = bundled_data_path(self)
-        bg = PIL.Image.open(datapath / "logo_bg.png").convert('RGBA')
+        bg = None
         fg = PIL.Image.open(datapath / "logo_g.png").convert('RGBA')
 
         async def make_paint(arg, attachment_index):
@@ -338,7 +338,10 @@ class GoonMisc(commands.Cog):
                         PIL.ImageColor.getrgb("#eced42"),
                         bg_color
                     )
+        elif background.lower() in ["goon", "goonstation", "default"]:
+            bg = PIL.Image.open(datapath / "logo_bg_color.png").convert('RGBA')
         else:
+            bg = PIL.Image.open(datapath / "logo_bg.png").convert('RGBA')
             try:
                 bg_paint = await make_paint(background, 0)
             except ValueError:
