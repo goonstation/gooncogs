@@ -1,0 +1,14 @@
+{
+    "name": "TGS",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Cog to manage Space Station 13 running on TGS.",
+    "description": "Cog to manage Space Station 13 running on TGS.",
+    "install_msg": "You will need to set RedBot API keys for your TGS instance like this:\n`]set api tgs user,exampleusername password,examplepassword host,https://tgs.exampls.com`",
+    "requirements": ["aiohttp"],
+    "tags": [
+	"ss13",
+	"byond"
+    ]
+}
