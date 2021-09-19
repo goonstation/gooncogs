@@ -14,6 +14,7 @@ class LoginError(Exception):
 
 class TGS(commands.Cog):
     API_VERSION = "Tgstation.Server.Api/9.2.0"
+    CACHE_SERVER_LIST = True
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -21,6 +22,7 @@ class TGS(commands.Cog):
         self.bearer_expires = None
         self.host = None
         self.session = aiohttp.ClientSession()
+        self.server_list_cache = None
 
     async def login(self):
         tokens = await self.bot.get_shared_api_tokens('tgs')
@@ -59,11 +61,14 @@ class TGS(commands.Cog):
         if not await self.get_bearer():
             raise LoginError()
 
-    async def list_servers(self):
+    async def list_servers(self, force_refresh=True):
+        if not force_refresh and self.CACHE_SERVER_LIST and self.server_list_cache:
+            return self.server_list_cache
         await self.assure_logged_in()
         # TODO support for multiple pages lol
         async with self.session.get(self.host + "/Instance/List?pageSize=100") as res:
-            return (await res.json(content_type=None))['content']
+            self.server_list_cache = (await res.json(content_type=None))['content']
+            return self.server_list_cache
 
     async def restart_server(self, server):
         # user-friendly server name
@@ -77,7 +82,7 @@ class TGS(commands.Cog):
         # tgs server id
         await self.assure_logged_in()
         if isinstance(server, str):
-            for maybe_server in await self.list_servers():
+            for maybe_server in await self.list_servers(force_refresh=False):
                 if maybe_server['name'] == server.lower():
                     server = maybe_server['id']
                     break
