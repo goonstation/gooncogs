@@ -12,6 +12,17 @@ import re
 class LoginError(Exception):
     pass
 
+class UnknownServerError(Exception):
+    pass
+
+class HttpStatusCodeError(Exception):
+    def __init__(self, status, data):
+        self.status = status
+        self.data = data
+
+    def __str__(self):
+        return f"HTTP Status code {self.status}"
+
 class TGS(commands.Cog):
     API_VERSION = "Tgstation.Server.Api/9.2.0"
     CACHE_SERVER_LIST = True
@@ -67,7 +78,10 @@ class TGS(commands.Cog):
         await self.assure_logged_in()
         # TODO support for multiple pages lol
         async with self.session.get(self.host + "/Instance/List?pageSize=100") as res:
-            self.server_list_cache = (await res.json(content_type=None))['content']
+            data = await res.json(content_type=None)
+            if 'content' not in data:
+                return await self.process_response(res)
+            self.server_list_cache = data['content']
             return self.server_list_cache
 
     async def resolve_server(self, server: Union[int, dict, str]) -> Optional[int]:
@@ -91,8 +105,14 @@ class TGS(commands.Cog):
                     break
         # failure
         if not isinstance(server, int):
-            return None
+            raise UnknownServerError()
         return server
+
+    async def process_response(self, response):
+        result = await response.json(content_type=None)
+        if not result and response.status != 200:
+            raise HttpStatusCodeError(response.status, response)
+        return result
 
     async def restart_server(self, server):
         server = await self.resolve_server(server)
@@ -100,25 +120,57 @@ class TGS(commands.Cog):
             return None
         await self.assure_logged_in()
         async with self.session.patch(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
-            return await res.json(content_type=None)
+            return await self.process_response(res)
+
+    async def diag_server(self, server):
+        server = await self.resolve_server(server)
+        if server is None:
+            return None
+        await self.assure_logged_in()
+        async with self.session.patch(self.host + "/DreamDaemon/Diagnostics", headers={'Instance': str(server)}) as res:
+            return await self.process_response(res)
 
     @commands.group()
     async def tgs(self, ctx: commands.Context):
         """Commands for managing TGS SS13 server instances."""
 
+    async def run_request(self, ctx: commands.Context, request):
+        async with ctx.typing():
+            try:
+                response = await request
+                if response is None:
+                    await ctx.send("Unknown error.")
+                elif isinstance(response, dict) and 'errorCode' in response:
+                    await ctx.send(f"{response['message']} (error code: {response['errorCode']})")
+                else:
+                    return response
+            except HttpStatusCodeError as e:
+                if e.status == 403:
+                    await ctx.send(f"Insuffiecient TGS user permissions (HTTP error code: {e.status})")
+                elif e.status == 503:
+                    await ctx.send(f"TGS server is starting up or shutting down. (HTTP error code: {e.status})")
+                elif e.status == 401:
+                    await ctx.send(f"Invalid TGS authentication, please contact bot owner. (HTTP error code: {e.status})")
+                else:
+                    await ctx.send(f"HTTP status code: {e.status}")
+            except UnknownServerError:
+                await ctx.send("Unknown server name.")
+            except LoginError:
+                await ctx.send("Unable to login, please contact the bot owner and/or the TGS instance administrator.")
+        return None
+
     @tgs.command()
     @checks.admin()
     async def list(self, ctx: commands.Context):
         """Lists servers managed by the current TGS instance."""
-        async with ctx.typing():
-            try:
-                lines = []
-                for server in await self.list_servers():
-                    lines.append(("\N{Large Green Circle}" if server['online'] else "\N{Large Red Circle}") + \
-                        f" {server['id']} | {server['name']}")
-                await ctx.send('\n'.join(lines))
-            except LoginError:
-                await ctx.send("Unable to login, please contact the bot owner and/or the TGS instance administrator.")
+        response = await self.run_request(ctx, self.list_servers())
+        if response is None:
+            return
+        lines = []
+        for server in response:
+            lines.append(("\N{Large Green Circle}" if server['online'] else "\N{Large Red Circle}") + \
+                f" {server['id']} | {server['name']}")
+        await ctx.send('\n'.join(lines))
 
     @tgs.command()
     @checks.admin()
@@ -126,13 +178,16 @@ class TGS(commands.Cog):
         """Reboots a given server.
         
         `server`: server name of the server you want to restart (NOT its tgs ID)"""
-        async with ctx.typing():
-            try:
-                response = await self.restart_server(server)
-                if response is None:
-                    return await ctx.send("Could not find server.")
-                if 'errorCode' in response:
-                    return await ctx.send(f"{response['message']} (error code {response['errorCode']})")
-                await ctx.send("Server restarting.")
-            except LoginError:
-                await ctx.send("Unable to login, please contact the bot owner and/or the TGS instance administrator.")
+        response = await self.run_request(ctx, self.restart_server(server))
+        if response is not None:
+            await ctx.send("Server restarting")
+
+    @tgs.command()
+    @checks.admin()
+    async def diag(self, ctx: commands.Context, server: str):
+        """Gets diagnostics of a given server.
+        
+        `server`: server name of the server you want to restart (NOT its tgs ID)"""
+        response = await self.run_request(ctx, self.diag_server(server))
+        if response is not None:
+            await ctx.send(response)
