@@ -37,6 +37,11 @@ class TGS(commands.Cog):
         self.session = aiohttp.ClientSession()
         self.server_list_cache = None
 
+    def _parse_iso_time(self, text):
+        # fromisoformat accepts only exactly 0, 3 or 6 decimal places; screw that
+        text = re.sub(r'\.[0-9]*($|\+)', '\\1', text)
+        return datetime.datetime.fromisoformat(text)
+
     async def login(self):
         tokens = await self.bot.get_shared_api_tokens('tgs')
         self.host = tokens.get('host')
@@ -51,9 +56,7 @@ class TGS(commands.Cog):
             if res.status != 200:
                 return False
             data = await res.json(content_type=None)
-            # fromisoformat accepts only exactly 0, 3 or 6 decimal places; screw that
-            isotime = re.sub(r'\.[0-9]*($|\+)', '\\1', data['expiresAt'])
-            expires_at = datetime.datetime.fromisoformat(isotime)
+            expires_at = self._parse_iso_time(data['expiresAt'])
             self.bearer = data['bearer']
             self.bearer_expires = expires_at
             self.session.headers.update({
@@ -214,3 +217,49 @@ class TGS(commands.Cog):
         if response is not None:
             for page in pagify(pformat(response)):
                 await ctx.send(box(page, lang='json'))
+
+    @tgs.command()
+    @checks.admin()
+    async def info(self, ctx: commands.Context, server: str):
+        """Gets info about a given server.
+        
+        `server`: server name of the server you want to get info of (NOT its tgs ID)"""
+        res = await self.run_request(ctx, self.info_server(server))
+        if res is None:
+            return
+        server_name = server
+        servers_cog = self.bot.get_cog("GoonServers")
+        server_info = {}
+        if servers_cog:
+            server_info = servers_cog.resolve_server(server) or {}
+            server_name = server_info.get('full_name', server_name)
+
+        embed = discord.Embed()
+        if 'url' in server_info:
+            embed.url = server_info['url']
+        embed.title = server_name
+        embed.colour = [
+          discord.Colour.from_rgb(200, 100, 100),
+          discord.Colour.from_rgb(200, 200, 100),
+          discord.Colour.from_rgb(100, 170, 100),
+          discord.Colour.from_rgb(200, 150, 100)
+          ][res['status']]
+        embed.description = box(res['activeCompileJob']['output']) + "\n"
+        desc_timestamp = None
+        if 'stoppedAt' in res['activeCompileJob']['job']:
+            desc_timestamp = res['activeCompileJob']['job']['stoppedAt']
+            embed.description += "Compilation finished "
+        else:
+            desc_timestamp = res['activeCompileJob']['job']['startedAt']
+            embed.description += "Compilation in progress, started "
+        embed.description += f"<t:{int(self._parse_iso_time(desc_timestamp).timestamp())}:F>"
+        embed.add_field(name="status", value=["Offline", "Restoring", "Online", "Delayed Restart"][res['status']])
+        embed.add_field(name="byond version", value=res['activeCompileJob']['byondVersion'])
+        commit_url = res['activeCompileJob']['repositoryOrigin'] + "/commit/" + res['activeCompileJob']['revisionInformation']['originCommitSha']
+        commit_hash = res['activeCompileJob']['revisionInformation']['originCommitSha'][:7]
+        embed.add_field(name="commit", value=f"[{commit_hash}]({commit_url})")
+        embed.set_footer(text=f"port: {res.get('currentPort', res.get('port', 'unknown'))}")
+        embed.timestamp = datetime.datetime.fromisoformat(res['activeCompileJob']['job']['startedAt'])
+        if res['activeCompileJob']['revisionInformation']['activeTestMerges']:
+          embed.add_field(name="test merges", value="TODO")
+        await ctx.send(embed=embed)
