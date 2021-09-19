@@ -117,6 +117,8 @@ class TGS(commands.Cog):
         result = await response.json(content_type=None)
         if not result and str(response.status)[0] != '2':
             raise HttpStatusCodeError(response.status, response)
+        if response.status == 204: # 204: No Content
+            return {}
         return result
 
     async def server_restart(self, server):
@@ -141,6 +143,22 @@ class TGS(commands.Cog):
             return None
         await self.assure_logged_in()
         async with self.session.get(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
+            return await self.process_response(res)
+
+    async def server_start(self, server):
+        server = await self.resolve_server(server)
+        if server is None:
+            return None
+        await self.assure_logged_in()
+        async with self.session.put(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
+            return await self.process_response(res)
+
+    async def server_stop(self, server):
+        server = await self.resolve_server(server)
+        if server is None:
+            return None
+        await self.assure_logged_in()
+        async with self.session.delete(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
             return await self.process_response(res)
 
     @checks.admin()
@@ -186,7 +204,7 @@ class TGS(commands.Cog):
                 f" {server['id']} | {server['name']}")
         await ctx.send('\n'.join(lines))
 
-    @tgs.command()
+    @tgs.command(aliases=["restart"])
     @checks.admin()
     async def reboot(self, ctx: commands.Context, server: str):
         """Reboots a given server.
@@ -195,6 +213,26 @@ class TGS(commands.Cog):
         response = await self.run_request(ctx, self.server_restart(server))
         if response is not None:
             await ctx.send("Server restarting")
+
+    @tgs.command()
+    @checks.admin()
+    async def start(self, ctx: commands.Context, server: str):
+        """Starts a given server.
+        
+        `server`: server name of the server you want to start (NOT its tgs ID)"""
+        response = await self.run_request(ctx, self.server_start(server))
+        if response is not None:
+            await ctx.send("Server starting")
+
+    @tgs.command()
+    @checks.admin()
+    async def stop(self, ctx: commands.Context, server: str):
+        """Stops a given server.
+        
+        `server`: server name of the server you want to stop (NOT its tgs ID)"""
+        response = await self.run_request(ctx, self.server_stop(server))
+        if response is not None:
+            await ctx.send("Server stopping")
 
     @tgs.command()
     @checks.admin()
@@ -253,7 +291,7 @@ class TGS(commands.Cog):
             desc_timestamp = res['activeCompileJob']['job']['startedAt']
             embed.description += "Compilation in progress, started "
         embed.description += f"<t:{int(self._parse_iso_time(desc_timestamp).timestamp())}:F>"
-        embed.add_field(name="status", value=["Offline", "Restoring", "Online", "Delayed Restart"][res['status']])
+        embed.add_field(name="watchdog status", value=["Offline", "Restoring", "Online", "Delayed Restart"][res['status']])
         embed.add_field(name="byond version", value=res['activeCompileJob']['byondVersion'])
         commit_url = res['activeCompileJob']['repositoryOrigin'] + "/commit/" + res['activeCompileJob']['revisionInformation']['originCommitSha']
         commit_hash = res['activeCompileJob']['revisionInformation']['originCommitSha'][:7]
