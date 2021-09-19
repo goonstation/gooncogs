@@ -119,7 +119,7 @@ class TGS(commands.Cog):
             raise HttpStatusCodeError(response.status, response)
         return result
 
-    async def restart_server(self, server):
+    async def server_restart(self, server):
         server = await self.resolve_server(server)
         if server is None:
             return None
@@ -127,7 +127,7 @@ class TGS(commands.Cog):
         async with self.session.patch(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
             return await self.process_response(res)
 
-    async def diag_server(self, server):
+    async def server_diag(self, server):
         server = await self.resolve_server(server)
         if server is None:
             return None
@@ -135,7 +135,7 @@ class TGS(commands.Cog):
         async with self.session.patch(self.host + "/DreamDaemon/Diagnostics", headers={'Instance': str(server)}) as res:
             return await self.process_response(res)
 
-    async def info_server(self, server):
+    async def server_info(self, server):
         server = await self.resolve_server(server)
         if server is None:
             return None
@@ -192,7 +192,7 @@ class TGS(commands.Cog):
         """Reboots a given server.
         
         `server`: server name of the server you want to restart (NOT its tgs ID)"""
-        response = await self.run_request(ctx, self.restart_server(server))
+        response = await self.run_request(ctx, self.server_restart(server))
         if response is not None:
             await ctx.send("Server restarting")
 
@@ -202,7 +202,7 @@ class TGS(commands.Cog):
         """Gets raw diagnostics of a given server.
         
         `server`: server name of the server you want to get diagnostics of (NOT its tgs ID)"""
-        response = await self.run_request(ctx, self.diag_server(server))
+        response = await self.run_request(ctx, self.server_diag(server))
         if response is not None:
             for page in pagify(pformat(response)):
                 await ctx.send(box(page, lang='json'))
@@ -213,7 +213,7 @@ class TGS(commands.Cog):
         """Gets raw info about a given server.
         
         `server`: server name of the server you want to get info of (NOT its tgs ID)"""
-        response = await self.run_request(ctx, self.info_server(server))
+        response = await self.run_request(ctx, self.server_info(server))
         if response is not None:
             for page in pagify(pformat(response)):
                 await ctx.send(box(page, lang='json'))
@@ -224,7 +224,7 @@ class TGS(commands.Cog):
         """Gets info about a given server.
         
         `server`: server name of the server you want to get info of (NOT its tgs ID)"""
-        res = await self.run_request(ctx, self.info_server(server))
+        res = await self.run_request(ctx, self.server_info(server))
         if res is None:
             return
         server_name = server
