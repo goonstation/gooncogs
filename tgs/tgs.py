@@ -110,7 +110,7 @@ class TGS(commands.Cog):
 
     async def process_response(self, response):
         result = await response.json(content_type=None)
-        if not result and response.status != 200:
+        if not result and str(response.status)[0] != '2':
             raise HttpStatusCodeError(response.status, response)
         return result
 
