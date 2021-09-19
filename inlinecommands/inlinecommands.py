@@ -9,21 +9,26 @@ class InlineCommands(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
 
+    async def _handle_alias(self, message: discord.Message, command: str, prefix: str):
+        alias_cog = self.bot.get_cog("Alias")
+        if not alias_cog:
+            return None
+        potential_alias = command.split(" ")[0]
+        msg = copy(message)
+        msg.content = command
+        # accessing private variables, sue me!
+        alias = await alias_cog._aliases.get_alias(message.guild, potential_alias)
+        if alias:
+            return alias_cog.call_alias(msg, prefix, alias)
+
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        if message.guild is None or self.bot.user == message.author:
+        if message.author.bot:
             return
-
-        if await self.bot.cog_disabled_in_guild(self, message.guild):
-            return
-
-        valid_user = isinstance(message.author, discord.Member) and not message.author.bot
-        if not valid_user:
-            return
-
         tasks = []
-        # TODO: aliases
         for command in re.findall(r"\[(.*?)\]", message.content):
+            if not command:
+                continue
             prefix = await self.bot.get_prefix(message)
             if isinstance(prefix, list):
                 prefix = prefix[0]
@@ -31,5 +36,10 @@ class InlineCommands(commands.Cog):
             msg.content = prefix + command
             new_ctx = await self.bot.get_context(msg)
             tasks.append(self.bot.invoke(new_ctx))
+
+            alias_task = await self._handle_alias(message, command, prefix)
+            if alias_task:
+                tasks.append(alias_task)
+            
         await asyncio.gather(*tasks, return_exceptions=True)
 
