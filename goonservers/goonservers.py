@@ -226,22 +226,23 @@ class GoonServers(commands.Cog):
         all_goon = all(server['type'] == 'goon' for server in servers)
         if not all_goon:
             embed.colour = self.COLOR_OTHER
-        while pending:
-            when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
-            done, pending = await asyncio.wait(pending, timeout=self.INITIAL_CHECK_TIMEOUT, return_when=when)
-            if not single_server_embed:
-                message_text = '\n'.join(self.generate_status_text(f.result(), embed_url=True) for f in futures if f.done())
-                embed.description = message_text
-            else:
-                for f in futures:
-                    if f.done():
-                        embed = self.generate_status_embed(f.result(), embed)
-            if not done:
-                continue
-            if message is None:
-                message = await ctx.send(embed=embed)
-            else:
-                await message.edit(embed=embed)
+        async with ctx.typing():
+            while pending:
+                when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
+                done, pending = await asyncio.wait(pending, timeout=self.INITIAL_CHECK_TIMEOUT, return_when=when)
+                if not single_server_embed:
+                    message_text = '\n'.join(self.generate_status_text(f.result(), embed_url=True) for f in futures if f.done())
+                    embed.description = message_text
+                else:
+                    for f in futures:
+                        if f.done():
+                            embed = self.generate_status_embed(f.result(), embed)
+                if not done:
+                    continue
+                if message is None:
+                    message = await ctx.send(embed=embed)
+                else:
+                    await message.edit(embed=embed)
 
     async def _check_gimmick_oven(self, ctx: commands.Context):
         ts = int(datetime.datetime.now().timestamp())
