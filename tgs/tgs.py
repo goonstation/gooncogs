@@ -83,7 +83,6 @@ class TGS(commands.Cog):
                     break
         if not isinstance(server, int):
             return None
-        await self.bot.send_to_owners(repr(server))
 
         async with self.session.patch(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
             return await res.json(content_type=None)
