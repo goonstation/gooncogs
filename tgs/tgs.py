@@ -96,14 +96,15 @@ class TGS(commands.Cog):
     @checks.admin()
     async def list(self, ctx: commands.Context):
         """Lists servers managed by the current TGS instance."""
-        try:
-            lines = []
-            for server in await self.list_servers():
-                lines.append(("\N{Large Green Circle}" if server['online'] else "\N{Large Red Circle}") + \
-                    f" {server['id']} | {server['name']}")
-            await ctx.send('\n'.join(lines))
-        except LoginError:
-            await ctx.send("Unable to login, please contact the bot owner and/or the TGS instance administrator.")
+        async with ctx.typing():
+            try:
+                lines = []
+                for server in await self.list_servers():
+                    lines.append(("\N{Large Green Circle}" if server['online'] else "\N{Large Red Circle}") + \
+                        f" {server['id']} | {server['name']}")
+                await ctx.send('\n'.join(lines))
+            except LoginError:
+                await ctx.send("Unable to login, please contact the bot owner and/or the TGS instance administrator.")
 
     @tgs.command()
     @checks.admin()
