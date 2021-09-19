@@ -128,7 +128,7 @@ class GoonServers(commands.Cog):
         if status_info['map']:
             result_parts.append(f"map: {status_info['map']}")
         if status_info['mode'] and status_info['mode'] != "secret":
-            result_parts.append(f"map: {status_info['mode']}")
+            result_parts.append(f"mode: {status_info['mode']}")
         if status_info['time']:
             result_parts.append(f"time: {status_info['time']}")
         if status_info['shuttle_eta']:
