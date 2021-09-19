@@ -70,7 +70,10 @@ class TGS(commands.Cog):
             self.server_list_cache = (await res.json(content_type=None))['content']
             return self.server_list_cache
 
-    async def restart_server(self, server):
+    async def resolve_server(self, server: Union[int, dict, str]) -> Optional[int]:
+        # server id directly
+        if isinstance(server, int):
+            return server
         # user-friendly server name
         if isinstance(server, str):
             servers_cog = self.bot.get_cog("GoonServers")
@@ -86,9 +89,16 @@ class TGS(commands.Cog):
                 if maybe_server['name'] == server.lower():
                     server = maybe_server['id']
                     break
+        # failure
         if not isinstance(server, int):
             return None
+        return server
 
+    async def restart_server(self, server):
+        server = await self.resolve_server(server)
+        if server is None:
+            return None
+        await self.assure_logged_in()
         async with self.session.patch(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
             return await res.json(content_type=None)
 
