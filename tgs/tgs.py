@@ -8,6 +8,8 @@ from typing import *
 import base64
 import datetime
 import re
+from pprint import pformat
+from redbot.core.utils.chat_formatting import box, pagify
 
 class LoginError(Exception):
     pass
@@ -130,6 +132,15 @@ class TGS(commands.Cog):
         async with self.session.patch(self.host + "/DreamDaemon/Diagnostics", headers={'Instance': str(server)}) as res:
             return await self.process_response(res)
 
+    async def info_server(self, server):
+        server = await self.resolve_server(server)
+        if server is None:
+            return None
+        await self.assure_logged_in()
+        async with self.session.get(self.host + "/DreamDaemon", headers={'Instance': str(server)}) as res:
+            return await self.process_response(res)
+
+    @checks.admin()
     @commands.group()
     async def tgs(self, ctx: commands.Context):
         """Commands for managing TGS SS13 server instances."""
@@ -184,10 +195,22 @@ class TGS(commands.Cog):
 
     @tgs.command()
     @checks.admin()
-    async def diag(self, ctx: commands.Context, server: str):
-        """Gets diagnostics of a given server.
+    async def rawdiag(self, ctx: commands.Context, server: str):
+        """Gets raw diagnostics of a given server.
         
-        `server`: server name of the server you want to restart (NOT its tgs ID)"""
+        `server`: server name of the server you want to get diagnostics of (NOT its tgs ID)"""
         response = await self.run_request(ctx, self.diag_server(server))
         if response is not None:
-            await ctx.send(response)
+            for page in pagify(pformat(response)):
+                await ctx.send(box(page, lang='json'))
+
+    @tgs.command()
+    @checks.admin()
+    async def rawinfo(self, ctx: commands.Context, server: str):
+        """Gets raw info about a given server.
+        
+        `server`: server name of the server you want to get info of (NOT its tgs ID)"""
+        response = await self.run_request(ctx, self.info_server(server))
+        if response is not None:
+            for page in pagify(pformat(response)):
+                await ctx.send(box(page, lang='json'))
