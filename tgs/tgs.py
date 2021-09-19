@@ -259,7 +259,7 @@ class TGS(commands.Cog):
         commit_hash = res['activeCompileJob']['revisionInformation']['originCommitSha'][:7]
         embed.add_field(name="commit", value=f"[{commit_hash}]({commit_url})")
         embed.set_footer(text=f"port: {res.get('currentPort', res.get('port', 'unknown'))}")
-        embed.timestamp = datetime.datetime.fromisoformat(res['activeCompileJob']['job']['startedAt'])
+        embed.timestamp = self._parse_iso_time(res['activeCompileJob']['job']['startedAt'])
         if res['activeCompileJob']['revisionInformation']['activeTestMerges']:
           embed.add_field(name="test merges", value="TODO")
         await ctx.send(embed=embed)
