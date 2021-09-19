@@ -338,7 +338,7 @@ class GoonMisc(commands.Cog):
                         PIL.ImageColor.getrgb("#eced42"),
                         bg_color
                     )
-        elif background.lower() in ["goon", "goonstation", "default"]:
+        elif isinstance(background, str) and background.lower() in ["goon", "goonstation", "default"]:
             bg = PIL.Image.open(datapath / "logo_bg_color.png").convert('RGBA')
         else:
             bg = PIL.Image.open(datapath / "logo_bg.png").convert('RGBA')
