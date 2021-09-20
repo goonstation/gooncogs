@@ -27,7 +27,11 @@ class RoundReminder(commands.Cog):
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     async def notify(self, user: discord.User, message: discord.Message, match_string: str):
-        await user.send(embed=message.embeds[0])
+        try:
+            await user.send(embed=message.embeds[0])
+        except discord.errors.Forbidden:
+            # it's their fault if they don't open DMs!
+            pass
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
