@@ -136,10 +136,10 @@ class GoonServers(commands.Cog):
         return result_parts
 
     def generate_status_text(self, status_info, embed_url=False):
-        result = f"**{status_info['full_name']}**"
+        result = status_info['full_name']
         if embed_url and status_info['url']:
             result = f"[{result}]({status_info['url']})"
-        result += " "
+        result = f"**{result}** "
         if status_info['error']:
             return result + status_info['error']
         result += " | ".join(self.status_result_parts(status_info))
