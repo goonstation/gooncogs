@@ -189,6 +189,8 @@ class TGS(commands.Cog):
                 await ctx.send("Unknown server name.")
             except LoginError:
                 await ctx.send("Unable to login, please contact the bot owner and/or the TGS instance administrator.")
+            except aiohttp.ClientConnectorError:
+                await ctx.send("Unable to connect to the server, please contact the bot owner and/or the TGS instance administrator.")
         return None
 
     @tgs.command()
