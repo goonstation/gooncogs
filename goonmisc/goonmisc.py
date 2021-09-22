@@ -245,6 +245,9 @@ class GoonMisc(commands.Cog):
         if random.randint(1, 20) == 1 and re.match(r".*\b69\b.*", message.clean_content):
             await self.word_react(message, "nice")
 
+        if random.randint(1, 100) == 1 and re.match(r".*\bwhat\b.*", message.clean_content, re.IGNORECASE):
+            await message.add_reaction(self.bot.get_emoji(875269167383740436))
+
         if self.is_dad:
             match = re.match(r"^I'm ([a-zA-Z]*).?$", message.clean_content)
             if match:
