@@ -102,6 +102,9 @@ class GoonServers(commands.Cog):
         except (socket.gaierror, ConnectionRefusedError) as e:
             result['error'] = "Unable to connect."
             return result
+        if response is None:
+            result['error'] = "Invalid server response."
+            return result
         status = worldtopic.params_to_dict(response)
         result['station_name'] = status.get('station_name')
         result['players'] = int(status['players']) if 'players' in status else None
