@@ -77,14 +77,14 @@ class EditablePosts(commands.Cog):
                 await self.config.custom("editable_posts", msg_id).editable.set(False)
                 continue
             messages.append(message)
-        out = ""
+        lines = []
         for message in messages:
+            # TODO store this in the config so it isn't terribly slow
             msg_text = message.embeds[0].title + " " + message.jump_url
-            if len(msg_text) + 1 + len(out) >= 2048:
-                await ctx.send(out)
-                out = ""
-            out += ("" if not out else "\n") + msg_text
-        if out:
-            for page in pagify(out):
+            lines.append(msg_text)
+        if lines:
+            for page in pagify("\n".join(lines)):
                 await ctx.send(page)
+        else:
+            await ctx.send("No editable posts made.")
 
