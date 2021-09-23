@@ -85,6 +85,6 @@ class EditablePosts(commands.Cog):
                 out = ""
             out += ("" if not out else "\n") + msg_text
         if out:
-            for page in pagify(pformat(out)):
+            for page in pagify(out):
                 await ctx.send(page)
 
