@@ -90,7 +90,7 @@ class PinOrder(commands.Cog):
         pin_order.sort()
         if not pin_order:
             return await ctx.send("No pin order set in this channel.")
-        lines = [f"**{position}** {ctx.channel.get_partial_message(message_id).jump_url}" for position, message_id in pin_order]
+        lines = [f"**{position}** {channel.get_partial_message(message_id).jump_url}" for position, message_id in pin_order]
         await ctx.send('\n'.join(lines))
 
     @pinorder.command()
