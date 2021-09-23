@@ -5,6 +5,7 @@ from redbot.core.bot import Red
 from copy import copy
 import re
 from typing import Optional, Union
+from redbot.core.utils.chat_formatting import pagify
 
 class EditablePosts(commands.Cog):
     def __init__(self, bot: Red):
@@ -84,5 +85,6 @@ class EditablePosts(commands.Cog):
                 out = ""
             out += ("" if not out else "\n") + msg_text
         if out:
-            await ctx.send(out)
+            for page in pagify(pformat(out)):
+                await ctx.send(page)
 
