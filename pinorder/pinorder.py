@@ -82,9 +82,11 @@ class PinOrder(commands.Cog):
 
     @pinorder.command()
     @commands.has_permissions(manage_messages=True)
-    async def list(self, ctx: commands.Context):
-        """Lists message pins managed by this cog in this channel."""
-        pin_order = list((await self.config.channel(ctx.channel).pins()).items())
+    async def list(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
+        """Lists message pins managed by this cog in this channel or a given channel."""
+        if channel is None:
+            channel = ctx.channel
+        pin_order = list((await self.config.channel(channel).pins()).items())
         pin_order.sort()
         if not pin_order:
             return await ctx.send("No pin order set in this channel.")
