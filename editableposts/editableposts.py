@@ -65,26 +65,27 @@ class EditablePosts(commands.Cog):
     @editable_posts.command()
     @checks.admin()
     async def list(self, ctx: commands.Context):
-        messages = []
-        for msg_id, data in (await self.config.custom("editable_posts").all()).items():
-            channel = self.bot.get_channel(data['channel'])
-            if channel.guild != ctx.guild or not data['editable']:
-                continue
-            message = None
-            try:
-                message = await channel.fetch_message(msg_id)
-            except discord.errors.NotFound:
-                await self.config.custom("editable_posts", msg_id).editable.set(False)
-                continue
-            messages.append(message)
-        lines = []
-        for message in messages:
-            # TODO store this in the config so it isn't terribly slow
-            msg_text = message.embeds[0].title + " " + message.jump_url
-            lines.append(msg_text)
-        if lines:
-            for page in pagify("\n".join(lines)):
-                await ctx.send(page)
-        else:
-            await ctx.send("No editable posts made.")
+        async with ctx.typing():
+            messages = []
+            for msg_id, data in (await self.config.custom("editable_posts").all()).items():
+                channel = self.bot.get_channel(data['channel'])
+                if channel.guild != ctx.guild or not data['editable']:
+                    continue
+                message = None
+                try:
+                    message = await channel.fetch_message(msg_id)
+                except discord.errors.NotFound:
+                    await self.config.custom("editable_posts", msg_id).editable.set(False)
+                    continue
+                messages.append(message)
+            lines = []
+            for message in messages:
+                # TODO store this in the config so it isn't terribly slow
+                msg_text = message.embeds[0].title + " " + message.jump_url
+                lines.append(msg_text)
+            if lines:
+                for page in pagify("\n".join(lines)):
+                    await ctx.send(page)
+            else:
+                await ctx.send("No editable posts made.")
 
