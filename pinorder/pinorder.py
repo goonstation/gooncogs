@@ -65,7 +65,7 @@ class PinOrder(commands.Cog):
     async def pin(self, ctx: commands.Context, message: discord.Message, position: int):
         """Pins a message and sets its position in the messages managed by this cog.
         Any manual pins will trigger a reshuffle of pins to keep these messages on top in the given order."""
-        async with self.config.channel(ctx.channel).pins() as pins:
+        async with self.config.channel(message.channel).pins() as pins:
             if position in pins:
                 conflict = ctx.channel.get_partial_message(pins[position])
                 return await ctx.send(f"Message {conflict.jump_url} is already pinned on this position.\nUse the `pinorder unpin` command to remove it first.")
