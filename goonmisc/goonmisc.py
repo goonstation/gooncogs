@@ -234,7 +234,7 @@ class GoonMisc(commands.Cog):
             await message.channel.send("I'm " + words[0])
         
         # TODO: unhardcode
-        if message.channel.id == 298827721604071425 and len(words) > 1 and words[-1].lower().strip("?.!") in ["when", "whence"]:
+        if message.channel.id == 890226559691157524 and len(words) > 1 and words[-1].lower().strip("?.!") in ["when", "whence"]:
             msg = "when you code it"
             if random.randint(1, 100) == 1:
                 msg = "never"
