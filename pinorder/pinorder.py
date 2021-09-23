@@ -97,7 +97,7 @@ class PinOrder(commands.Cog):
         """Unpins a message and removes it from the message pins managed by this cog."""
         if not message.pinned:
             return await ctx.send(f"This message is not pinned.")
-        async with self.config.channel(ctx.channel).pins() as pins:
+        async with self.config.channel(message.channel).pins() as pins:
             for position, pinned in pins.items():
                 if pinned == message.id:
                     del pins[position]
