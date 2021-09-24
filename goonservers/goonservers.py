@@ -35,7 +35,7 @@ class GoonServers(commands.Cog):
             for name in server['names']:
                 self.aliases[name.lower()] = server
             if 'full_name' in server:
-                self.aliases[server['full_name'].lower()] server
+                self.aliases[server['full_name'].lower()] = server
 
     def host_to_full_name(self, host):
         full_name = re.sub(r"\.[a-z]*$", "", host) # TLD
