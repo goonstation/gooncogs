@@ -1,0 +1,14 @@
+{
+    "name": "GivePoints",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Let people give points to each other.",
+    "description": "Let people give points to each other.",
+    "requirements": [
+    ],
+    "tags": [
+	"fun",
+	"misc"
+    ]
+}
