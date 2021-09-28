@@ -98,7 +98,10 @@ class TGS(commands.Cog):
             servers_cog = self.bot.get_cog("GoonServers")
             if servers_cog:
                 server = servers_cog.resolve_server(server) or server
-        # server data dict (from the GoonServers cog)
+        # server data object (from the GoonServers cog)
+        if hasattr(server, 'tgs'):
+            server = server.tgs
+        # server data dict (from the GoonServers cog legacy mode)
         if isinstance(server, dict):
             server = server.get('tgs')
         # tgs server id
@@ -271,12 +274,13 @@ class TGS(commands.Cog):
         servers_cog = self.bot.get_cog("GoonServers")
         server_info = {}
         if servers_cog:
-            server_info = servers_cog.resolve_server(server) or {}
-            server_name = server_info.get('full_name', server_name)
+            server_obj = servers_cog.resolve_server(server)
+            if server_obj and server_obj.full_name:
+                server_name = server_info.full_name
 
         embed = discord.Embed()
-        if 'url' in server_info:
-            embed.url = server_info['url']
+        if server_info.url:
+            embed.url = server_info.url
         embed.title = server_name
         embed.colour = [
           discord.Colour.from_rgb(200, 100, 100),
