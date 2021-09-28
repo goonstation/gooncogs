@@ -10,34 +10,41 @@ import datetime
 import random
 from collections import OrderedDict
 
-class GoonServers(commands.Cog):
-    INITIAL_CHECK_TIMEOUT = 0.2
-    ALLOW_ADHOC = True
-    COLOR_GOON = discord.Colour.from_rgb(222, 190, 49)
-    COLOR_OTHER = discord.Colour.from_rgb(130, 130, 222)
-    COLOR_ERROR = discord.Colour.from_rgb(220, 150, 150)
+class Subtype:
+    def __init__(self, name, data, cog):
+        self.name = name
+        self.ahelp_channels = cog.channel_trans(data['ahelp_channels'])
+        self.mhelp_channels = cog.channel_trans(data['mhelp_channels'])
+        self.asay_channels = cog.channel_trans(data['asay_channels'])
+        self.updates_channels = cog.channel_trans(data['updates_channels'])
+        self.admin_misc_channels = cog.channel_trans(data['admin_misc_channels'])
+        self.ban_channels = cog.channel_trans(data['ban_channels'])
 
+class Server:
+    def __init__(self, data, cog):
+        self.host = data['host']
+        self.port = data['port']
+        self.full_name = data.get('full_name') or Server.host_to_full_name(self.host)
+        self.type = data['type']
+        self.subtype = data.get('subtype')
+        if self.subtype is not None:
+            self.subtype = cog.subtypes[self.subtype]
+        self.url = data.get('url')
+        self.tgs = data.get('tgs')
+        self.short_name = data.get('short_name') or self.full_name
+        self.names = data.get('names', [])
 
-    def __init__(self, bot: Red):
-        self.bot = bot
+    @property
+    def aliases(self):
+        aliases = self.names
+        if self.full_name:
+            aliases.append(self.full_name)
+        if self.short_name:
+            aliases.append(self.short_name)
+        return [a.lower() for a in aliases]
 
-        self.config = Config.get_conf(self, identifier=66217843218752)
-        self.config.register_global(
-                servers=[],
-                categories={}
-            )
-
-    async def reload_config(self):
-        self.categories = await self.config.categories()
-        self.servers = await self.config.servers()
-        self.aliases = {}
-        for server in self.servers:
-            for name in server['names']:
-                self.aliases[name.lower()] = server
-            if 'full_name' in server:
-                self.aliases[server['full_name'].lower()] = server
-
-    def host_to_full_name(self, host):
+    @classmethod
+    def host_to_full_name(cls, host):
         full_name = re.sub(r"\.[a-z]*$", "", host) # TLD
         full_name = re.sub(r"ss13|station13|station|hub|play|server", "", full_name)
         full_name = ''.join(c if c.isalnum() else ' ' for c in full_name)
@@ -46,21 +53,69 @@ class GoonServers(commands.Cog):
         full_name = ' '.join(word.capitalize() for word in words)
         return full_name
 
+    @classmethod
+    def from_hostport(cls, hostport):
+        match = re.match(r"^(?:byond://)?(.*):([0-9]+)$", hostport)
+        if not match:
+            return None
+        host, port = match.groups()
+        full_name = Server.host_to_full_name(host)
+        server_data = {
+                'host': host,
+                'port': int(port),
+                'full_name': full_name,
+                'type': 'other'
+            }
+        return Server(server_data, None)
+
+
+class GoonServers(commands.Cog):
+    INITIAL_CHECK_TIMEOUT = 0.2
+    ALLOW_ADHOC = True
+    COLOR_GOON = discord.Colour.from_rgb(222, 190, 49)
+    COLOR_OTHER = discord.Colour.from_rgb(130, 130, 222)
+    COLOR_ERROR = discord.Colour.from_rgb(220, 150, 150)
+
+    def __init__(self, bot: Red):
+        self.bot = bot
+
+        self.config = Config.get_conf(self, identifier=66217843218752)
+        self.config.register_global(
+                servers=[],
+                categories={},
+                channels={},
+                subtypes={}
+            )
+
+    def channel_trans(self, channels):
+        if isinstance(channels, int):
+            return channels
+        if isinstance(channels, str):
+            return self.channels[channels]
+        return [self.channel_trans(ch) for ch in channels]
+
+    async def reload_config(self):
+        self.channels = await self.config.channels()
+        self.categories = await self.config.categories()
+        self.subtypes = {}
+        for subtype_name, subtype_data in (await self.config.subtypes()).items():
+            self.subtypes[subtype_name] = Subtype(subtype_name, subtype_data, self)
+        self.servers = []
+        for server_data in await self.config.servers():
+            self.servers.append(Server(server_data, self))
+        self.aliases = {}
+        for server in self.servers:
+            for alias in server.aliases:
+                if alias in self.aliases and self.aliases[alias] != server:
+                    raise ValueError(f"Alias collision on '{alias}'.")
+                self.aliases[alias] = server
+
     def resolve_server(self, name):
         name = name.lower()
         if name in self.aliases:
             return self.aliases[name]
         if self.ALLOW_ADHOC:
-            match = re.match(r"(?:byond://)?(.*):([0-9]*)", name)
-            if match:
-                host, port = match.groups()
-                full_name = self.host_to_full_name(host)
-                return {
-                        'host': host,
-                        'port': int(port),
-                        'full_name': full_name,
-                        'type': 'other'
-                    }
+            return Server.from_hostport(name)
         return None
 
     def resolve_server_or_category(self, name):
@@ -92,12 +147,12 @@ class GoonServers(commands.Cog):
 
     async def get_status_info(self, server, worldtopic):
         result = OrderedDict()
-        result['full_name'] = server.get('full_name') or server['host']
-        result['url'] = server.get('url')
-        result['type'] = server['type']
+        result['full_name'] = server.full_name
+        result['url'] = server.url
+        result['type'] = server.type
         result['error'] = None
         try:
-            response = await worldtopic.send((server['host'], server['port']), 'status')
+            response = await worldtopic.send((server.host, server.port), 'status')
         except (asyncio.exceptions.TimeoutError, TimeoutError) as e:
             result['error'] = "Server not responding."
             return result
@@ -231,7 +286,7 @@ class GoonServers(commands.Cog):
         futures = [asyncio.Task(self.get_status_info(s, worldtopic)) for s in servers]
         done, pending = [], futures
         message = None
-        all_goon = all(server['type'] == 'goon' for server in servers)
+        all_goon = all(server.type == 'goon' for server in servers)
         if not all_goon:
             embed.colour = self.COLOR_OTHER
         async with ctx.typing():
