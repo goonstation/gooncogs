@@ -13,6 +13,7 @@ import time
 class WorldTopic(commands.Cog):
     RESPONSE_HEADER_LENGTH = 5
     MAGIC_STRING = 0x06
+    MAGIC_STRING = 0x06
     MAGIC_FLOAT = 0x2a
     MAGIC_NULL = 0x00
     MAX_RECEIVE_TRIES = 10
@@ -61,10 +62,16 @@ class WorldTopic(commands.Cog):
         await writer.wait_closed()
 
         response_type_magic = response[4]
+
+        header_length = self.RESPONSE_HEADER_LENGTH
+        if response_type_magic == b'\x04': # no idea
+            response_type_magic = self.MAGIC_STRING
+            header_length = 17
+
         if response_type_magic == self.MAGIC_STRING:
-            return response[self.RESPONSE_HEADER_LENGTH:].strip(b'\x00').decode('utf8') 
+            return response[header_length:].strip(b'\x00').decode('utf8') 
         elif response_type_magic == self.MAGIC_FLOAT:
-            return struct.unpack('f', response[self.RESPONSE_HEADER_LENGTH:])[0]
+            return struct.unpack('f', response[header_length:])[0]
         elif response_type_magic == self.MAGIC_NULL:
             return None
         else:
