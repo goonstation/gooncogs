@@ -9,16 +9,15 @@ import re
 import datetime
 import random
 from collections import OrderedDict
+import functools
 
 class Subtype:
     def __init__(self, name, data, cog):
         self.name = name
-        self.ahelp_channels = cog.channel_trans(data['ahelp_channels'])
-        self.mhelp_channels = cog.channel_trans(data['mhelp_channels'])
-        self.asay_channels = cog.channel_trans(data['asay_channels'])
-        self.updates_channels = cog.channel_trans(data['updates_channels'])
-        self.admin_misc_channels = cog.channel_trans(data['admin_misc_channels'])
-        self.ban_channels = cog.channel_trans(data['ban_channels'])
+        self.channels = {}
+        for name, channel_ids in data['channels'].items():
+            self.channels[name] = cog.channel_trans(channel_ids)
+        self.servers = []
 
 class Server:
     def __init__(self, data, cog):
@@ -29,6 +28,7 @@ class Server:
         self.subtype = data.get('subtype')
         if self.subtype is not None:
             self.subtype = cog.subtypes[self.subtype]
+            self.subtype.servers.append(self)
         self.url = data.get('url')
         self.tgs = data.get('tgs')
         self.short_name = data.get('short_name') or self.full_name
@@ -87,6 +87,17 @@ class GoonServers(commands.Cog):
                 subtypes={}
             )
 
+    @functools.lru_cache
+    def channel_to_subtypes(self, channel_id, usage):
+        return tuple(subtype for subtype in self.subtypes.values() if channel_id in subtype.channels[usage])
+
+    @functools.lru_cache
+    def channel_to_servers(self, channel_id, usage):
+        result = []
+        for subtype in self.channel_to_subtypes(channel_id, usage):
+            result.extend(subtype.servers)
+        return tuple(result)
+
     def channel_trans(self, channels):
         if isinstance(channels, int):
             return channels
@@ -95,11 +106,14 @@ class GoonServers(commands.Cog):
         return [self.channel_trans(ch) for ch in channels]
 
     async def reload_config(self):
+        self.valid_channels = set()
         self.channels = await self.config.channels()
         self.categories = await self.config.categories()
         self.subtypes = {}
         for subtype_name, subtype_data in (await self.config.subtypes()).items():
             self.subtypes[subtype_name] = Subtype(subtype_name, subtype_data, self)
+            for channel_type, channel_ids in self.subtypes[subtype_name].channels.items():
+                self.valid_channels |= set(channel_ids)
         self.servers = []
         for server_data in await self.config.servers():
             self.servers.append(Server(server_data, self))
