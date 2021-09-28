@@ -9,6 +9,7 @@ from redbot.core.bot import Red
 from typing import *
 import re
 import time
+from redbot.core.utils.chat_formatting import pagify, box
 
 class WorldTopic(commands.Cog):
     RESPONSE_HEADER_LENGTH = 5
@@ -124,10 +125,12 @@ class WorldTopic(commands.Cog):
                 response_message.append("")
             if len(dict_response) > 1 or next(iter(dict_response.values())) is not None:
                 for k, v in dict_response.items():
-                    response_message.append(f"__{k}__: {v}")
+                    response_message.append(f"{k}: {v}")
             else:
                 response_message = response
         else:
             response_message = [str(response)]
         response_message = '\n'.join(response_message)
-        await ctx.send(f"Time: {elapsed * 1000:.2f}ms\nResponse: {response_message}")
+        response_message = f"Time: {elapsed * 1000:.2f}ms\nResponse: {response_message}"
+        for page in pagify(response_message):
+            await ctx.send(box(page))
