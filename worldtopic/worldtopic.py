@@ -68,7 +68,7 @@ class WorldTopic(commands.Cog):
         elif response_type_magic == self.MAGIC_NULL:
             return None
         else:
-            raise ValueError(f"Unknown response type {hex(response_type_magic)}.")
+            raise ValueError(f"Unknown response type {hex(response_type_magic)}. Full hex dump: '{response.hex()}'.")
 
     def params_to_dict(self, params: str):
         result = OrderedDict()
