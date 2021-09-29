@@ -185,7 +185,7 @@ class GoonServers(commands.Cog):
         if not isinstance(message, str):
             message = worldtopic.iterable_to_params(message)
         tasks = [self.send_to_server(s, message) for s in servers]            
-        return await asyncio.gather(*tasks)
+        return await asyncio.gather(*tasks, return_exceptions=True)
 
     def seconds_to_hhmmss(self, input_seconds):
         hours, remainder = divmod(input_seconds, 3600)
