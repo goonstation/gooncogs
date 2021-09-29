@@ -154,7 +154,7 @@ class GoonServers(commands.Cog):
             message = worldtopic.iterable_to_params(message)
         return await worldtopic.send((server.host, server.port), message)
 
-    async def send_to_server_safe(self, server, message, messageable, to_dict=False):
+    async def send_to_server_safe(self, server, message, messageable, to_dict=False, react_success=False):
         worldtopic = self.bot.get_cog('WorldTopic')
         error_fn = None
         if hasattr(messageable, 'reply'):
@@ -172,6 +172,8 @@ class GoonServers(commands.Cog):
         else:
             if to_dict and isinstance(result, str):
                 result = worldtopic.params_to_dict(result)
+            if react_success and hasattr(messageable, 'add_reaction'):
+                await messageable.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             return result
         return None
 
