@@ -11,6 +11,9 @@ import random
 from collections import OrderedDict
 import functools
 
+class UnknownServerError(Exception):
+    pass
+
 class Subtype:
     def __init__(self, name, data, cog):
         self.name = name
@@ -140,6 +143,49 @@ class GoonServers(commands.Cog):
         if name not in self.categories:
             return []
         return [self.resolve_server(x) for x in self.categories[name]]
+
+    async def send_to_server(self, server, message):
+        if isinstance(server, str):
+            server = self.resolve_server(server)
+        if server is None:
+            raise UnknownServerError()
+        worldtopic = self.bot.get_cog('WorldTopic')
+        if not isinstance(message, str):
+            message = worldtopic.iterable_to_params(message)
+        return await worldtopic.send((server.host, server.port), message)
+
+    async def send_to_server_safe(self, server, message, messageable, to_dict=False):
+        worldtopic = self.bot.get_cog('WorldTopic')
+        error_fn = None
+        if hasattr(messageable, 'reply'):
+            error_fn = messageable.reply
+        elif hasattr(messageable, 'send'):
+            error_fn = messageable.send
+        try:
+            result = await self.send_to_server(server, message)
+        except UnknownServerError:
+            await error_fn("Unknown server.")
+        except ConnectionRefusedError:
+            await error_fn("Server offline.")
+        except asyncio.TimeoutError:
+            await error_fn("Server restarting or offline.")
+        else:
+            if to_dict and isinstance(result, str):
+                result = worldtopic.params_to_dict(result)
+            return result
+        return None
+
+    async def send_to_servers(self, servers, message, exception=None):
+        if isinstance(servers, str):
+            servers = self.resolve_server_or_category(servers)
+        servers = [self.resolve_server(s) if isinstance(s, str) else s for s in servers]
+        if exception is not None:
+            servers = [s for s in servers if s != exception]
+        worldtopic = self.bot.get_cog('WorldTopic')
+        if not isinstance(message, str):
+            message = worldtopic.iterable_to_params(message)
+        tasks = [self.send_to_server(s, message) for s in servers]            
+        return await asyncio.gather(*tasks)
 
     def seconds_to_hhmmss(self, input_seconds):
         hours, remainder = divmod(input_seconds, 3600)
