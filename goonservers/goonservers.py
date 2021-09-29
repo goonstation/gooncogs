@@ -175,7 +175,7 @@ class GoonServers(commands.Cog):
             return result
         return None
 
-    async def send_to_servers(self, servers, message, exception=None):
+    async def send_to_servers(self, servers, message, exception=None, to_dict=False):
         if isinstance(servers, str):
             servers = self.resolve_server_or_category(servers)
         servers = [self.resolve_server(s) if isinstance(s, str) else s for s in servers]
@@ -185,7 +185,10 @@ class GoonServers(commands.Cog):
         if not isinstance(message, str):
             message = worldtopic.iterable_to_params(message)
         tasks = [self.send_to_server(s, message) for s in servers]            
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if to_dict:
+            results = [worldtopic.params_to_dict(r) if isinstance(r, str) else r for r in results]
+        return results
 
     def seconds_to_hhmmss(self, input_seconds):
         hours, remainder = divmod(input_seconds, 3600)
