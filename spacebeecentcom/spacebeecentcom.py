@@ -252,6 +252,8 @@ class SpacebeeCentcom(commands.Cog):
         if len(replied_to_msg.embeds) > 0:
             embed = replied_to_msg.embeds[0]
             target = embed.title.split('/')[0]
+            if not isinstance(embed.footer.text, str):
+                return
             msg_type = embed.footer.text.split()[-1]
             server_id = embed.footer.text[:-len(msg_type) - 1]
             reply_type = None
