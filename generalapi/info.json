@@ -1,0 +1,17 @@
+{
+    "name": "GeneralApi",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "TODO",
+    "description": "TODO",
+    "requirements": [
+	    "uvicorn",
+	    "fastapi"
+    ],
+    "tags": [
+	"library",
+	"http",
+	"api"
+    ]
+}
