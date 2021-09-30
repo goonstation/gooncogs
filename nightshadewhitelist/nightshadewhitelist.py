@@ -48,6 +48,7 @@ class NightshadeWhitelist(commands.Cog):
 
     @commands.command()
     async def ss13link(self, ctx: commands.Context, *, ckey: str):
+        """Links your account to a BYOND username to whitelist you on the Nightshade SS13 servers."""
         current_ckey = await self.config.user(ctx.author).ckey()
         if current_ckey is not None:
             await ctx.send(f"You already have ckey '{current_ckey}' bound do your account. Use the ss13unlink command to unlink it first.")
@@ -64,6 +65,7 @@ class NightshadeWhitelist(commands.Cog):
 
     @commands.command()
     async def ss13unlink(self, ctx: commands.Context):
+        """Links your account from a BYOND username so you can use a different BYOND account instead."""
         current_ckey = await self.config.user(ctx.author).ckey()
         if current_ckey is None:
             await ctx.send(f"You don't have a ckey bound to your account.")
