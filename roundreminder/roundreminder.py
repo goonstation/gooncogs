@@ -57,7 +57,7 @@ class RoundReminder(commands.Cog):
                 embed.add_field(name="Gamemode", value=request.query_params['gamemode'])
                 embed.colour = self.GOON_COLOUR
                 embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/412381738510319626/892497840151076904/logo.png")
-                await process_embed(embed)
+                await self.process_embed(embed)
                 for channel_id in server.subtype.channels['updates']:
                     await self.bot.get_channel(channel_id).send(embed=embed)
                 return self.SUCCESS_REPLY
