@@ -27,6 +27,8 @@ class SpacebeeCommands(commands.Cog):
                 'type': "whois",
                 'target': query,
             }, ctx.message, to_dict=True)
+        if response is None:
+            return
 
         count = int(response['count'])
         out = []
