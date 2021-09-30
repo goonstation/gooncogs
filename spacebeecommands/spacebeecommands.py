@@ -26,7 +26,7 @@ class SpacebeeCommands(commands.Cog):
         reponse = await goonservers.send_to_server_safe(server_id, {
                 'type': "whois",
                 'taget': query,
-            }, to_dict=True)
+            }, ctx.message, to_dict=True)
 
         count = int(response['count'])
         out = []
