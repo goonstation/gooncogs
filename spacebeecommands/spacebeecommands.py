@@ -137,7 +137,8 @@ class SpacebeeCommands(commands.Cog):
             }, ctx, to_dict=True)
         if response is None:
             return
-        await ctx.send(response['msg'])
+        rev, author = response['msg'].split(" by ")
+        await ctx.send(response['msg'] + "\nhttps://github.com/goonstation/goonstation/commit/" + rev)
 
     @commands.command()
     @checks.admin()
@@ -176,3 +177,14 @@ class SpacebeeCommands(commands.Cog):
         if response is None:
             return
         await ctx.send(response['msg'])
+
+    @commands.command()
+    @checks.is_owner()
+    async def playsound(self, ctx: commands.Context, server_id: str):
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "youtube",
+                'data': '{"key":"Pali6","title":"test","duration":4,"file":"https://file-examples-com.github.io/uploads/2017/11/file_example_OOG_1MG.ogg"}',
+            }, ctx, to_dict=True)
+        if response is None:
+            return
