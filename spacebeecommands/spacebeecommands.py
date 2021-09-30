@@ -23,7 +23,7 @@ class SpacebeeCommands(commands.Cog):
     @checks.admin()
     async def whois(self, ctx: commands.Context, server_id: str, *, query: str):
         goonservers = self.bot.get_cog('GoonServers')
-        reponse = await goonservers.send_to_server_safe(server_id, {
+        response = await goonservers.send_to_server_safe(server_id, {
                 'type': "whois",
                 'taget': query,
             }, ctx.message, to_dict=True)
