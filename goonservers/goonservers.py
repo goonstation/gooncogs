@@ -22,6 +22,10 @@ class Subtype:
             self.channels[name] = cog.channel_trans(channel_ids)
         self.servers = []
 
+    async def channel_broadcast(self, bot, channel_type, *args, exception=None, **kwargs):
+        tasks = [bot.get_channel(ch).send(*args, **kwargs) for ch in self.channels[channel_type] if ch != exception]
+        await asyncio.gather(*tasks)
+
 class Server:
     def __init__(self, data, cog):
         self.host = data['host']
