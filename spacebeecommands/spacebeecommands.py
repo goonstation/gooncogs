@@ -22,19 +22,12 @@ class SpacebeeCommands(commands.Cog):
     @commands.command()
     @checks.admin()
     async def whois(self, ctx: commands.Context, server_id: str, *, query: str):
-        worldtopic = self.bot.get_cog('WorldTopic')
         goonservers = self.bot.get_cog('GoonServers')
-        server = goonservers.resolve_server(server_id)
-        if not server:
-            return await ctx.send("Unknown server.")
-        params = worldtopic.iterable_to_params({
-                "type": "whois",
-                "target": query
-            })
-        response = await worldtopic.send((server.host, server.port), params)
-        if not response:
-            return await ctx.send("No reply from server.")
-        response = worldtopic.params_to_dict(response)
+        reponse = await goonservers.send_to_server_safe(server_id, {
+                'type': "whois",
+                'taget': query,
+            }, to_dict=True)
+
         count = int(response['count'])
         out = []
         for i in range(1, count + 1):
