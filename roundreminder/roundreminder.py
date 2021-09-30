@@ -86,9 +86,9 @@ class RoundReminder(commands.Cog):
             match_strings.append(self.normalize(search_text))
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    async def notify(self, user: discord.User, message: discord.Message, match_string: str):
+    async def notify(self, user: discord.User, embed, match_string: str):
         try:
-            await user.send(embed=message.embeds[0])
+            await user.send(embed=embed)
         except discord.errors.Forbidden:
             # it's their fault if they don't open DMs!
             pass
@@ -102,7 +102,7 @@ class RoundReminder(commands.Cog):
             for match_string in match_strings:
                 if match_string is None or match_string in fulltext:
                     user = self.bot.get_user(user_id)
-                    await self.notify(user, message, match_string)
+                    await self.notify(user, embed, match_string)
                     if len(match_strings) == 1:
                         await self.config.user(user).match_strings.clear()
                     else:
