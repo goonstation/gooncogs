@@ -47,6 +47,7 @@ class RoundReminder(commands.Cog):
 
         @app.get("/event")
         async def event(type: str, request: Request, server = Depends(self.server_dep)):
+            goonservers = self.bot.get_cog("GoonServers")
             if type == 'serverstart':
                 embed = discord.Embed()
                 embed.title = server.full_name
@@ -57,9 +58,14 @@ class RoundReminder(commands.Cog):
                 embed.add_field(name="Gamemode", value=request.query_params['gamemode'])
                 embed.colour = self.GOON_COLOUR
                 embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/412381738510319626/892497840151076904/logo.png")
-                await self.process_embed(embed)
                 for channel_id in server.subtype.channels['updates']:
                     await self.bot.get_channel(channel_id).send(embed=embed)
+                await self.process_embed(embed)
+                await goonservers.send_to_servers(server.subtype.servers, {
+                        'type': "roundEnd",
+                        'server': server.full_name,
+                        'address': server.connect_url,
+                    }, exception=server)
                 return self.SUCCESS_REPLY
             elif type == 'login':
                 return self.SUCCESS_REPLY

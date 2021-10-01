@@ -42,6 +42,15 @@ class Server:
         self.names = data.get('names', [])
 
     @property
+    def connect_url(self):
+        if not self.host:
+            return None
+        url = f"{self.host}:{self.port}"
+        if not url.startswith("byond://"):
+            url = "byond://" + url
+        return url
+
+    @property
     def aliases(self):
         aliases = self.names
         if self.full_name:
