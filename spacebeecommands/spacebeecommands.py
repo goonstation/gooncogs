@@ -159,7 +159,7 @@ class SpacebeeCommands(commands.Cog):
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "delay",
-                'nick': message.author.name,
+                'nick': ctx.message.author.name,
             }, ctx, to_dict=True)
         if response is None:
             return
@@ -172,7 +172,7 @@ class SpacebeeCommands(commands.Cog):
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "undelay",
-                'nick': message.author.name,
+                'nick': ctx.message.author.name,
             }, ctx, to_dict=True)
         if response is None:
             return
