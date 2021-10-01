@@ -76,7 +76,7 @@ class SpacebeeCommands(commands.Cog):
                 'type': "ooc",
                 'msg': message,
                 'nick': f"(Discord) {ctx.author.name}",
-            }, ctx, react_success=True)
+            }, ctx.message, react_success=True)
 
     @commands.command()
     @checks.admin()
