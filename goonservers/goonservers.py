@@ -157,7 +157,7 @@ class GoonServers(commands.Cog):
             return []
         return [self.resolve_server(x) for x in self.categories[name]]
 
-    async def send_to_server(self, server, message):
+    async def send_to_server(self, server, message, to_dict=False):
         if isinstance(server, str):
             server = self.resolve_server(server)
         if server is None:
@@ -165,7 +165,10 @@ class GoonServers(commands.Cog):
         worldtopic = self.bot.get_cog('WorldTopic')
         if not isinstance(message, str):
             message = worldtopic.iterable_to_params(message)
-        return await worldtopic.send((server.host, server.port), message)
+        result = await worldtopic.send((server.host, server.port), message)
+        if to_dict and isinstance(result, str):
+            result = worldtopic.params_to_dict(result)
+        return result
 
     async def send_to_server_safe(self, server, message, messageable, to_dict=False, react_success=False):
         worldtopic = self.bot.get_cog('WorldTopic')
@@ -175,7 +178,7 @@ class GoonServers(commands.Cog):
         elif hasattr(messageable, 'send'):
             error_fn = messageable.send
         try:
-            result = await self.send_to_server(server, message)
+            result = await self.send_to_server(server, message, to_dict=to_dict)
         except UnknownServerError:
             await error_fn("Unknown server.")
         except ConnectionRefusedError:
@@ -183,8 +186,6 @@ class GoonServers(commands.Cog):
         except asyncio.TimeoutError:
             await error_fn("Server restarting or offline.")
         else:
-            if to_dict and isinstance(result, str):
-                result = worldtopic.params_to_dict(result)
             if react_success and hasattr(messageable, 'add_reaction'):
                 await messageable.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             return result
