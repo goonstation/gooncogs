@@ -35,6 +35,53 @@ class SpacebeeCommands(commands.Cog):
             return '\n'.join(out)
         return "No one found."
 
+    def ckeyify(self, text):
+        return ''.join(c.lower() for c in text if c.isalnum())
+
+    @commands.command()
+    @checks.admin()
+    async def locate(self, ctx: commands.Context, *, who: str):
+        """Locates a ckey on all servers."""
+        who = self.ckeyify(who)
+        goonservers = self.bot.get_cog('GoonServers')
+        servers = [s for s in goonservers.servers if s.type == 'goon']
+        futures = [asyncio.Task(goonservers.send_to_server(s, "status", to_dict=True)) for s in servers]
+        message = None
+        done, pending = [], futures
+        old_text = None
+        while pending:
+            when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
+            done, pending = await asyncio.wait(pending, timeout=0.2, return_when=when)
+            if not done:
+                continue
+            lines = []
+            for server, f in zip(servers, futures):
+                if f.done() and f.exception() is None:
+                    result = f.result()
+                    server_found = []
+                    for k, v in result.items():
+                        if k.startswith('player') and who in self.ckeyify(v):
+                            server_found.append(v)
+                    if not server_found:
+                        continue
+                    if len(server_found) == 1:
+                        lines.append(f"{server.full_name}: **{server_found[0]}**")
+                    else:
+                        lines.append(f"{server.full_name}:")
+                        lines.extend(f"\t**{p}**" for p in server_found)
+            if not lines:
+                continue
+            text = "\n".join(lines)
+            if len(text) > 2000:
+                text = text[:1900] + "\n[Message too long, shorten your query]"
+            if message is None:
+                message = await ctx.send(text)
+            elif text != old_text:
+                await message.edit(content=text)
+            old_text = text
+        if not message:
+            await ctx.send("No one found.")
+
     @commands.command()
     @checks.admin()
     async def whois(self, ctx: commands.Context, server_id: str, *, query: str):
