@@ -62,6 +62,7 @@ class SpacebeeCommands(commands.Cog):
         except KeyError:
             await ctx.message.reply("That server is not responding correctly.")
             return
+        players.sort()
         if players:
             await ctx.message.reply(", ".join(players))
         else:
