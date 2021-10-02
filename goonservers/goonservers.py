@@ -344,7 +344,7 @@ class GoonServers(commands.Cog):
         """Checks the status of a Goonstation server of servers.
             `name` can be either numeric server id, the server's name or a server category like "all".
         """
-        if isinstance(ctx.channel, discord.TextChannel) and not ctx.channel.guild.me.guild_permissions.embed_links:
+        if isinstance(ctx.channel, discord.TextChannel) and not ctx.channel.permissions_for(ctx.channel.guild.me).embed_links:
             return await self.checkclassic(ctx, name)
 
         embed = discord.Embed()
