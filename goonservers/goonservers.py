@@ -183,6 +183,8 @@ class GoonServers(commands.Cog):
             await error_fn("Unknown server.")
         except ConnectionRefusedError:
             await error_fn("Server offline.")
+        except ConnectionResetError:
+            await error_fn("Server restarting.")
         except asyncio.TimeoutError:
             await error_fn("Server restarting or offline.")
         else:
