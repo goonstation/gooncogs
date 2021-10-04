@@ -228,11 +228,59 @@ class SpacebeeCommands(commands.Cog):
 
     @commands.command()
     @checks.is_owner()
-    async def playsound(self, ctx: commands.Context, server_id: str):
+    async def rickroll(self, ctx: commands.Context, server_id: str):
+        """Test command to check if playing music works."""
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "youtube",
-                'data': '{"key":"Pali6","title":"test","duration":4,"file":"https://file-examples-com.github.io/uploads/2017/11/file_example_OOG_1MG.ogg"}',
+                'data': '{"key":"Pali6","title":"test","duration":4,"file":"https://qoret.com/dl/uploads/2019/07/Rick_Astley_-_Never_Gonna_Give_You_Up_Qoret.com.mp3"}',
             }, ctx, to_dict=True)
         if response is None:
             return
+        await ctx.message.add_reaction("\N{FROG FACE}")
+
+    @commands.command()
+    @checks.admin()
+    async def admins(self, ctx: commands.Context, server_id: str):
+        """Lists admins in a given Goonstation server."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, "admins", ctx.message, to_dict=True)
+        if response is None:
+            return
+        admins = []
+        try:
+            for i in range(int(response['admins'])):
+                admin = response[f'admin{i}']
+                if admin.startswith('~'):
+                    continue
+                admins.append(admin)
+        except KeyError:
+            await ctx.message.reply("That server is not responding correctly.")
+            return
+        admins.sort()
+        if admins:
+            await ctx.message.reply(", ".join(admins))
+        else:
+            await ctx.message.reply("No admins.")
+
+    @commands.command()
+    @checks.admin()
+    async def mentors(self, ctx: commands.Context, server_id: str):
+        """Lists mentors in a given Goonstation server."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, "mentors", ctx.message, to_dict=True)
+        if response is None:
+            return
+        mentors = []
+        try:
+            for i in range(int(response['mentors'])):
+                mentor = response[f'mentor{i}']
+                mentors.append(mentor)
+        except KeyError:
+            await ctx.message.reply("That server is not responding correctly.")
+            return
+        mentors.sort()
+        if mentors:
+            await ctx.message.reply(", ".join(mentors))
+        else:
+            await ctx.message.reply("No mentors.")
