@@ -65,7 +65,7 @@ class WorldTopic(commands.Cog):
         response_type_magic = response[4]
 
         header_length = self.RESPONSE_HEADER_LENGTH
-        if response_type_magic == b'\x04': # no idea
+        if response_type_magic == 0x04: # no idea
             response_type_magic = self.MAGIC_STRING
             header_length = 17
 
