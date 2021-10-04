@@ -127,7 +127,7 @@ class WorldTopic(commands.Cog):
                 for k, v in dict_response.items():
                     response_message.append(f"{k}: {v}")
             else:
-                response_message = response
+                response_message = [response]
         else:
             response_message = [str(response)]
         response_message = '\n'.join(response_message)
