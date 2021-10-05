@@ -249,10 +249,17 @@ class SpacebeeCommands(commands.Cog):
         speech_folder.mkdir(exist_ok=True)
         file_name = f"{self.ckeyify(text)[:128]}.mp3"
         file_path = speech_folder / file_name
-        p = await asyncio.create_subprocess_shell(
-                "text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
-                stdin=asyncio.subprocess.PIPE)
-        await p.communicate(text.encode('utf8'))
+        if not file_path.is_file():
+            await ctx.send("frog")
+            p = await asyncio.create_subprocess_shell(
+                    "text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
+                    stdin=asyncio.subprocess.PIPE)
+            await p.communicate(text.encode('utf8'))
+        else:
+            await ctx.send("no frog")
+        if not file_path.is_file():
+            await ctx.send("Could not generate sound.")
+            return
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "youtube",
