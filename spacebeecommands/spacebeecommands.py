@@ -15,7 +15,6 @@ import json
 import re
 import time
 import datetime
-import subprocess
 
 class SpacebeeCommands(commands.Cog):
     def __init__(self, bot: Red):
@@ -250,9 +249,10 @@ class SpacebeeCommands(commands.Cog):
         speech_folder.mkdir(exist_ok=True)
         file_name = f"{self.ckeyify(text)[:128]}.mp3"
         file_path = speech_folder / file_name
-        p = subprocess.Popen("text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
-                shell=True, stdin=subprocess.PIPE)
-        p.communicate(text.encode('utf8'))
+        p = await asyncio.create_subprocess_shell(
+                "text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
+                stdin=asyncio.subprocess.PIPE)
+        await p.communicate(text.encode('utf8'))
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "youtube",
