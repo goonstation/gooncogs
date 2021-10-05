@@ -250,13 +250,10 @@ class SpacebeeCommands(commands.Cog):
         file_name = f"{self.ckeyify(text)[:128]}.mp3"
         file_path = speech_folder / file_name
         if not file_path.is_file():
-            await ctx.send("frog")
             p = await asyncio.create_subprocess_shell(
-                    "text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
+                    "text2wave -scale 3 | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 64k " + str(file_path),
                     stdin=asyncio.subprocess.PIPE)
             await p.communicate(text.encode('utf8'))
-        else:
-            await ctx.send("no frog")
         if not file_path.is_file():
             await ctx.send("Could not generate sound.")
             return
