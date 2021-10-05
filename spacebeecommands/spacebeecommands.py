@@ -248,7 +248,7 @@ class SpacebeeCommands(commands.Cog):
         generalapi = self.bot.get_cog("GeneralApi")
         speech_folder = generalapi.static_path / "speech"
         speech_folder.mkdir(exist_ok=True)
-        file_name = f"{self.ckeyify(text)}.mp3"
+        file_name = f"{self.ckeyify(text)[:128]}.mp3"
         file_path = speech_folder / file_name
         p = subprocess.Popen("text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
                 shell=True, stdin=subprocess.PIPE)
