@@ -431,5 +431,30 @@ class SpacebeeCommands(commands.Cog):
         else:
             await ctx.send(embed=pages[0])
 
-
-
+    @commands.command()
+    @commands.cooldown(1, 1)
+    @commands.max_concurrency(1, wait=True)
+    async def stats(self, ctx: commands.Context, *, ckey: str):
+        """Shows playtime stats of a given ckey."""
+        goonservers = self.bot.get_cog('GoonServers')
+        ckey = self.ckeyify(ckey)
+        response = await goonservers.send_to_server_safe('2', {'type': 'getPlayerStats', 'ckey': ckey}, ctx.message)
+        if response is None:
+            return
+        if response == 0:
+            await ctx.message.reply("Could not load notes.")
+            return
+        data = json.loads(response)
+        if isinstance(data, dict) and data.get('error'):
+            await ctx.message.reply("Error: " + data['error'])
+            return
+        embed_colour = await ctx.embed_colour()
+        embed = discord.Embed(
+                title=f"Stats of `{ckey}`",
+                timestamp=ctx.message.created_at,
+                color=embed_colour)
+        embed.add_field(name="rounds (total)", value=data['seen'])
+        embed.add_field(name="rounds (rp)", value=data['seen_rp'])
+        embed.add_field(name="rounds joined (total)", value=data['participated'])
+        embed.add_field(name="rounds joined (rp)", value=data['participated_rp'])
+        await ctx.send(embed=embed)
