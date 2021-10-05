@@ -269,7 +269,7 @@ class SpacebeeCommands(commands.Cog):
             }, ctx, to_dict=True)
         if response is None:
             return
-        await ctx.message.add_reaction("\N{WHITE HEAVY CHECKMARK}")
+        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @commands.command()
     @checks.admin()
