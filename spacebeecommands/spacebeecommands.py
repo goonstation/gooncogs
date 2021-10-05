@@ -242,6 +242,29 @@ class SpacebeeCommands(commands.Cog):
 
     @commands.command()
     @checks.admin()
+    async def remotemusic(self, ctx: commands.Context, server_id: str):
+        """Attach a file to the command message and it plays on a given Goonstation server."""
+        if len(ctx.message.attachments) == 0:
+            await ctx.send("You need to attach a sound file to your message.")
+            return
+        if not ctx.message.attachments[0].filename.endswith('mp3'):
+            await ctx.send("That's not an mp3 file so it'll likely not work. But gonna try anyway.")
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "youtube",
+                'data': json.dumps({
+                        'key': ctx.message.author.name + " (Discord)",
+                        'file': ctx.message.attachments[0].url,
+                        'duration': "?",
+                        'title': ctx.message.attachments[0].filename,
+                    }),
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+
+    @commands.command()
+    @checks.admin()
     async def medspeech(self, ctx: commands.Context, server_id: str, *, text: str):
         """Speech synthesis on a given Goonstation server."""
         generalapi = self.bot.get_cog("GeneralApi")
