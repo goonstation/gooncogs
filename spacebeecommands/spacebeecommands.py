@@ -15,6 +15,7 @@ import json
 import re
 import time
 import datetime
+import subprocess
 
 class SpacebeeCommands(commands.Cog):
     def __init__(self, bot: Red):
@@ -235,6 +236,32 @@ class SpacebeeCommands(commands.Cog):
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "youtube",
                 'data': '{"key":"Pali6","title":"test","duration":4,"file":"https://qoret.com/dl/uploads/2019/07/Rick_Astley_-_Never_Gonna_Give_You_Up_Qoret.com.mp3"}',
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        await ctx.message.add_reaction("\N{FROG FACE}")
+
+    @commands.command()
+    @checks.admin()
+    async def medspeech(self, ctx: commands.Context, server_id: str, *, text: str):
+        """Speech synthesis on a given Goonstation server."""
+        generalapi = self.bot.get_cog("GeneralApi")
+        speech_folder = generalapi.static_path / "speech"
+        speech_folder.mkdir(exist_ok=True)
+        file_name = f"{self.ckeyify(text)}.mp3"
+        file_path = speech_folder / file_name
+        p = subprocess.Popen("text2wave | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 192k " + str(file_path),
+                shell=True, stdin=subprocess.PIPE)
+        p.communicate(text.encode('utf8'))
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "youtube",
+                'data': json.dumps({
+                        'key': ctx.message.author.name + " (Discord)",
+                        'file': f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/speech/{file_name}",
+                        'duration': "?",
+                        'title': text,
+                    }),
             }, ctx, to_dict=True)
         if response is None:
             return
