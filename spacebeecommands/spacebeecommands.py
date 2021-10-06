@@ -242,21 +242,26 @@ class SpacebeeCommands(commands.Cog):
 
     @commands.command()
     @checks.admin()
-    async def remotemusic(self, ctx: commands.Context, server_id: str):
+    async def remotemusic(self, ctx: commands.Context, server_id: str, link: Optional[str]):
         """Attach a file to the command message and it plays on a given Goonstation server."""
-        if len(ctx.message.attachments) == 0:
-            await ctx.send("You need to attach a sound file to your message.")
+        if len(ctx.message.attachments) == 0 and link is None:
+            await ctx.send("You need to attach a sound file to your message or provide a link.")
             return
-        if not ctx.message.attachments[0].filename.endswith('mp3'):
+        url = link
+        filename = link
+        if len(ctx.message.attachments) > 0:
+            url = ctx.message.attachments[0].url
+            filename = ctx.message.attachments[0].filename
+        if not filename.endswith('mp3'):
             await ctx.send("That's not an mp3 file so it'll likely not work. But gonna try anyway.")
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "youtube",
                 'data': json.dumps({
                         'key': ctx.message.author.name + " (Discord)",
-                        'file': ctx.message.attachments[0].url,
+                        'file': url,
                         'duration': "?",
-                        'title': ctx.message.attachments[0].filename,
+                        'title': filename, 
                     }),
             }, ctx, to_dict=True)
         if response is None:
