@@ -457,4 +457,8 @@ class SpacebeeCommands(commands.Cog):
         embed.add_field(name="rounds (rp)", value=data['seen_rp'])
         embed.add_field(name="rounds joined (total)", value=data['participated'])
         embed.add_field(name="rounds joined (rp)", value=data['participated_rp'])
+        if 'playtime' in data:
+            playtime_seconds = int(json.loads(data['playtime'])[0]['time_played'])
+            time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
+            embed.add_field(name="time played", value=time_played)
         await ctx.send(embed=embed)
