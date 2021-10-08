@@ -94,7 +94,8 @@ class SpacebeeCommands(commands.Cog):
             }, ctx, to_dict=True)
         if response is None:
             return
-        await ctx.send(self.format_whois(response))
+        for page in pagify(self.format_whois(response)):
+            await ctx.send(page)
 
     @commands.command()
     async def players(self, ctx: commands.Context, server_id: str):
