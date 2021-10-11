@@ -6,6 +6,7 @@ import discord.errors
 from redbot.core.bot import Red
 from typing import *
 import logging
+import datetime
 
 log = logging.getLogger("red.goon.mybbnotif")
 
@@ -14,16 +15,18 @@ class MybbNotif(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, 856623215587)
         self.config.init_custom("subforums", 1)
-        self.config.register_custom("subforums", channel_ids={}, prefix=None, last_id=None)
+        self.config.register_custom("subforums", channel_ids={}, prefix=None, last_timestamp=None)
         self.config.register_global(forum_url=None, period=180)
         self.session = aiohttp.ClientSession()
+        self.main_loop_task = None
 
     def unload_cog(self):
         self.running = False
+        self.main_loop_task.cancel()
 
     async def run(self):
         self.running = True
-        asyncio.ensure_future(self.main_loop())
+        self.main_loop_task = asyncio.ensure_future(self.main_loop())
 
     async def main_loop(self):
         while self.running:
@@ -31,30 +34,36 @@ class MybbNotif(commands.Cog):
                 await self.check_forum()
             except:
                 log.exception("Error in MybbNotif main loop")
-            await asyncio.sleep(await self.config.period())
+            try:
+                await asyncio.sleep(await self.config.period())
+            except asyncio.CancelledError:
+                log.warning("MybbNotif loop cancelled")
+                break
 
-    async def check_subforum(self, url: str, prefix: str, channels: List[discord.TextChannel], last_id: Optional[str]):
+    async def check_subforum(self, url: str, prefix: str, channels: List[discord.TextChannel], last_timestamp: Optional[float]):
         async with self.session.get(url) as res:
             data = await res.json(content_type=None)
-            if last_id is not None:
+            if last_timestamp is not None:
                 for item in data.get('items', []):
-                    if item['id'] == last_id:
+                    timestamp = datetime.datetime.fromisoformat(item['date_published']).timestamp()
+                    if timestamp <= last_timestamp:
                         break
                     message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n{item['url']}"
                     for channel in channels:
                         await channel.send(message)
             if not data.get('items'):
                 return None
-            return data['items'][0]['id']
+            isotime = data['items'][0]['date_published']
+            return datetime.datetime.fromisoformat(isotime).timestamp()
 
     async def check_subforum_raw(self, base_url: str, forum_id: int, data: Dict):
         prefix = data.get('prefix') or str(forum_id)
         channels = [self.bot.get_channel(int(chid)) for chid in data.get('channel_ids', {}).keys()]
         url = f"{base_url}?fid={forum_id}&type=json&limit=30"
-        last_id = data.get('last_id')
-        new_last_id = await self.check_subforum(url, prefix, channels, last_id)
-        if new_last_id is not None:
-            await self.config.custom("subforums", forum_id).last_id.set(new_last_id)
+        last_timestamp = data.get('last_timestamp')
+        new_last_timestamp = await self.check_subforum(url, prefix, channels, last_timestamp)
+        if new_last_timestamp is not None:
+            await self.config.custom("subforums", forum_id).last_timestamp.set(new_last_timestamp)
 
     async def check_forum(self):
         tasks = []
