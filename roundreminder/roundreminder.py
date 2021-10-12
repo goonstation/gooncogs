@@ -68,6 +68,7 @@ class RoundReminder(commands.Cog):
                     }, exception=server)
                 return self.SUCCESS_REPLY
             elif type == 'login':
+                self.bot.dispatch("goon_login",  server, str(list(request.query_params.keys())[1]))
                 return self.SUCCESS_REPLY
             elif type == 'roundstart':
                 return self.SUCCESS_REPLY
