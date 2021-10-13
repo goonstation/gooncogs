@@ -382,9 +382,10 @@ class GoonMisc(commands.Cog):
         await ctx.send(random.choice(choices.split(",")).strip() or "empty message", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.command()
-    async def donate2day(self, ctx: commands.Context, who: str = None):
+    async def donate2day(self, ctx: commands.Context, who: Optional[str] = None):
         """Shows Goonstation donation information."""
-        who = who.lower()
+        if who is not None:
+            who = who.lower()
         if who in [None, "goonstation"]:
             await ctx.send("Donate2day! https://ss13.co/patreon (Patreon, for recurring donations) or https://ss13.co/paypal (Paypal, for one-off donations)")
         elif who == "pali":
