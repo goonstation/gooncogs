@@ -37,6 +37,9 @@ class TGS(commands.Cog):
         self.session = aiohttp.ClientSession()
         self.server_list_cache = None
 
+    def cog_unload(self):
+        asyncio.create_task(self.session.cancel())
+
     def _parse_iso_time(self, text):
         # fromisoformat accepts only exactly 0, 3 or 6 decimal places; screw that
         text = re.sub(r'\.[0-9]*($|\+)', '\\1', text)
