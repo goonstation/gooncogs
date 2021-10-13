@@ -50,6 +50,8 @@ class RoleStuff(commands.Cog):
             try:
                 await member.remove_roles(self.lets_chat_role, reason="timeout")
                 await self.lets_chat_channel.send(f"Automatically removing {self.lets_chat_role.mention} from {member.mention} because its duration ({self.LETS_TALK_TIMEOUT / 60:.0f} minutes) expired.")
+            except discord.errors.NotFound:
+                await self.lets_chat_channel.send(f"Tried to remove {self.lets_chat_role.mention} from {member.mention} because its duration ({self.LETS_TALK_TIMEOUT / 60:.0f} minutes) expired but they already left the server.")
             except:
                 import traceback
                 return await self.bot.send_to_owners(traceback.format_exc())
