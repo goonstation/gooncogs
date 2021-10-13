@@ -19,25 +19,28 @@ class MybbNotif(commands.Cog):
         self.config.register_global(forum_url=None, period=180)
         self.session = aiohttp.ClientSession()
         self.main_loop_task = None
+        log.warning("test init")
 
-    def unload_cog(self):
+    def cog_unload(self):
         self.running = False
         self.main_loop_task.cancel()
 
     async def run(self):
         self.running = True
-        self.main_loop_task = asyncio.ensure_future(self.main_loop())
+        self.main_loop_task = asyncio.create_task(self.main_loop())
 
     async def main_loop(self):
         while self.running:
             try:
                 await self.check_forum()
+            except asyncio.CancelledError:
+                log.exception("MybbNotif main loop cancelled mid-action")
+                break
             except:
                 log.exception("Error in MybbNotif main loop")
             try:
                 await asyncio.sleep(await self.config.period())
             except asyncio.CancelledError:
-                log.warning("MybbNotif loop cancelled")
                 break
 
     async def check_subforum(self, url: str, prefix: str, channels: List[discord.TextChannel], last_timestamp: Optional[float]):
