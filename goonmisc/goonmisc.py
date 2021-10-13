@@ -381,7 +381,7 @@ class GoonMisc(commands.Cog):
         """Chooses one of the choices separated by commas."""
         await ctx.send(random.choice(choices.split(",")).strip() or "empty message", allowed_mentions=discord.AllowedMentions.none())
 
-    @command.command()
+    @commands.command()
     async def donate2day(self, ctx: commands.Context, who: str = None):
         """Shows Goonstation donation information."""
         who = who.lower()
