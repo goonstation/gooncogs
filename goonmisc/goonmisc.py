@@ -377,8 +377,19 @@ class GoonMisc(commands.Cog):
         await ctx.send(file=img_file)
 
     @commands.command()
-    async def choose(ctx, *, choices: str):
+    async def choose(self, ctx: commands.Context, *, choices: str):
         """Chooses one of the choices separated by commas."""
         await ctx.send(random.choice(choices.split(",")).strip() or "empty message", allowed_mentions=discord.AllowedMentions.none())
+
+    @command.command()
+    async def donate2day(self, ctx: commands.Context, who: str = None):
+        """Shows Goonstation donation information."""
+        who = who.lower()
+        if who in [None, "goonstation"]:
+            await ctx.send("Donate2day! https://ss13.co/patreon (Patreon, for recurring donations) or https://ss13.co/paypal (Paypal, for one-off donations)")
+        elif who == "pali":
+            await ctx.send("https://ko-fi.com/pali6")
+        else:
+            await ctx.send("No idea who that is!")
 
 
