@@ -19,11 +19,11 @@ class MybbNotif(commands.Cog):
         self.config.register_global(forum_url=None, period=180)
         self.session = aiohttp.ClientSession()
         self.main_loop_task = None
-        log.warning("test init")
 
     def cog_unload(self):
         self.running = False
         self.main_loop_task.cancel()
+        asyncio.create_task(self.session.cancel())
 
     async def run(self):
         self.running = True
