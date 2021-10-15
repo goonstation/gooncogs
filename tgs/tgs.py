@@ -275,15 +275,15 @@ class TGS(commands.Cog):
             return
         server_name = server
         servers_cog = self.bot.get_cog("GoonServers")
-        server_info = {}
+        server_obj = None
         if servers_cog:
             server_obj = servers_cog.resolve_server(server)
             if server_obj and server_obj.full_name:
-                server_name = server_info.full_name
+                server_name = server_obj.full_name
 
         embed = discord.Embed()
-        if server_info.url:
-            embed.url = server_info.url
+        if server_obj.url:
+            embed.url = server_obj.url
         embed.title = server_name
         embed.colour = [
           discord.Colour.from_rgb(200, 100, 100),
