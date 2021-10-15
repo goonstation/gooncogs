@@ -99,6 +99,15 @@ add_points_type(GivePoints,
     allow_successful_message = "{0} has been hired as a rats factory worker.")
 
 add_points_type(GivePoints,
+    "bat", "\N{BAT}",
+    points_give_command = "givebats",
+    cannot_give_message = "You can't give people bats, you don't work at the bats factory.",
+    allow_give_command = "hirebatsfactoryworker",
+    allow_cant_message = "You can't hire people as bats factory workers, you don't work at the bats factory.",
+    allow_already_giver_message = "{0} already works in the bats factory.",
+    allow_successful_message = "{0} has been hired as a bats factory worker.")
+
+add_points_type(GivePoints,
     "bouncerat", "<a:bouncerat:604890193291378698>",
     points_give_command = "givebouncerats",
     cannot_give_message = "You can't give people bouncerats, you don't work at the bouncerats factory.",
