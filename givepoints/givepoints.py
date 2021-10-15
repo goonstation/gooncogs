@@ -97,7 +97,7 @@ add_points_type(GivePoints,
     allow_successful_message = "{0} has been hired as a rats factory worker.")
 
 add_points_type(GivePoints,
-    "bat", "<:710538131614466058:>",
+        "bat", "<:dracula:710538131614466058>",
     points_give_command = "givebats",
     cannot_give_message = "You can't give people bats, you don't work at the bats factory.",
     allow_give_command = "hirebatsfactoryworker",
