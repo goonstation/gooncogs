@@ -28,7 +28,7 @@ class RoundReminder(commands.Cog):
         if api_key != (await self.bot.get_shared_api_tokens('spacebee'))['api_key']:
             raise self.SpacebeeError("Invalid API key.", 403)
         goonservers = self.bot.get_cog('GoonServers')
-        server = goonservers.resolve_server(server_name)
+        server = goonservers.resolve_server(server_name) or goonservers.resolve_server(server)
         if server is None:
             raise self.SpacebeeError("Unknown server.", 404)
         return server

@@ -82,7 +82,7 @@ class SpacebeeCentcom(commands.Cog):
     async def server_dep(self, server: str, server_name: str, api_key: str):
         if api_key != (await self.bot.get_shared_api_tokens('spacebee'))['api_key']:
             raise self.SpacebeeError("Invalid API key.", 403)
-        server = self.get_server(server_name)
+        server = self.get_server(server_name) or self.get_server(server)
         if server is None:
             raise self.SpacebeeError("Unknown server.", 404)
         return server
