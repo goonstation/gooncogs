@@ -138,7 +138,8 @@ class SpacebeeCommands(commands.Cog):
             }, ctx, to_dict=True)
         if response is None:
             return
-        await ctx.send(self.format_whois(response))
+        for page in pagify(self.format_whois(response)):
+            await ctx.send(page)
 
     @commands.command()
     @checks.admin()
