@@ -55,8 +55,6 @@ def add_points_type(cog,
             help=f"""Give someone a {points_name} if you can.""")
     async def give_points(self, ctx: commands.Context, user: discord.User):
         author_can_give = (await self.config.user(ctx.message.author).can_give_points()).get(points_name, False)
-        if await self.bot.is_owner(ctx.message.author):
-            author_can_give = True
         if not author_can_give:
             await ctx.send(cannot_give_message.format(points_name, ctx.message.author.name))
             return
