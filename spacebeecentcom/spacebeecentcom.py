@@ -31,11 +31,13 @@ class SpacebeeCentcom(commands.Cog):
             self.status_code = status_code
             self.error_code = error_code
 
-    def make_message_embed(self, colour, from_key, from_name, message, embed_tag, server_name, to_key=None, to_name=None):
+    def make_message_embed(self, colour, from_key, from_name, message, embed_tag, server_name, to_key=None, to_name=None, url=None):
         embed = discord.Embed()
         embed.title = f"{from_key}/{from_name}"
         if to_key is not None:
             embed.title += f" \N{RIGHTWARDS ARROW} {to_key}/{to_name}"
+        if url is not None:
+            embed.url = url
         embed_tag = embed_tag
         embed.description = message
         embed.colour = colour
@@ -46,9 +48,9 @@ class SpacebeeCentcom(commands.Cog):
         tasks = [self.bot.get_channel(ch).send(*args, **kwargs) for ch in channels if ch != exception]
         await asyncio.gather(*tasks)
 
-    async def discord_broadcast_ahelp(self, channels, server_name, from_key, from_name, msg, to_key=None, to_name=None, exception=None):
+    async def discord_broadcast_ahelp(self, channels, server_name, from_key, from_name, msg, to_key=None, to_name=None, exception=None, url=None):
         embed_tag = 'ADMINPM' if to_key is not None else 'ADMINHELP'
-        embed = self.make_message_embed(self.AHELP_COLOUR, from_key, from_name, msg, embed_tag, server_name, to_key, to_name)
+        embed = self.make_message_embed(self.AHELP_COLOUR, from_key, from_name, msg, embed_tag, server_name, to_key, to_name, url)
         if hasattr(channels, 'channels'):
             channels = channels.channels['ahelp']
         await self.discord_broadcast(channels, embed=embed, exception=exception)
@@ -125,8 +127,8 @@ class SpacebeeCentcom(commands.Cog):
             return self.SUCCESS_REPLY
 
         @app.get("/help")
-        async def adminhelp(key: str, name: str, msg: str, server = Depends(self.server_dep)):
-            await self.discord_broadcast_ahelp(server.subtype, server.full_name, key, name, msg)
+        async def adminhelp(key: str, name: str, msg: str, log_link: Optional[str], server = Depends(self.server_dep)):
+            await self.discord_broadcast_ahelp(server.subtype, server.full_name, key, name, msg, url=log_link)
             return self.SUCCESS_REPLY
 
         @app.get("/pm")
