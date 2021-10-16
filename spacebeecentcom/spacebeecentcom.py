@@ -127,7 +127,7 @@ class SpacebeeCentcom(commands.Cog):
             return self.SUCCESS_REPLY
 
         @app.get("/help")
-        async def adminhelp(key: str, name: str, msg: str, log_link: Optional[str], server = Depends(self.server_dep)):
+        async def adminhelp(key: str, name: str, msg: str, log_link: Optional[str] = None, server = Depends(self.server_dep)):
             await self.discord_broadcast_ahelp(server.subtype, server.full_name, key, name, msg, url=log_link)
             return self.SUCCESS_REPLY
 
