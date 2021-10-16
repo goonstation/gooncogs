@@ -15,10 +15,14 @@ import json
 import re
 import time
 import datetime
+from concurrent.futures.thread import ThreadPoolExecutor
+import youtube_dl
 
 class SpacebeeCommands(commands.Cog):
+    FILE_SIZE_LIMIT = 15 * 1024 * 1024
     def __init__(self, bot: Red):
         self.bot = bot
+        self.executor = ThreadPoolExecutor(max_workers=1)
 
     def format_whois(self, response):
         count = int(response['count'])
@@ -242,6 +246,56 @@ class SpacebeeCommands(commands.Cog):
             return
         await ctx.message.add_reaction("\N{FROG FACE}")
 
+    async def youtube_play(self, ctx, url, server_id):
+        generalapi = self.bot.get_cog("GeneralApi")
+        file_folder = generalapi.static_path / "youtube"
+        file_folder.mkdir(exist_ok=True)
+        file_name = url
+        if "watch?v=" in file_name:
+            file_name = file_name.split("watch?v=")[1]
+        else:
+            file_name = self.ckeyify(file_name)
+        tmp_file_name = file_name + ".webm"
+        play_file_name = file_name + ".mp3"
+        tmp_file_path = file_folder / tmp_file_name
+        play_file_path = file_folder / play_file_name
+        info = None
+        if not play_file_path.is_file():
+            postprocessors = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '8',
+                'nopostoverwrites': False,
+            }]
+            ydl_opts = {
+                'format': 'worstaudio/worst',
+                'geo_bypass': True,
+                'outtmpl': str(tmp_file_path),
+                'postprocessors': postprocessors,
+                'max_filesize': self.FILE_SIZE_LIMIT,
+            }
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                filesize = min(fmt["filesize"] for fmt in info["formats"] if isinstance(fmt["filesize"], int))
+                if filesize > self.FILE_SIZE_LIMIT:
+                    return None
+                await asyncio.get_running_loop().run_in_executor(self.executor, ydl.download, [url])
+        if not play_file_path.is_file():
+            return None
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "youtube",
+                'data': json.dumps({
+                        'key': ctx.message.author.name + " (Discord)",
+                        'file': f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/youtube/{play_file_name}",
+                        'duration': "?",
+                        'title': info['title'] if info else file_name,
+                    }),
+            }, ctx, to_dict=True)
+        if response is None:
+            return None
+        return True
+
     @commands.command()
     @checks.admin()
     async def remotemusic(self, ctx: commands.Context, server_id: str, link: Optional[str]):
@@ -249,13 +303,22 @@ class SpacebeeCommands(commands.Cog):
         if len(ctx.message.attachments) == 0 and link is None:
             await ctx.send("You need to attach a sound file to your message or provide a link.")
             return
+        if "youtube.com" in link:
+            response = None
+            with ctx.typing():
+                response = await self.youtube_play(ctx, link, server_id)
+            if response:
+                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            else:
+                await ctx.send("something went wrong")
+            return
         url = link
         filename = link
         if len(ctx.message.attachments) > 0:
             url = ctx.message.attachments[0].url
             filename = ctx.message.attachments[0].filename
-        if not filename.endswith('mp3'):
-            await ctx.send("That's not an mp3 file so it'll likely not work. But gonna try anyway.")
+        if not filename.endswith('mp3') and not filename.endswith('m4a'):
+            await ctx.send("That's not an mp3 nor an m4a file so it'll likely not work. But gonna try anyway.")
         goonservers = self.bot.get_cog('GoonServers')
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "youtube",
