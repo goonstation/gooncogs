@@ -303,7 +303,7 @@ class SpacebeeCommands(commands.Cog):
         if len(ctx.message.attachments) == 0 and link is None:
             await ctx.send("You need to attach a sound file to your message or provide a link.")
             return
-        if "youtube.com" in link:
+        if link is not None and "youtube.com" in link:
             response = None
             with ctx.typing():
                 response = await self.youtube_play(ctx, link, server_id)
