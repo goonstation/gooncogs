@@ -93,9 +93,13 @@ class RoundReminder(commands.Cog):
             match_strings.append(self.normalize(search_text))
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    async def notify(self, user: discord.User, embed, match_string: str):
+    async def notify(self, user: discord.User, embed, match_string: Optional[str]):
         try:
-            await user.send(embed=embed)
+            text_message = "nextround reminder"
+            if match_string is not None:
+                text_message += f" for `{match_string}`"
+            text_message += ":"
+            await user.send(text_message, embed=embed)
         except discord.errors.Forbidden:
             # it's their fault if they don't open DMs!
             pass
@@ -110,10 +114,11 @@ class RoundReminder(commands.Cog):
             match_strings = data['match_strings']
             for match_string in match_strings:
                 match = False
-                match = match or match_string is None
-                if len(match_string) > 1 and match_string in fulltext:
+                if match_string is None:
                     match = True
-                if server in goonservers.resolve_server_or_category(match_string):
+                elif len(match_string) > 1 and match_string in fulltext:
+                    match = True
+                elif server in goonservers.resolve_server_or_category(match_string):
                     match = True
                 if match:
                     user = self.bot.get_user(user_id)
