@@ -87,6 +87,21 @@ class RoundReminder(commands.Cog):
         return ''.join(c for c in text.lower() if c.isalnum())
 
     @commands.command()
+    async def listnextround(self, ctx: commands.Context):
+        """Lists all next round reminders you have scheduled."""
+        match_strings = await self.config.user(ctx.author).match_strings()
+        if not match_strings:
+            await ctx.send("No round reminders.")
+        else:
+            await ctx.send(", ".join(match_strings))
+
+    @commands.command()
+    async def clearnextround(self, ctx: commands.Context):
+        """Clears all next round reminders you have scheduled."""
+        await self.config.user(ctx.author).match_strings.set([])
+        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+
+    @commands.command()
     async def nextround(self, ctx: commands.Context, *, search_text: Optional[str]):
         """Notifies you about the next round or the next round with server or map name containing `search_text`."""
         async with self.config.user(ctx.author).match_strings() as match_strings:
