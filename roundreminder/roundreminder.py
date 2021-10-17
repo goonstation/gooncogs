@@ -101,13 +101,21 @@ class RoundReminder(commands.Cog):
             pass
 
     async def process_embed(self, embed):
-        fulltext = ' '.join([embed.title] + [embed.description] + [f.name + " " + f.value for f in embed.fields])
+        goonservers = self.bot.get_cog('GoonServers')
+        server = goonservers.resolve_server(embed.title)
+        fulltext = ' '.join(f.value for f in embed.fields)
         fulltext = self.normalize(fulltext)
 
         for user_id, data in (await self.config.all_users()).items():
             match_strings = data['match_strings']
             for match_string in match_strings:
-                if match_string is None or match_string in fulltext:
+                match = False
+                match = match or match_string is None
+                if len(match_string) > 1 and match_string in fulltext:
+                    match = True
+                if server in goonservers.resolve_server_or_category(match_string):
+                    match = True
+                if match:
                     user = self.bot.get_user(user_id)
                     await self.notify(user, embed, match_string)
                     if len(match_strings) == 1:
