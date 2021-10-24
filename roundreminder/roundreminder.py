@@ -109,7 +109,7 @@ class RoundReminder(commands.Cog):
     async def nextround(self, ctx: commands.Context, *, search_text: Optional[str]):
         """Notifies you about the next round or the next round with server or map name containing `search_text`."""
         async with self.config.user(ctx.author).match_strings() as match_strings:
-            if len(match_strings) >= 100
+            if len(match_strings) >= 100:
                 await ctx.send("You have too many reminders set, chill out.")
             else:
                 match_strings.append(self.normalize(search_text))
