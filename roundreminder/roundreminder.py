@@ -93,7 +93,7 @@ class RoundReminder(commands.Cog):
         if not match_strings:
             await ctx.send("No round reminders.")
         else:
-            text = ", ".join(match_strings)
+            text = ", ".join(x or "`any`" for x in match_strings)
             if len(text) <= 2000:
                 await ctx.send(text)
             else:
