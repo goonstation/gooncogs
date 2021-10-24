@@ -136,7 +136,7 @@ class RoleStuff(commands.Cog):
             role = ctx.guild.get_role(role_id)
             if role == self.lets_chat_role:
                 continue
-            if role:
+            if role and not role.managed:
                 roles_to_add.append(role)
             else:
                 unsuccessful_count += 1
