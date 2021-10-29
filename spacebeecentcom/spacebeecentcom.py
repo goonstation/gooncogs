@@ -118,8 +118,10 @@ class SpacebeeCentcom(commands.Cog):
             if timestamp > 0:
                 timestamp = int(timestamp) * 60 + 946684800 # timestamp is send in minutes since 2000-01-01 00:00 GMT
                 embed.add_field(name="expires", value=f"<t:{timestamp}:F>\n(<t:{timestamp}:R>)")
-            else:
+            elif timestamp == 0:
                 embed.add_field(name="expires", value="permanent")
+            else:
+                embed.add_field(name="expires", value="until appeal")
             embed.colour = discord.Colour.red()
             embed.set_footer(text=f"{server.full_name} BAN")
             for channel_id in server.subtype.channels['ban']:
