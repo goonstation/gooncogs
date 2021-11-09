@@ -1,0 +1,12 @@
+{
+    "name": "StopNitroScams",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Deletes messages and bans users trying to scam people.",
+    "description": "Deletes messages and bans users trying to scam people.",
+    "tags": [
+        "administration"
+    ],
+    "end_user_data_statement": "This cog doesn't store anything at all."
+}
