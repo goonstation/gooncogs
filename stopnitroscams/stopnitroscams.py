@@ -31,5 +31,5 @@ class StopNitroScams(commands.Cog):
             if len(msgs) >= 3:
                 for message in msgs:
                     await message.delete()
-                await message.author.ban(reason="free nitro scam")
+                await message.author.ban(reason="free nitro scam", delete_message_days=0)
 
