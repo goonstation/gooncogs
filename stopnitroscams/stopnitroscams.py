@@ -24,12 +24,14 @@ class StopNitroScams(commands.Cog):
             not hasattr(message.author, "roles"):
             return
 
-        if "http" in message.content and "free nitro" in message.content.lower():
-            key = message.author.id
+        key = message.author.id
+        if not message.author.guild_permissions().attach_files and "http" in message.content and "free nitro" in message.content.lower():
             self.sus_messages[key] = self.sus_messages.get(key, []) + [message]
             msgs = self.sus_messages[key]
             if len(msgs) >= 3:
                 for message in msgs:
                     await message.delete()
                 await message.author.ban(reason="free nitro scam", delete_message_days=0)
+        else:
+            del self.sus_messages[key]
 
