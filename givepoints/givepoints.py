@@ -97,6 +97,15 @@ add_points_type(GivePoints,
     allow_successful_message = "{0} has been hired as a rats factory worker.")
 
 add_points_type(GivePoints,
+    "cat", "\N{CAT}",
+    points_give_command = "givecats",
+    cannot_give_message = "You can't give people cats, you don't work at the cats factory.",
+    allow_give_command = "hirecatsfactoryworker",
+    allow_cant_message = "You can't hire people as cats factory workers, you don't work at the cats factory.",
+    allow_already_giver_message = "{0} already works in the cats factory.",
+    allow_successful_message = "{0} has been hired as a cats factory worker.")
+
+add_points_type(GivePoints,
         "bat", "<:dracula:710538131614466058>",
     points_give_command = "givebats",
     cannot_give_message = "You can't give people bats, you don't work at the bats factory.",

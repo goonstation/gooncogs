@@ -387,7 +387,7 @@ class GoonMisc(commands.Cog):
         if who is not None:
             who = who.lower()
         if who in [None, "goonstation"]:
-            await ctx.send("Donate2day! https://ss13.co/patreon (Patreon, for recurring donations) or https://ss13.co/paypal (Paypal, for one-off donations)")
+            await ctx.send("Donate2day! https://www.patreon.com/goonstation (Patreon, for recurring donations) or https://paypal.me/Wirewraith (Paypal, for one-off donations)")
         elif who == "pali":
             await ctx.send("https://ko-fi.com/pali6")
         else:
