@@ -81,20 +81,26 @@ class GoonMisc(commands.Cog):
         await ctx.send(who)
 
     @commands.command()
-    @commands.is_owner()
+    @checks.admin()
+    @commands.cooldown(1, 60 * 10)
     @commands.guild_only()
     async def setlogo(self, ctx: commands.Context, logo_url: Optional[str]):
         guild = ctx.guild
+        if guild.icon:
+            await ctx.send("Previous logo:\nhttps://cdn.discordapp.com" + ctx.message.guild.icon_url._url)
         icon = None
         try:
             if logo_url:
                 icon = requests.get(logo_url).content
             elif len(ctx.message.attachments) > 0:
                 icon = requests.get(ctx.message.attachments[0].url).content
+            else:
+                await ctx.send("You need to either give a valid URL or attach a valid file!")
         except Exception:
             await ctx.send("You need to either give a valid URL or attach a valid file!")
             return
         await guild.edit(icon=icon, reason="requested by [ctx.message.author.name]")
+        await ctx.send("Done.")
 
     @commands.command()
     async def blastfromthepast(self, ctx: commands.Context):
