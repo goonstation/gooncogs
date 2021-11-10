@@ -3,7 +3,9 @@ from github import Github
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 from typing import *
+from github import Github
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+import requests
 
 class GithubStuff(commands.Cog):
     def __init__(self, bot: Red):
@@ -247,6 +249,47 @@ class GithubStuff(commands.Cog):
                 query + " is:issue",
                 title = f"Issues matching '{query}'"
             )
+
+    @github.command(aliases=["commit"], rest_is_raw=True)
+    async def commits(self, ctx: commands.Context, *, query: str):
+        """Searches commits."""
+        query = query.strip()
+        embeds = []
+        MAX_PAGES = 10
+        query += " repo:" + await self.config.repo()
+        async with ctx.typing():
+            results = self.gh.search_commits(query, sort='author-date', order='desc')
+            embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
+            descs = [] 
+            current_desc = ""
+            for commit in results:
+                cmsg = commit.commit.message
+                cmsg = '\n'.join(l.strip() for l in cmsg.split('\n') if l.strip())
+                line = f"[**{commit.sha[:7]}**]({commit.html_url}) {cmsg}"
+                if len(line) + len(current_desc) > 2000:
+                    if current_desc:
+                        descs.append(current_desc)
+                    if len(descs) >= MAX_PAGES:
+                        current_desc = ""
+                        break
+                    current_desc = line
+                else:
+                    current_desc += "\n" + line
+            if current_desc:
+                descs.append(current_desc)
+            if not descs:
+                descs.append("No results found.")
+            for i, desc in enumerate(descs):
+                embed = discord.Embed(description=desc, colour=embed_colour, title="Commits")
+                if len(descs) > 1:
+                    embed.set_footer(text=f"page {i+1}/{len(descs)}")
+                embeds.append(embed)
+        if len(embeds) == 0:
+            return
+        elif len(embeds) == 1:
+            await ctx.send(embed=embeds[0])
+        else:
+            await menu(ctx, embeds, DEFAULT_CONTROLS, timeout=60.0)
 
     @github.command()
     async def labelled(self, ctx: commands.Context, label: str):
