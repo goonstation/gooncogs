@@ -99,7 +99,7 @@ class GoonMisc(commands.Cog):
         except Exception:
             await ctx.send("You need to either give a valid URL or attach a valid file!")
             return
-        await guild.edit(icon=icon, reason="requested by [ctx.message.author.name]")
+        await guild.edit(icon=icon, reason=f"requested by {ctx.message.author.name}")
         await ctx.send("Done.")
 
     @commands.command()
