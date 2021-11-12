@@ -240,6 +240,9 @@ class GoonServers(commands.Cog):
         except (socket.gaierror, ConnectionRefusedError) as e:
             result['error'] = "Unable to connect."
             return result
+        except ConnectionResetError:
+            result['error'] = "Connection reset by server (possibly just restarted)."
+            return result
         if response is None:
             result['error'] = "Invalid server response."
             return result
