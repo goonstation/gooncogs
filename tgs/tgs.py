@@ -209,7 +209,7 @@ class TGS(commands.Cog):
         lines = []
         for server in response:
             lines.append(("\N{Large Green Circle}" if server['online'] else "\N{Large Red Circle}") + \
-                f" {server['id']} | {server['name']}")
+                f" {server['name']}")
         await ctx.send('\n'.join(lines))
 
     @tgs.command(aliases=["restart"])
