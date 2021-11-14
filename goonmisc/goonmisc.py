@@ -96,6 +96,7 @@ class GoonMisc(commands.Cog):
                 icon = requests.get(ctx.message.attachments[0].url).content
             else:
                 await ctx.send("You need to either give a valid URL or attach a valid file!")
+                return
         except Exception:
             await ctx.send("You need to either give a valid URL or attach a valid file!")
             return
