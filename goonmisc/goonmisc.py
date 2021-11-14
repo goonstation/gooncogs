@@ -82,7 +82,7 @@ class GoonMisc(commands.Cog):
 
     @commands.command()
     @checks.admin()
-    @commands.cooldown(1, 60 * 10)
+    @commands.cooldown(1, 60 * 10, type=commands.BucketType.guild)
     @commands.guild_only()
     async def setlogo(self, ctx: commands.Context, logo_url: Optional[str]):
         guild = ctx.guild
