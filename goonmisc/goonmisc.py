@@ -96,11 +96,11 @@ class GoonMisc(commands.Cog):
                 icon = requests.get(ctx.message.attachments[0].url).content
             else:
                 await ctx.send("You need to either give a valid URL or attach a valid file!")
-                setlogo.reset_cooldown(ctx)
+                ctx.command.reset_cooldown(ctx)
                 return
         except Exception:
             await ctx.send("You need to either give a valid URL or attach a valid file!")
-            setlogo.reset_cooldown(ctx)
+            ctx.command.reset_cooldown(ctx)
             return
         await guild.edit(icon=icon, reason=f"requested by {ctx.message.author.name}")
         await ctx.send("Done.")
