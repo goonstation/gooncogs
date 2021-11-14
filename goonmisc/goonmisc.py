@@ -7,6 +7,7 @@ from redbot.core import commands, Config, checks
 from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path, bundled_data_path
 from concurrent.futures.thread import ThreadPoolExecutor
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from typing import *
 import requests
 from collections import defaultdict
@@ -25,7 +26,9 @@ class GoonMisc(commands.Cog):
         self.config = Config.get_conf(self, identifier=11530251279432)
         self.config.register_global(
                 repository=None,
-
+            )
+        self.config.register_guild(
+                logos={},
             )
         self.CONTRIB_PATH = cog_data_path(self) / "contributors.txt"
         self.reload_contrib()
@@ -80,26 +83,63 @@ class GoonMisc(commands.Cog):
                 break
         await ctx.send(who)
 
-    @commands.command()
+    @checks.admin()
+    @commands.group()
+    async def logo(self, ctx: commands.Context):
+        """Commands for managing server logos."""
+        pass
+
+    @logo.command()
+    @commands.guild_only()
+    async def add(self, ctx: commands.Context, name: str, logo_url: Optional[str]):
+        guild = ctx.guild
+        icon = None
+        if not logo_url and len(ctx.message.attachments) > 0:
+            logo_url = ctx.message.attachments[0].url
+        if not logo_url:
+            await ctx.send("You need to attach a file or enter a logo url.")
+            return
+        async with self.config.guild(guild).logos() as logos:
+            logos[name] = logo_url
+        await ctx.message.add_reaction('\N{White Heavy Check Mark}')
+
+    @logo.command()
+    @commands.guild_only()
+    async def list(self, ctx: commands.Context):
+        guild = ctx.guild
+        presets = await self.config.guild(guild).logos()
+        if not presets:
+            await ctx.send("No logo prests exist for this server.")
+            return
+        await ctx.send(', '.join(f"`{preset}`" for preset in presets.keys()))
+
+    @logo.command()
     @checks.admin()
     @commands.cooldown(1, 60 * 10, type=commands.BucketType.guild)
     @commands.guild_only()
-    async def setlogo(self, ctx: commands.Context, logo_url: Optional[str]):
+    async def set(self, ctx: commands.Context, logo_url: Optional[str]):
         guild = ctx.guild
+        presets = await self.config.guild(guild).logos()
         if guild.icon:
             await ctx.send("Previous logo:\nhttps://cdn.discordapp.com" + ctx.message.guild.icon_url._url)
         icon = None
+        error_out = False
         try:
+            if logo_url in presets:
+                logo_url = presets[logo_url]
             if logo_url:
                 icon = requests.get(logo_url).content
             elif len(ctx.message.attachments) > 0:
                 icon = requests.get(ctx.message.attachments[0].url).content
             else:
-                await ctx.send("You need to either give a valid URL or attach a valid file!")
-                ctx.command.reset_cooldown(ctx)
-                return
+                error_out = True
         except Exception:
-            await ctx.send("You need to either give a valid URL or attach a valid file!")
+            error_out = True
+        if error_out:
+            preset_string = ""
+            if len(presets) > 0:
+                preset_string = " or select one of: " + ', '.join(f"`{preset}`" for preset in presets.keys())
+            await ctx.send(f"You need to either give a valid URL or attach a valid file{preset_string}!")
             ctx.command.reset_cooldown(ctx)
             return
         await guild.edit(icon=icon, reason=f"requested by {ctx.message.author.name}")
