@@ -84,6 +84,7 @@ class GoonMisc(commands.Cog):
         await ctx.send(who)
 
     @checks.admin()
+    @commands.guild_only()
     @commands.group()
     async def logo(self, ctx: commands.Context):
         """Commands for managing server logos."""
@@ -92,6 +93,9 @@ class GoonMisc(commands.Cog):
     @logo.command()
     @commands.guild_only()
     async def add(self, ctx: commands.Context, name: str, logo_url: Optional[str]):
+        """Adds a selectable preset logo under a certain name.
+        
+        The file itself is not saved so make sure your URL points to a resource that's not temporary."""
         guild = ctx.guild
         icon = None
         if not logo_url and len(ctx.message.attachments) > 0:
@@ -106,6 +110,7 @@ class GoonMisc(commands.Cog):
     @logo.command()
     @commands.guild_only()
     async def list(self, ctx: commands.Context):
+        """Lists available logo presets."""
         guild = ctx.guild
         presets = await self.config.guild(guild).logos()
         if not presets:
@@ -114,14 +119,68 @@ class GoonMisc(commands.Cog):
         await ctx.send(', '.join(f"`{preset}`" for preset in presets.keys()))
 
     @logo.command()
+    @commands.guild_only()
+    async def browse(self, ctx: commands.Context):
+        """Browses available logo presets in a fancy menu."""
+        guild = ctx.guild
+        presets = await self.config.guild(guild).logos()
+        if not presets:
+            await ctx.send("No logo prests exist for this server.")
+            return
+        embed_colour = await self.bot.get_embed_colour(ctx.channel)
+        embeds = []
+        for i, preset in enumerate(presets.items()):
+            logo_name, logo_url = preset
+            embed = discord.Embed(colour=embed_colour, title=logo_name)
+            embed.set_image(url=logo_url)
+            embed.set_footer(text=f"{i+1}/{len(presets)}")
+            embeds.append(embed)
+        if len(embeds) > 1:
+            await menu(ctx, embeds, DEFAULT_CONTROLS, timeout=60.0)
+        elif len(embeds) == 1:
+            await ctx.send(embed=embeds[0])
+
+    @logo.command()
+    @commands.guild_only()
+    async def preview(self, ctx: commands.Context, logo_name: str):
+        """Shows a logo preset."""
+        guild = ctx.guild
+        presets = await self.config.guild(guild).logos()
+        if logo_name not in presets:
+            await ctx.send("There is no such logo preset.")
+            return
+        await ctx.send(presets[logo_name])
+
+    @logo.command()
+    async def get(self, ctx: commands.Context):
+        """Posts current server logo."""
+        if ctx.guild.icon:
+            fname = ctx.guild.icon_url._url.split('/')[-1]
+            if '?' in fname:
+                fname = fname.split('?')[0]
+            data = await ctx.guild.icon_url.read()
+            f = discord.File(io.BytesIO(data), fname)
+            await ctx.send("Current logo:", file=f)
+        else:
+            await ctx.send("No logo set.")
+
+    @logo.command()
     @checks.admin()
     @commands.cooldown(1, 60 * 10, type=commands.BucketType.guild)
     @commands.guild_only()
     async def set(self, ctx: commands.Context, logo_url: Optional[str]):
+        """Sets the server logo.
+
+        logo_url can either be a URL or an attachment or a name of one of the logo presets."""
         guild = ctx.guild
         presets = await self.config.guild(guild).logos()
         if guild.icon:
-            await ctx.send("Previous logo:\nhttps://cdn.discordapp.com" + ctx.message.guild.icon_url._url)
+            fname = guild.icon_url._url.split('/')[-1]
+            if '?' in fname:
+                fname = fname.split('?')[0]
+            data = await guild.icon_url.read()
+            f = discord.File(io.BytesIO(data), fname)
+            await ctx.send("Previous logo:", file=f)
         icon = None
         error_out = False
         try:
