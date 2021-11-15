@@ -113,6 +113,7 @@ class WireCiEndpoint(commands.Cog):
             channels = await self.config.channels()
             if not len(channels):
                 return
+            data.branch = data.branch.strip()
             repo = await self.config.repo()
             message = ""
             embed = None
