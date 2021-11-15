@@ -119,11 +119,11 @@ class WireCiEndpoint(commands.Cog):
             goonservers = self.bot.get_cog('GoonServers')
             server = goonservers.resolve_server(data.server)
             if success:
-                commit_message = data.message
+                commit_message = data.message.strip()
                 if '\n' in commit_message:
                     commit_message = commit_message.split('\n')[0]
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
-                message = f"__{data.branch}__ on {server.short_name}: SUCCESS `{data.commit[:7]}` by {data.author} ({commit_message})\nCode quality: {self.funny_message(data.commit, guild)}"
+                message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`\nCode quality: {self.funny_message(data.commit, guild)}"
             else:
                 embed = discord.Embed()
                 embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
