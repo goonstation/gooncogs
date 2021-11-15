@@ -147,6 +147,11 @@ class WireCiEndpoint(commands.Cog):
             return random_emoji(rnd=self.rnd)[0]
         if self.rnd.randint(1, 1 + len(self.funny_messages)) == 1:
             return "Rolling a d20 for a quality check: " + str(random.randint(1, 20))
+        if self.rand.randint(1, 1 + len(self.funny_messages)) == 1:
+            githubendpoint = self.bot.get_cog("GithubEndpoint")
+            if githubendpoint:
+                person = self.rnd.choice(list(githubendpoint.config.custom("contributors").all().keys()))
+                return f"Like a thing {person} wrote."
         return self.rnd.choice(self.funny_messages)
 
     @commands.group()
