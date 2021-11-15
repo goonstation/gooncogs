@@ -117,7 +117,7 @@ class WireCiEndpoint(commands.Cog):
             embed.description = f"```\n{data.last_compile}\n```"
             if not success:
                 error_message = data.error
-                if error_message.lower() == "True":
+                if error_message.lower() == "true":
                     pass
                 elif '\n' in error_message.strip():
                     embed.description += f"\nError:\n```{error_message}```"
