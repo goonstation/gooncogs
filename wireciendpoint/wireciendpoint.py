@@ -102,6 +102,7 @@ class WireCiEndpoint(commands.Cog):
             author: str
             message: str
             commit: str
+            server: str
             error: Optional[str]
 
         @app.post("/wireci/build_finished")
@@ -115,15 +116,17 @@ class WireCiEndpoint(commands.Cog):
             repo = await self.config.repo()
             message = ""
             embed = None
+            goonservers = self.bot.get_cog('GoonServers')
+            server = goonservers.resolve_server(data.server)
             if success:
                 commit_message = data.message
                 if '\n' in commit_message:
                     commit_message = commit_message.split('\n')[0]
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
-                message = f"__{data.branch}__: SUCCESS `{data.commit[:7]}` by {data.author} ({commit_message})\nCode quality: {self.funny_message(data.commit, guild)}"
+                message = f"__{data.branch}__ on {server.short_name}: SUCCESS `{data.commit[:7]}` by {data.author} ({commit_message})\nCode quality: {self.funny_message(data.commit, guild)}"
             else:
                 embed = discord.Embed()
-                embed.title = f"`{data.branch}`: " + ("succeeded" if success else "failed")
+                embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
                 embed.colour = discord.Colour.from_rgb(60, 100, 45) if success else discord.Colour.from_rgb(150, 60, 45)
                 embed.description = f"```\n{data.last_compile}\n```"
                 if not success:
