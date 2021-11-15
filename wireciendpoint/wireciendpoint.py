@@ -113,14 +113,19 @@ class WireCiEndpoint(commands.Cog):
             channels = await self.config.channels()
             if not len(channels):
                 return
+            data.last_compile = data.last_compile.strip()
             data.branch = data.branch.strip()
+            data.author = data.author.strip()
+            data.message = data.message.strip()
+            data.commit = data.commit.strip()
+            data.server = data.server.strip()
             repo = await self.config.repo()
             message = ""
             embed = None
             goonservers = self.bot.get_cog('GoonServers')
             server = goonservers.resolve_server(data.server)
             if success:
-                commit_message = data.message.strip()
+                commit_message = data.message
                 if '\n' in commit_message:
                     commit_message = commit_message.split('\n')[0]
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
