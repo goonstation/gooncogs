@@ -110,44 +110,60 @@ class WireCiEndpoint(commands.Cog):
                 return 
             success = data.error is None
             channels = await self.config.channels()
+            if not len(channels):
+                return
             repo = await self.config.repo()
-            embed = discord.Embed()
-            embed.title = f"`{data.branch}`: " + ("succeeded" if success else "failed")
-            embed.colour = discord.Colour.from_rgb(60, 100, 45) if success else discord.Colour.from_rgb(150, 60, 45)
-            embed.description = f"```\n{data.last_compile}\n```"
-            if not success:
-                error_message = data.error
-                if error_message.lower() == "true":
-                    pass
-                elif '\n' in error_message.strip():
-                    embed.description += f"\nError:\n```{error_message}```"
-                else:
-                    embed.description += f"\nError: `{error_message.strip()}`"
-            embed.timestamp = datetime.datetime.utcnow()
-            embed.set_image(url=f"https://opengraph.githubassets.com/1/{repo}/commit/{data.commit}")
-            embed.add_field(name="commit", value=f"[{data.commit[:7]}](https://github.com/{repo}/commit/{data.commit})")
-            embed.add_field(name="message", value=data.message)
-            embed.add_field(name="author", value=data.author)
-            embed.set_footer(text="Code quality: " + self.funny_message(data.commit))
             message = ""
-            if not success:
-                author_discord_id = None
-                githubendpoint = self.bot.get_cog("GithubEndpoint")
-                if githubendpoint:
-                    author_discord_id = await githubendpoint.config.custom("contributors", data.author).discord_id()
-                if author_discord_id is not None:
-                    message = self.bot.get_user(author_discord_id).mention
+            embed = None
+            if success:
+                commit_message = data.message
+                if '\n' in commit_message:
+                    commit_message = commit_message.split('\n')[0]
+                guild = self.bot.get_channel(int(next(iter(channels)))).guild
+                message = f"__{data.branch}__: SUCCESS `{data.commit[:7]}` by {data.author} ({commit_message})\nCode quality: {self.funny_message(data.commit, guild)}"
+            else:
+                embed = discord.Embed()
+                embed.title = f"`{data.branch}`: " + ("succeeded" if success else "failed")
+                embed.colour = discord.Colour.from_rgb(60, 100, 45) if success else discord.Colour.from_rgb(150, 60, 45)
+                embed.description = f"```\n{data.last_compile}\n```"
+                if not success:
+                    error_message = data.error
+                    if error_message.lower() == "true":
+                        pass
+                    elif '\n' in error_message.strip():
+                        embed.description += f"\nError:\n```{error_message}```"
+                    else:
+                        embed.description += f"\nError: `{error_message.strip()}`"
+                embed.timestamp = datetime.datetime.utcnow()
+                embed.set_image(url=f"https://opengraph.githubassets.com/1/{repo}/commit/{data.commit}")
+                embed.add_field(name="commit", value=f"[{data.commit[:7]}](https://github.com/{repo}/commit/{data.commit})")
+                embed.add_field(name="message", value=data.message)
+                embed.add_field(name="author", value=data.author)
+                embed.set_footer(text="Code quality: " + self.funny_message(data.commit))
+                if not success:
+                    author_discord_id = None
+                    githubendpoint = self.bot.get_cog("GithubEndpoint")
+                    if githubendpoint:
+                        author_discord_id = await githubendpoint.config.custom("contributors", data.author).discord_id()
+                    if author_discord_id is not None:
+                        message = self.bot.get_user(author_discord_id).mention
             for channel_id in channels:
                 channel = self.bot.get_channel(int(channel_id))
-                await channel.send(message, embed=embed)
+                if embed:
+                    await channel.send(message, embed=embed)
+                else:
+                    await channel.send(message)
 
     def funny_message(self, seed, guild=None):
         self.rnd.seed(seed)
         if self.rnd.randint(1, 30) == 1:
-            return random_emoji(rnd=self.rnd)[0]
+            if guild and self.rnd.randint(1, 2) == 1:
+                return str(self.rnd.choice(guild.emojis))
+            else:
+                return random_emoji(rnd=self.rnd)[0]
         if self.rnd.randint(1, 1 + len(self.funny_messages)) == 1:
-            return "Rolling a d20 for a quality check: " + str(random.randint(1, 20))
-        if self.rand.randint(1, 1 + len(self.funny_messages)) == 1:
+            return "Rolling a d20 for a quality check: " + str(self.rnd.randint(1, 20))
+        if self.rnd.randint(1, 1 + len(self.funny_messages)) == 1:
             githubendpoint = self.bot.get_cog("GithubEndpoint")
             if githubendpoint:
                 person = self.rnd.choice(list(githubendpoint.config.custom("contributors").all().keys()))
