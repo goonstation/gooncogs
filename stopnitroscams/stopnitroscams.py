@@ -33,5 +33,6 @@ class StopNitroScams(commands.Cog):
                     await message.delete()
                 await message.author.ban(reason="free nitro scam", delete_message_days=0)
         else:
-            del self.sus_messages[key]
+            if key in self.sus_messages:
+                del self.sus_messages[key]
 
