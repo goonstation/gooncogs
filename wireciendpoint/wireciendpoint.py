@@ -4,6 +4,7 @@ from collections import OrderedDict
 import struct
 import discord
 from redbot.core import commands, Config, checks
+from redbot.core.data_manager import cog_data_path, bundled_data_path
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
@@ -16,12 +17,82 @@ import inspect
 import collections
 from pydantic import BaseModel
 import datetime
+import random
+from bisect import bisect
+from itertools import accumulate
+
+EMOJI_RANGES_UNICODE = {
+    6: [
+        ('\U0001F300', '\U0001F320'),
+        ('\U0001F330', '\U0001F335'),
+        ('\U0001F337', '\U0001F37C'),
+        ('\U0001F380', '\U0001F393'),
+        ('\U0001F3A0', '\U0001F3C4'),
+        ('\U0001F3C6', '\U0001F3CA'),
+        ('\U0001F3E0', '\U0001F3F0'),
+        ('\U0001F400', '\U0001F43E'),
+        ('\U0001F440', ),
+        ('\U0001F442', '\U0001F4F7'),
+        ('\U0001F4F9', '\U0001F4FC'),
+        ('\U0001F500', '\U0001F53C'),
+        ('\U0001F540', '\U0001F543'),
+        ('\U0001F550', '\U0001F567'),
+        ('\U0001F5FB', '\U0001F5FF')
+    ],
+    7: [
+        ('\U0001F300', '\U0001F32C'),
+        ('\U0001F330', '\U0001F37D'),
+        ('\U0001F380', '\U0001F3CE'),
+        ('\U0001F3D4', '\U0001F3F7'),
+        ('\U0001F400', '\U0001F4FE'),
+        ('\U0001F500', '\U0001F54A'),
+        ('\U0001F550', '\U0001F579'),
+        ('\U0001F57B', '\U0001F5A3'),
+        ('\U0001F5A5', '\U0001F5FF')
+    ],
+    8: [
+        ('\U0001F300', '\U0001F579'),
+        ('\U0001F57B', '\U0001F5A3'),
+        ('\U0001F5A5', '\U0001F5FF')
+    ]
+}
+
+def random_emoji(unicode_version = 8, rnd = random):
+    if unicode_version in EMOJI_RANGES_UNICODE:
+        emoji_ranges = EMOJI_RANGES_UNICODE[unicode_version]
+    else:
+        emoji_ranges = EMOJI_RANGES_UNICODE[-1]
+
+    # Weighted distribution
+    count = [ord(r[-1]) - ord(r[0]) + 1 for r in emoji_ranges]
+    weight_distr = list(accumulate(count))
+
+    # Get one point in the multiple ranges
+    point = rnd.randrange(weight_distr[-1])
+
+    # Select the correct range
+    emoji_range_idx = bisect(weight_distr, point)
+    emoji_range = emoji_ranges[emoji_range_idx]
+
+    # Calculate the index in the selected range
+    point_in_range = point
+    if emoji_range_idx != 0:
+        point_in_range = point - weight_distr[emoji_range_idx - 1]
+
+    # Emoji 😄
+    emoji = chr(ord(emoji_range[0]) + point_in_range)
+    emoji_codepoint = "U+{}".format(hex(ord(emoji))[2:].upper())
+
+    return (emoji, emoji_codepoint)
+
 
 class WireCiEndpoint(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 1482189223515)
         self.config.register_global(channels={}, repo=None)
+        self.rnd = random.Random()
+        self.funny_messages = open(bundled_data_path(self) / "code_quality.txt").readlines()
 
     def register_to_general_api(self, app):
         class BuildFinishedModel(BaseModel):
@@ -42,7 +113,7 @@ class WireCiEndpoint(commands.Cog):
             repo = await self.config.repo()
             embed = discord.Embed()
             embed.title = f"`{data.branch}`: " + ("succeeded" if success else "failed")
-            embed.colour = discord.Colour.from_rgb(60, 225, 45) if success else discord.Colour.from_rgb(225, 60, 45)
+            embed.colour = discord.Colour.from_rgb(60, 100, 45) if success else discord.Colour.from_rgb(150, 60, 45)
             embed.description = f"```\n{data.last_compile}\n```"
             if not success:
                 error_message = data.error
@@ -55,6 +126,7 @@ class WireCiEndpoint(commands.Cog):
             embed.add_field(name="commit", value=f"[{data.commit[:7]}](https://github.com/{repo}/commit/{data.commit})")
             embed.add_field(name="message", value=data.message)
             embed.add_field(name="author", value=data.author)
+            embed.set_footer(text="Code quality: " + self.funny_message(data.commit))
             message = ""
             if not success:
                 author_discord_id = None
@@ -66,6 +138,14 @@ class WireCiEndpoint(commands.Cog):
             for channel_id in channels:
                 channel = self.bot.get_channel(int(channel_id))
                 await channel.send(message, embed=embed)
+
+    def funny_message(self, seed, guild=None):
+        self.rnd.seed(seed)
+        if self.rnd.randint(1, 30) == 1:
+            return random_emoji(rnd=self.rnd)[0]
+        if self.rnd.randint(1, 1 + len(self.funny_messages)) == 1:
+            return "Rolling a d20 for a quality check: " + str(random.randint(1, 20))
+        return self.rnd.choice(self.funny_messages)
 
     @commands.group()
     @checks.admin()
