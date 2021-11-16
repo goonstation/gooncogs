@@ -46,18 +46,18 @@ fix me
 fix this shit
 May contain trace amounts of nuts
 Deep-fried
-Contains ~~bugs~~ surprise features.
-Updated localization files.
-Wildly inadequate in face of the previous commit.
-Wildly superior to the previous commit.
+Contains ~~bugs~~ surprise features
+Updated localization files
+Wildly inadequate in face of the previous commit
+Wildly superior to the previous commit
 Forgivable, this time
 Load bearing
 Insulated from criticism
 Self-inspected
-BYOND has detected a fatal error and will now uninstall from the universe.
-Extant.
-Purple.
-Gluten free.
+BYOND has detected a fatal error and will now uninstall from the universe
+Extant
+Purple
+Gluten free
 Self-aggrandizing
 Einstein-Rosen
 Quark-Gluon
@@ -66,3 +66,19 @@ Compiles on my Amiga
 Supercalifragilisticexpialidocious
 What code?
 Perfection
+Web-scale certified
+418 I'm a teapot
+Runs on three billion devices
+Runs on three devices
+Technically passed code review
+Now with 87% less asbestos!
+Better than the previous one
+Worse than the next one 
+You code fall out
+Would make Bubs cry
+3spooky5me
+Eat my shorts
+The greatest thing since /obj/item/reagent_containers/food/snacks/bread/sliced
+Several people are typing...
+Beans approved
+Nutmeg approved
