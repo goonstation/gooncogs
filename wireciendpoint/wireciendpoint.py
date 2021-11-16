@@ -20,6 +20,7 @@ import datetime
 import random
 from bisect import bisect
 from itertools import accumulate
+import aiohttp
 
 EMOJI_RANGES_UNICODE = {
     6: [
@@ -93,6 +94,10 @@ class WireCiEndpoint(commands.Cog):
         self.config.register_global(channels={}, repo=None)
         self.rnd = random.Random()
         self.funny_messages = open(bundled_data_path(self) / "code_quality.txt").readlines()
+        self.session = aiohttp.ClientSession()
+
+    def cog_unload(self):
+        asyncio.create_task(self.session.cancel())
 
     def register_to_general_api(self, app):
         class BuildFinishedModel(BaseModel):
@@ -107,7 +112,7 @@ class WireCiEndpoint(commands.Cog):
 
         @app.post("/wireci/build_finished")
         async def build_finished(data: BuildFinishedModel):
-            if data.api_key != (await self.bot.get_shared_api_tokens('wireciendpoint'))['api_key']:
+            if data.api_key != (await self.bot.get_shared_api_tokens('wireciendpoint'))['incoming_api_key']:
                 return 
             success = data.error is None
             channels = await self.config.channels()
@@ -179,14 +184,76 @@ class WireCiEndpoint(commands.Cog):
                 return f"Like a thing {person} wrote."
         return self.rnd.choice(self.funny_messages).strip()
 
-    @commands.group()
+    @commands.group(name="ci")
     @checks.admin()
     async def wireciendpoint(self, ctx: commands.Context):
-        """Manage messages sent from GitHub."""
+        """Manage Wire's CI system."""
         pass
+
+    @wireciendpoint.command(aliases=["check"])
+    async def status(self, ctx: commands.Context):
+        """Check status of CI builds."""
+        tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
+        url = tokens.get('api_path') + '/status'
+        api_key = tokens.get('outgoing_api_key')
+        async with self.session.get(
+                url,
+                headers = {
+                    'Api-Key': api_key,
+                    },
+                ) as res:
+            if res.status != 200:
+                await ctx.send(f"Server responded with an error code {res.status}: `{await res.text()}`")
+                return
+            data = await res.json(content_type=None)
+            goonservers = self.bot.get_cog("GoonServers")
+            message = [f"Max compile jobs: {data.get('maxCompileJobs', 'N/A')}"]
+            current_jobs = data.get('currentCompileJobs', [])
+            if not current_jobs:
+                message.append("No jobs currently running")
+            else:
+                message.append(f"Currently compiling: " + ", ".join(goonservers.resolve_server(sid).short_name for sid in current_jobs))
+            queued_jobs = data.get('queuedJobs', [])
+            if not queued_jobs:
+                message.append("No jobs queued")
+            else:
+                message.append(f"Queued: " + ", ".join(goonservers.resolve_server(sid).short_name for sid in current_jobs))
+            await ctx.send('\n'.join(message))
+
+    @wireciendpoint.command()
+    async def build(self, ctx: commands.Context, server_name: str):
+        """Start a CI build."""
+        tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
+        url = tokens.get('api_path') + '/build'
+        api_key = tokens.get('outgoing_api_key')
+        goonservers = self.bot.get_cog("GoonServers")
+        servers = goonservers.resolve_server_or_category(server_name)
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        success = True
+        for server in servers:
+            server_id = server.tgs
+            async with self.session.post(
+                    url,
+                    headers = {
+                        'Api-Key': api_key,
+                        },
+                    json = {'server': server_id}
+                    ) as res:
+                if res.status != 200:
+                    await ctx.send(f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`")
+                    continue
+                data = await res.json(content_type=None)
+                if not data.get("success"):
+                    await ctx.send(f"Idk what happened: `{await res.text()}`")
+                    success = False
+        if success:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @wireciendpoint.command()
     async def addchannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
+        """Subscribe a channel to receive CI build updates."""
         if channel is None:
             channel = ctx.channel
         async with self.config.channels() as channels:
@@ -195,11 +262,13 @@ class WireCiEndpoint(commands.Cog):
 
     @wireciendpoint.command()
     async def setrepo(self, ctx: commands.Context, repo: str):
+        """Set GitHub repo for commit link purposes."""
         await self.config.repo.set(repo)
         await ctx.send(f"Repo set to `{repo}`.")
 
     @wireciendpoint.command()
     async def removechannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
+        """Unsubscribe a channel from CI build updates."""
         if channel is None:
             channel = ctx.channel
         async with self.config.channels() as channels:
@@ -208,6 +277,7 @@ class WireCiEndpoint(commands.Cog):
 
     @wireciendpoint.command()
     async def checkchannels(self, ctx: commands.Context):
+        """Check channels subscribed to CI build updates."""
         channel_ids = await self.config.channels()
         if not channel_ids:
             await ctx.send("No channels.")
