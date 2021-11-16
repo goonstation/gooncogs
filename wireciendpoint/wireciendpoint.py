@@ -129,7 +129,7 @@ class WireCiEndpoint(commands.Cog):
                 if '\n' in commit_message:
                     commit_message = commit_message.split('\n')[0]
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
-                message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`\nCode quality: {self.funny_message(data.commit, guild)}"
+                message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`\nCode quality: {await self.funny_message(data.commit, guild)}"
             else:
                 embed = discord.Embed()
                 embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
@@ -148,7 +148,7 @@ class WireCiEndpoint(commands.Cog):
                 embed.add_field(name="commit", value=f"[{data.commit[:7]}](https://github.com/{repo}/commit/{data.commit})")
                 embed.add_field(name="message", value=data.message)
                 embed.add_field(name="author", value=data.author)
-                embed.set_footer(text="Code quality: " + self.funny_message(data.commit))
+                embed.set_footer(text="Code quality: " + await self.funny_message(data.commit))
                 if not success:
                     author_discord_id = None
                     githubendpoint = self.bot.get_cog("GithubEndpoint")
@@ -163,7 +163,7 @@ class WireCiEndpoint(commands.Cog):
                 else:
                     await channel.send(message)
 
-    def funny_message(self, seed, guild=None):
+    async def funny_message(self, seed, guild=None):
         self.rnd.seed(seed)
         if self.rnd.randint(1, 30) == 1:
             if guild and self.rnd.randint(1, 2) == 1:
@@ -175,9 +175,9 @@ class WireCiEndpoint(commands.Cog):
         if self.rnd.randint(1, 1 + len(self.funny_messages)) == 1:
             githubendpoint = self.bot.get_cog("GithubEndpoint")
             if githubendpoint:
-                person = self.rnd.choice(list(githubendpoint.config.custom("contributors").all().keys()))
+                person = self.rnd.choice(list((await githubendpoint.config.custom("contributors").all()).keys()))
                 return f"Like a thing {person} wrote."
-        return self.rnd.choice(self.funny_messages)
+        return self.rnd.choice(self.funny_messages).strip()
 
     @commands.group()
     @checks.admin()
