@@ -14,6 +14,7 @@ import re
 import time
 import functools
 import inspect
+from redbot.core.utils.chat_formatting import pagify
 import collections
 from pydantic import BaseModel
 import datetime
@@ -203,7 +204,8 @@ class WireCiEndpoint(commands.Cog):
                     },
                 ) as res:
             if res.status != 200:
-                await ctx.send(f"Server responded with an error code {res.status}: `{await res.text()}`")
+                for page in pagify(f"Server responded with an error code {res.status}: `{await res.text()}`"):
+                    await ctx.send(page)
                 return
             data = await res.json(content_type=None)
             goonservers = self.bot.get_cog("GoonServers")
@@ -242,7 +244,8 @@ class WireCiEndpoint(commands.Cog):
                     json = {'server': server_id}
                     ) as res:
                 if res.status != 200:
-                    await ctx.send(f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`")
+                    for page in pagify(f"Server responded with an error code {res.status}: `{await res.text()}`"):
+                        await ctx.send(page)
                     continue
                 data = await res.json(content_type=None)
                 if not data.get("success"):
