@@ -96,6 +96,8 @@ class WireCiEndpoint(commands.Cog):
         self.rnd = random.Random()
         self.funny_messages = open(bundled_data_path(self) / "code_quality.txt").readlines()
         self.session = aiohttp.ClientSession()
+        self.processed_successful_commits = set()
+        self.processed_failed_commits = set()
 
     def cog_unload(self):
         asyncio.create_task(self.session.cancel())
@@ -135,7 +137,9 @@ class WireCiEndpoint(commands.Cog):
                 if '\n' in commit_message:
                     commit_message = commit_message.split('\n')[0]
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
-                message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`\nCode quality: {await self.funny_message(data.commit, guild)}"
+                message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
+                if data.commit not in self.processed_successful_commits:
+                    message += "\nCode quality: {await self.funny_message(data.commit, guild)}"
             else:
                 embed = discord.Embed()
                 embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
@@ -155,13 +159,17 @@ class WireCiEndpoint(commands.Cog):
                 embed.add_field(name="message", value=data.message)
                 embed.add_field(name="author", value=data.author)
                 embed.set_footer(text="Code quality: " + await self.funny_message(data.commit))
-                if not success:
+                if not success and data.commit not in self.processed_failed_commits:
                     author_discord_id = None
                     githubendpoint = self.bot.get_cog("GithubEndpoint")
                     if githubendpoint:
                         author_discord_id = await githubendpoint.config.custom("contributors", data.author).discord_id()
                     if author_discord_id is not None:
                         message = self.bot.get_user(author_discord_id).mention
+            if success:
+                self.processed_successful_commits.add(data.commit)
+            else:
+                self.processed_failed_commits.add(data.commit)
             for channel_id in channels:
                 channel = self.bot.get_channel(int(channel_id))
                 if embed:
