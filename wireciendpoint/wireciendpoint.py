@@ -139,7 +139,7 @@ class WireCiEndpoint(commands.Cog):
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
                 message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
                 if data.commit not in self.processed_successful_commits:
-                    message += "\nCode quality: {await self.funny_message(data.commit, guild)}"
+                    message += f"\nCode quality: {await self.funny_message(data.commit, guild)}"
             else:
                 embed = discord.Embed()
                 embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
