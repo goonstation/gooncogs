@@ -219,7 +219,7 @@ class WireCiEndpoint(commands.Cog):
             if not queued_jobs:
                 message.append("No jobs queued")
             else:
-                message.append(f"Queued: " + ", ".join(goonservers.resolve_server(sid).short_name for sid in current_jobs))
+                message.append(f"Queued: " + ", ".join(goonservers.resolve_server(sid).short_name for sid in queued_jobs))
             await ctx.send('\n'.join(message))
 
     @wireciendpoint.command()
