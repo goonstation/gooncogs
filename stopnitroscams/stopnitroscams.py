@@ -25,7 +25,7 @@ class StopNitroScams(commands.Cog):
             return
 
         key = message.author.id
-        if not message.author.guild_permissions.attach_files and "http" in message.content and "free nitro" in message.content.lower():
+        if not message.author.guild_permissions.attach_files and "http" in message.content and "free" in message.content.lower() and "nitro" in message.content.lower():
             self.sus_messages[key] = self.sus_messages.get(key, []) + [message]
             msgs = self.sus_messages[key]
             if len(msgs) >= 3:
