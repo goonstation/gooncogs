@@ -485,6 +485,90 @@ class GoonMisc(commands.Cog):
         await ctx.send(file=img_file)
 
     @commands.command()
+    @commands.cooldown(1, 1)
+    @commands.max_concurrency(1, wait=True)
+    async def makefrog(self, ctx: commands.Context,
+            bottom: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+            top: Optional[Union[discord.Member, discord.PartialEmoji, str]]):
+        """
+        Creates a variant of the shelterfrog with given bottom and top.
+        Both bottom and top can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
+        """
+
+        datapath = bundled_data_path(self)
+        bottom_img = PIL.Image.open(datapath / "shelterbottom.png").convert('RGBA')
+        top_img = PIL.Image.open(datapath / "sheltertop.png").convert('RGBA')
+        face_img = PIL.Image.open(datapath / "shelterface.png").convert('RGBA')
+
+        async def make_paint(arg, attachment_index):
+            img_bytes = None
+            if len(ctx.message.attachments) > attachment_index:
+                arg = ctx.message.attachments[attachment_index].url
+            if arg is None:
+                return None
+            elif isinstance(arg, discord.Member):
+                img_bytes = await arg.avatar_url_as(format='png').read()
+            elif isinstance(arg, discord.PartialEmoji):
+                img_bytes = await arg.url_as(format='png').read()
+            elif ord(arg[0]) > 127:
+                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg))
+            elif arg and '.' not in arg:
+                return PIL.Image.new('RGBA', bottom_img.size, color=arg)
+            if arg is None and img_bytes is None:
+                return None
+            if img_bytes is None:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(arg) as response:
+                        img_bytes = await response.read() if response.status == 200 else b""
+                if arg.endswith(".svg") and len(img_bytes):
+                    img_bytes = cairosvg.svg2png(bytestring=img_bytes, parent_width=bottom_img.size[0], parent_height=bottom_img.size[1])
+            image = PIL.Image.open(io.BytesIO(img_bytes))
+            scale_factors = [bsize / isize for bsize, isize in zip(bottom_img.size, image.size)]
+            scale_factor = max(scale_factors)
+            if scale_factor != 1.:
+                image = image.resize((int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC)
+            if image.size[0] != image.size[1]:
+                half_new_size = min(image.size) / 2
+                center_x = image.size[0] / 2
+                center_y = image.size[1] / 2
+                image = image.crop((
+                    int(center_x - half_new_size),
+                    int(center_y - half_new_size),
+                    int(center_x + half_new_size),
+                    int(center_y + half_new_size)
+                    ))
+            return image
+
+        try:
+            bottom_paint = await make_paint(bottom, 0)
+        except ValueError:
+            return await ctx.send(f"Unknown bottom color {bottom}.")
+        except PIL.UnidentifiedImageError:
+            return await ctx.send(f"Cannot read bottom image.")
+        if bottom_paint:
+            bottom_img = PIL.ImageChops.multiply(bottom_img, bottom_paint.convert('RGBA'))
+        else:
+            return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
+
+        try:
+            top_paint = await make_paint(top, 1)
+        except ValueError:
+            return await ctx.send(f"Unknown top color {top}.")
+        except PIL.UnidentifiedImageError:
+            return await ctx.send(f"Cannot read top image.")
+        if top_paint:
+            top_img = PIL.ImageChops.multiply(top_img, top_paint.convert('RGBA'))
+
+        bottom_img.paste(top_img.convert('RGB'), (0, 0), top_img)
+        bottom_img.paste(face_img.convert('RGB'), (0, 0), face_img)
+
+        img_data = io.BytesIO()
+        bottom_img.save(img_data, format='png')
+        img_data.seek(0)
+        img_file = discord.File(img_data, filename="shelterfrog.png")
+        await ctx.send(file=img_file)
+
+    @commands.command()
     async def choose(self, ctx: commands.Context, *, choices: str):
         """Chooses one of the choices separated by commas."""
         await ctx.send(random.choice(choices.split(",")).strip() or "empty message", allowed_mentions=discord.AllowedMentions.none())
