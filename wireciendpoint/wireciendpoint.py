@@ -255,12 +255,46 @@ class WireCiEndpoint(commands.Cog):
                     json = {'server': server_id}
                     ) as res:
                 if res.status != 200:
-                    for page in pagify(f"Server responded with an error code {res.status}: `{await res.text()}`"):
+                    for page in pagify(f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"):
                         await ctx.send(page)
+                    success = False
                     continue
                 data = await res.json(content_type=None)
                 if not data.get("success"):
-                    await ctx.send(f"Idk what happened: `{await res.text()}`")
+                    await ctx.send(f"`{server_id}`: Idk what happened: `{await res.text()}`")
+                    success = False
+        if success:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+
+    @wireciendpoint.command()
+    async def restart(self, ctx: commands.Context, server_name: str):
+        """Restart a server managed by CI."""
+        tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
+        url = tokens.get('api_path') + '/restart'
+        api_key = tokens.get('outgoing_api_key')
+        goonservers = self.bot.get_cog("GoonServers")
+        servers = goonservers.resolve_server_or_category(server_name)
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        success = True
+        for server in servers:
+            server_id = server.tgs
+            async with self.session.post(
+                    url,
+                    headers = {
+                        'Api-Key': api_key,
+                        },
+                    json = {'server': server_id}
+                    ) as res:
+                if res.status != 200:
+                    for page in pagify(f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"):
+                        await ctx.send(page)
+                    success = False
+                    continue
+                data = await res.json(content_type=None)
+                if not data.get("success"):
+                    await ctx.send(f"`{server_id}`: Idk what happened: `{await res.text()}`")
                     success = False
         if success:
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
