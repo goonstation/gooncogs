@@ -34,7 +34,7 @@ class GoonMisc(commands.Cog):
         self.CONTRIB_PATH = cog_data_path(self) / "contributors.txt"
         self.reload_contrib()
         self.is_dad = False
-        self.color_names = json.load(bundled_data_path(self) / "color-names.json")
+        self.color_names = json.load(open(bundled_data_path(self) / "color-names.json"))
 
     def reload_contrib(self):
         self.total = 0
