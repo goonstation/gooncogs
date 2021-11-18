@@ -409,7 +409,7 @@ class GoonMisc(commands.Cog):
             elif isinstance(arg, discord.PartialEmoji):
                 img_bytes = await arg.url_as(format='png').read()
             elif ord(arg[0]) > 127:
-                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg))
+                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg if ord(c) != 0xfe0f))
             elif arg and '.' not in arg:
                 return PIL.Image.new('RGBA', bg.size, color=arg)
             if arg is None and img_bytes is None:
@@ -495,7 +495,9 @@ class GoonMisc(commands.Cog):
             ):
         """
         Creates a variant of the shelterfrog with given bottom and top.
+
         Both bottom and top can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
+        Flags can currently be any combination of: `flip` and `mirror`.
         """
 
         datapath = bundled_data_path(self)
@@ -514,7 +516,7 @@ class GoonMisc(commands.Cog):
             elif isinstance(arg, discord.PartialEmoji):
                 img_bytes = await arg.url_as(format='png').read()
             elif ord(arg[0]) > 127:
-                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg))
+                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg if ord(c) != 0xfe0f))
             elif arg and '.' not in arg:
                 return PIL.Image.new('RGBA', bottom_img.size, color=arg)
             if arg is None and img_bytes is None:
@@ -542,6 +544,8 @@ class GoonMisc(commands.Cog):
                     ))
             return image
 
+        if isinstance(bottom, str) and bottom.lower() in ['default', 'shelter']:
+            bottom = "#cddfc1"
         try:
             bottom_paint = await make_paint(bottom, 0)
         except ValueError:
@@ -553,6 +557,8 @@ class GoonMisc(commands.Cog):
         else:
             return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
 
+        if isinstance(top, str) and top.lower() in ['default', 'shelter']:
+            top = "#91b978"
         try:
             top_paint = await make_paint(top, 1)
         except ValueError:
@@ -561,16 +567,19 @@ class GoonMisc(commands.Cog):
             return await ctx.send(f"Cannot read top image.")
         if top_paint:
             top_img = PIL.ImageChops.multiply(top_img, top_paint.convert('RGBA'))
+        else:
+            return await ctx.send("You need to provide a **second** colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username) too.")
+            
 
         bottom_img.paste(top_img.convert('RGB'), (0, 0), top_img)
         bottom_img.paste(face_img.convert('RGB'), (0, 0), face_img)
 
+        if flags is None:
+            flags = ""
         if 'flip' in flags:
             bottom_img = PIL.ImageOps.flip(bottom_img) 
         if 'mirror' in flags:
             bottom_img = PIL.ImageOps.mirror(bottom_img) 
-        if 'invert' in flags:
-            bottom_img = PIL.ImageOps.invert(bottom_img) 
 
         img_data = io.BytesIO()
         bottom_img.save(img_data, format='png')
