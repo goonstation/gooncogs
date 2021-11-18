@@ -497,7 +497,7 @@ class GoonMisc(commands.Cog):
         Creates a variant of the shelterfrog with given bottom and top.
 
         Both bottom and top can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
-        Flags can currently be any combination of: `noface`, `flip` and `mirror`.
+        Flags can currently be any combination of: `noface`, `noeyes`, `nomouth`, `flip` and `mirror`.
         """
 
         if flags is None:
@@ -505,7 +505,8 @@ class GoonMisc(commands.Cog):
         datapath = bundled_data_path(self)
         bottom_img = PIL.Image.open(datapath / "shelterbottom.png").convert('RGBA')
         top_img = PIL.Image.open(datapath / "sheltertop.png").convert('RGBA')
-        face_img = PIL.Image.open(datapath / "shelterface.png").convert('RGBA')
+        eyes_img = PIL.Image.open(datapath / "sheltereyes.png").convert('RGBA')
+        mouth_img = PIL.Image.open(datapath / "sheltermouth.png").convert('RGBA')
 
         async def make_paint(arg, attachment_index):
             img_bytes = None
@@ -573,8 +574,10 @@ class GoonMisc(commands.Cog):
             
 
         bottom_img.paste(top_img.convert('RGB'), (0, 0), top_img)
-        if 'noface' not in flags:
-            bottom_img.paste(face_img.convert('RGB'), (0, 0), face_img)
+        if 'noface' not in flags and 'noeyes' not in flags:
+            bottom_img.paste(eyes_img.convert('RGB'), (0, 0), eyes_img)
+        if 'noface' not in flags and 'nomouth' not in flags:
+            bottom_img.paste(mouth_img.convert('RGB'), (0, 0), mouth_img)
 
         if 'flip' in flags:
             bottom_img = PIL.ImageOps.flip(bottom_img) 
