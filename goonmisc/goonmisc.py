@@ -565,10 +565,9 @@ class GoonMisc(commands.Cog):
             return await ctx.send(f"Unknown top color {top}.")
         except PIL.UnidentifiedImageError:
             return await ctx.send(f"Cannot read top image.")
-        if top_paint:
-            top_img = PIL.ImageChops.multiply(top_img, top_paint.convert('RGBA'))
-        else:
-            return await ctx.send("You need to provide a **second** colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username) too.")
+        if not top_paint:
+            top_paint = bottom_paint
+        top_img = PIL.ImageChops.multiply(top_img, top_paint.convert('RGBA'))
             
 
         bottom_img.paste(top_img.convert('RGB'), (0, 0), top_img)
