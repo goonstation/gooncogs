@@ -404,7 +404,7 @@ class GoonMisc(commands.Cog):
             img_bytes = None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
-            if arg.lower() in self.color_names:
+            if isinstance(arg, str) and arg.lower() in self.color_names:
                 arg = self.color_names[arg.lower()]
             if arg is None:
                 return None
@@ -518,7 +518,7 @@ class GoonMisc(commands.Cog):
             img_bytes = None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
-            if arg.lower() in self.color_names:
+            if isinstance(arg, str) and arg.lower() in self.color_names:
                 arg = self.color_names[arg.lower()]
             if arg is None:
                 return None
