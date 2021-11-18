@@ -19,6 +19,7 @@ import io
 import aiohttp
 import colorsys
 import cairosvg
+import json
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -33,6 +34,7 @@ class GoonMisc(commands.Cog):
         self.CONTRIB_PATH = cog_data_path(self) / "contributors.txt"
         self.reload_contrib()
         self.is_dad = False
+        self.color_names = json.load(bundled_data_path(self) / "color-names.json")
 
     def reload_contrib(self):
         self.total = 0
@@ -402,6 +404,8 @@ class GoonMisc(commands.Cog):
             img_bytes = None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
+            if arg in self.color_names:
+                arg = self.color_names[arg]
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
@@ -514,6 +518,8 @@ class GoonMisc(commands.Cog):
             img_bytes = None
             if len(ctx.message.attachments) > attachment_index:
                 arg = ctx.message.attachments[attachment_index].url
+            if arg in self.color_names:
+                arg = self.color_names[arg]
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
