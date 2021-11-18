@@ -497,11 +497,13 @@ class GoonMisc(commands.Cog):
         Creates a variant of the shelterfrog with given bottom and top.
 
         Both bottom and top can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
-        Flags can currently be any combination of: `noface`, `noeyes`, `nomouth`, `flip` and `mirror`.
+        Flags can currently be any combination of: `noface`, `noeyes`, `nomouth`, `fliptop`, `mirrortop`, `flipbottom`, `mirrorbottom`, `flip` and `mirror`.
         """
 
         if flags is None:
             flags = ""
+        flags = flags.lower().split()
+
         datapath = bundled_data_path(self)
         bottom_img = PIL.Image.open(datapath / "shelterbottom.png").convert('RGBA')
         top_img = PIL.Image.open(datapath / "sheltertop.png").convert('RGBA')
@@ -555,7 +557,12 @@ class GoonMisc(commands.Cog):
             return await ctx.send(f"Unknown bottom color {bottom}.")
         except PIL.UnidentifiedImageError:
             return await ctx.send(f"Cannot read bottom image.")
+        orig_bottom_paint = bottom_paint
         if bottom_paint:
+            if 'flipbottom' in flags:
+                bottom_paint = PIL.ImageOps.flip(bottom_paint) 
+            if 'mirrorbottom' in flags:
+                bottom_paint = PIL.ImageOps.mirror(bottom_paint) 
             bottom_img = PIL.ImageChops.multiply(bottom_img, bottom_paint.convert('RGBA'))
         else:
             return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
@@ -569,7 +576,12 @@ class GoonMisc(commands.Cog):
         except PIL.UnidentifiedImageError:
             return await ctx.send(f"Cannot read top image.")
         if not top_paint:
-            top_paint = bottom_paint
+            top_paint = orig_bottom_paint
+
+        if 'fliptop' in flags:
+            top_paint = PIL.ImageOps.flip(top_paint) 
+        if 'mirrortop' in flags:
+            top_paint = PIL.ImageOps.mirror(top_paint) 
         top_img = PIL.ImageChops.multiply(top_img, top_paint.convert('RGBA'))
             
 
