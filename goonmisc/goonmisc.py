@@ -489,7 +489,10 @@ class GoonMisc(commands.Cog):
     @commands.max_concurrency(1, wait=True)
     async def makefrog(self, ctx: commands.Context,
             bottom: Optional[Union[discord.Member, discord.PartialEmoji, str]],
-            top: Optional[Union[discord.Member, discord.PartialEmoji, str]]):
+            top: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+            *, 
+            flags: Optional[str]
+            ):
         """
         Creates a variant of the shelterfrog with given bottom and top.
         Both bottom and top can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
@@ -561,6 +564,13 @@ class GoonMisc(commands.Cog):
 
         bottom_img.paste(top_img.convert('RGB'), (0, 0), top_img)
         bottom_img.paste(face_img.convert('RGB'), (0, 0), face_img)
+
+        if 'flip' in flags:
+            bottom_img = PIL.ImageOps.flip(bottom_img) 
+        if 'mirror' in flags:
+            bottom_img = PIL.ImageOps.mirror(bottom_img) 
+        if 'invert' in flags:
+            bottom_img = PIL.ImageOps.invert(bottom_img) 
 
         img_data = io.BytesIO()
         bottom_img.save(img_data, format='png')
