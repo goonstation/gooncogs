@@ -36,7 +36,7 @@ class StopNitroScams(commands.Cog):
                     await message.author.ban(reason="nitro scam", delete_message_days=0)
                     case = await modlog.create_case(
                         self.bot, message.guild, message.created_at, action_type="ban",
-                        user=message.author, moderator=None, reason="Nitro scamming:\n> {message.clean_content}",
+                        user=message.author, moderator=None, reason=f"Nitro scamming:\n> {message.clean_content}",
                         channel=message.channel
                     )
 
