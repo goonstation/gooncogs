@@ -25,13 +25,15 @@ class StopNitroScams(commands.Cog):
             return
 
         key = message.author.id
-        if "http" in message.content and ("free" in message.content.lower() or "steam" in message.content.lower()) and "nitro" in message.content.lower():
+        if "http" in message.content.lower() and "nitro" in message.content.lower() or "everyone" in message.clean_content:
             self.sus_messages[key] = self.sus_messages.get(key, []) + [message]
             msgs = self.sus_messages[key]
             if len(msgs) >= 3:
-                for message in msgs:
-                    await message.delete()
-                await message.author.ban(reason="nitro scam", delete_message_days=0)
+                if len(set(msg.content for msg in msgs)) <= len(msgs) - 2: # at least three are the same
+                    for message in msgs:
+                        await message.delete()
+                    await message.author.send(f"You have been banned from {message.guild} for Nitro scams, please contact the server administrators once you have improved your account security!")
+                    await message.author.ban(reason="nitro scam", delete_message_days=0)
         else:
             if key in self.sus_messages:
                 del self.sus_messages[key]
