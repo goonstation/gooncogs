@@ -1,5 +1,5 @@
 import discord
-from redbot.core import commands
+from redbot.core import commands, modlog
 from redbot.core.bot import Red
 
 class StopNitroScams(commands.Cog):
@@ -34,6 +34,12 @@ class StopNitroScams(commands.Cog):
                         await message.delete()
                     await message.author.send(f"You have been banned from {message.guild} for Nitro scams, please contact the server administrators once you have improved your account security!")
                     await message.author.ban(reason="nitro scam", delete_message_days=0)
+                    case = await modlog.create_case(
+                        self.bot, message.guild, message.created_at, action_type="ban",
+                        user=message.author, moderator=None, reason="Nitro scamming:\n> {message.clean_content}",
+                        channel=message.channel
+                    )
+
         else:
             if key in self.sus_messages:
                 del self.sus_messages[key]
