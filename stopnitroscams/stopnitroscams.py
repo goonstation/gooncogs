@@ -31,15 +31,21 @@ class StopNitroScams(commands.Cog):
             if len(msgs) >= 3:
                 if len(set(msg.content for msg in msgs)) <= len(msgs) - 2: # at least three are the same
                     for message in msgs:
-                        await message.delete()
-                    await message.author.send(f"You have been banned from {message.guild} for Nitro scams, please contact the server administrators once you have improved your account security!")
-                    await message.author.ban(reason="nitro scam", delete_message_days=0)
+                        try:
+                            await message.delete()
+                        except:
+                            pass
+                    try:
+                        await message.author.ban(reason="nitro scam", delete_message_days=0)
+                        await message.author.send(f"You have been banned from {message.guild} for Nitro scams, please contact the server administrators once you have improved your account security!")
+                    except:
+                        pass
                     case = await modlog.create_case(
                         self.bot, message.guild, message.created_at, action_type="ban",
                         user=message.author, moderator=None, reason=f"Nitro scamming:\n> {message.clean_content}",
                         channel=message.channel
                     )
-
+                    del self.sus_messages[key]
         else:
             if key in self.sus_messages:
                 del self.sus_messages[key]
