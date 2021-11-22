@@ -96,7 +96,7 @@ class WireCiEndpoint(commands.Cog):
         self.rnd = random.Random()
         self.funny_messages = open(bundled_data_path(self) / "code_quality.txt").readlines()
         self.session = aiohttp.ClientSession()
-        self.processed_successful_commits = set()
+        self.processed_successful_commits = {}
         self.processed_failed_commits = set()
 
     def cog_unload(self):
@@ -137,9 +137,17 @@ class WireCiEndpoint(commands.Cog):
                 if '\n' in commit_message:
                     commit_message = commit_message.split('\n')[0]
                 guild = self.bot.get_channel(int(next(iter(channels)))).guild
-                message = f"__{data.branch}__ on {server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
+                message_start = f"__{data.branch}__ on "
+                message_end = f"{server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
+                message = message_start + message_end
                 if data.commit not in self.processed_successful_commits:
                     message += f"\nCode quality: {await self.funny_message(data.commit, guild)}"
+                elif all(msg.channel.last_message == msg for msg in self.processed_successful_commits[data.commit]):
+                    for msg in self.processed_successful_commits[data.commit]:
+                        last_servers = re.findall(r" on (.*) \N{WHITE HEAVY CHECK MARK}", msg.content)
+                        message = message_start + last_servers[0] + ", " + message_end
+                        await msg.edit(content=message)
+                    return
             else:
                 embed = discord.Embed()
                 embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
@@ -166,16 +174,20 @@ class WireCiEndpoint(commands.Cog):
                         author_discord_id = await githubendpoint.config.custom("contributors", data.author).discord_id()
                     if author_discord_id is not None:
                         message = self.bot.get_user(author_discord_id).mention
+            succ_messages = []
             if success:
-                self.processed_successful_commits.add(data.commit)
+                self.processed_successful_commits[data.commit] = succ_messages
             else:
                 self.processed_failed_commits.add(data.commit)
             for channel_id in channels:
                 channel = self.bot.get_channel(int(channel_id))
+                msg = None
                 if embed:
-                    await channel.send(message, embed=embed)
+                    msg = await channel.send(message, embed=embed)
                 else:
-                    await channel.send(message)
+                    msg = await channel.send(message)
+                if success:
+                    succ_messages.append(msg)
 
     async def funny_message(self, seed, guild=None):
         self.rnd.seed(seed)
@@ -234,13 +246,15 @@ class WireCiEndpoint(commands.Cog):
             await ctx.send('\n'.join(message))
 
     @wireciendpoint.command()
-    async def build(self, ctx: commands.Context, server_name: str):
+    async def build(self, ctx: commands.Context, *, server_name: str):
         """Start a CI build."""
         tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
         url = tokens.get('api_path') + '/build'
         api_key = tokens.get('outgoing_api_key')
         goonservers = self.bot.get_cog("GoonServers")
-        servers = goonservers.resolve_server_or_category(server_name)
+        servers = set()
+        for server_name in server_name.split():
+            servers |= set(goonservers.resolve_server_or_category(server_name))
         if not servers:
             await ctx.send("Unknown server.")
             return
