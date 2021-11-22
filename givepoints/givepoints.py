@@ -122,3 +122,6 @@ add_points_type(GivePoints,
     allow_cant_message = "You can't hire people as bouncerats factory workers, you don't work at the bouncerats factory.",
     allow_already_giver_message = "{0} already works in the bouncerats factory.",
     allow_successful_message = "{0} has been hired as a bouncerats factory worker.")
+
+
+add_points_type(GivePoints, "bee", "\N{HONEYBEE}", allow_give_command="hirebeefactoryworker")
