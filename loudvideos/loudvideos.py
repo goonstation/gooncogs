@@ -45,7 +45,7 @@ class LoudVideos(commands.Cog):
                     urls.append(embed.video.url)
             for url in urls:
                 file_path = cog_data_path(self) / url.split('/')[-1]
-                file_path = file_path.split('?')[0][:64]
+                file_path = str(file_path).split('?')[0][:64]
                 if "youtube" in url:
                     ydl_opts = {
                         'format': 'worst',
