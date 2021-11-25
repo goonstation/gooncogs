@@ -175,12 +175,14 @@ class SpacebeeCommands(commands.Cog):
     async def scheck(self, ctx: commands.Context, server_id: str):
         """Checks server health of a given Goonstation server."""
         goonservers = self.bot.get_cog('GoonServers')
+        start_time = time.time()
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "health",
             }, ctx, to_dict=True)
+        elapsed = time.time() - start_time
         if response is None:
             return
-        await ctx.send(f"CPU: {response['cpu']}\ntime scaling: {response['time']}")
+        await ctx.send(f"CPU: {response['cpu']}\ntime scaling: {response['time']}\nRTT: {elapsed * 1000:.2f}ms")
 
     @commands.command()
     @checks.admin()
