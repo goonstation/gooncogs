@@ -633,7 +633,6 @@ RTT: {elapsed * 1000:.2f}ms""")
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "profile",
                 'action': "refresh",
-                B
                 'profiler_type': type,
                 'average': average,
             }, ctx, to_dict=True)
