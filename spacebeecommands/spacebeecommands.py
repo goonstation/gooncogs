@@ -14,6 +14,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import json
 import re
 import time
+import io
 import datetime
 from concurrent.futures.thread import ThreadPoolExecutor
 import youtube_dl
@@ -539,3 +540,106 @@ RTT: {elapsed * 1000:.2f}ms""")
             time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
             embed.add_field(name="time played", value=time_played)
         await ctx.send(embed=embed)
+
+
+    @commands.group(name="profiler")
+    @checks.admin()
+    async def profiler(self, ctx: commands.Context):
+        """Profile a game server."""
+        pass
+
+    @profiler.command(name="start")
+    async def profiler_start(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+        """Starts the profiler on a given server.
+
+        type argument can be `sendmaps` per byond reference."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "profile",
+                'action': "start",
+                'profiler_type': type,
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        if response == 1:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            await ctx.send("Unknown error.")
+
+    @profiler.command(name="stop")
+    async def profiler_stop(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+        """Stops the profiler on a given server, returns output."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "profile",
+                'action': "stop",
+                'profiler_type': type,
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
+        await ctx.send(file=prof_file)
+
+    @profiler.command(name="clear")
+    async def profiler_clear(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+        """Clears the profiler stats on a given server."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "profile",
+                'action': "clear",
+                'profiler_type': type,
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        if response == 1:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            await ctx.send("Unknown error.")
+
+    @profiler.command(name="restart")
+    async def profiler_restart(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+        """Restarts the profiler on a given server."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "profile",
+                'action': "restart",
+                'profiler_type': type,
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        if response == 1:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            await ctx.send("Unknown error.")
+
+    @profiler.command(name="save")
+    async def profiler_save(self, ctx: commands.Context, server_id: str, type: Optional[str], average: Optional[int]):
+        """Saves current profiling data to the server's logs folder."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "profile",
+                'action': "save",
+                'profiler_type': type,
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        await ctx.send(f"Profiling result saved in `{response}`.")
+
+    @profiler.command(name="get", aliases=["check"])
+    async def profiler_get(self, ctx: commands.Context, server_id: str, type: Optional[str], average: Optional[int]):
+        """Fetches and returns current profiling data of a server."""
+        goonservers = self.bot.get_cog('GoonServers')
+        response = await goonservers.send_to_server_safe(server_id, {
+                'type': "profile",
+                'action': "refresh",
+                B
+                'profiler_type': type,
+                'average': average,
+            }, ctx, to_dict=True)
+        if response is None:
+            return
+        dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
+        await ctx.send(file=prof_file)
+
