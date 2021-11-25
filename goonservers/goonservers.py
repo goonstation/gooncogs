@@ -164,6 +164,9 @@ class GoonServers(commands.Cog):
             raise UnknownServerError()
         worldtopic = self.bot.get_cog('WorldTopic')
         if not isinstance(message, str):
+            if isinstance(message, dict):
+                tokens = await self.bot.get_shared_api_tokens('goonservers')
+                message['auth'] = tokens.get('auth_token')
             message = worldtopic.iterable_to_params(message)
         result = await worldtopic.send((server.host, server.port), message)
         if to_dict and isinstance(result, str):
