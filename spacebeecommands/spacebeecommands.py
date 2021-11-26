@@ -16,14 +16,32 @@ import re
 import time
 import io
 import datetime
+from pydantic import BaseModel
+from starlette.requests import Request
+from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
 import youtube_dl
 
 class SpacebeeCommands(commands.Cog):
     FILE_SIZE_LIMIT = 15 * 1024 * 1024
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.executor = ThreadPoolExecutor(max_workers=1)
+        self.last_profiler_check_message = None
+        self.last_profiler_id = None
+
+    def register_to_general_api(self, app):
+        @app.post("/profiler_result", response_class=Response)
+        async def profiler_result(request: Request):
+            if self.last_profiler_check_message is None:
+                return
+            dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            prof_file = discord.File(io.BytesIO(await request.body()), filename=f"profiling_{self.last_profiler_id}_{dat_string}.json")
+            msg = "Consider using https://mini.xkeeper.net/ss13/profiler/ to view the results:"
+            await self.last_profiler_check_message.reply(msg, file=prof_file)
+            self.last_profiler_check_message = None
+            return "ok"
 
     def format_whois(self, response):
         count = int(response['count'])
@@ -558,7 +576,7 @@ RTT: {elapsed * 1000:.2f}ms""")
                 'type': "profile",
                 'action': "start",
                 'profiler_type': type,
-            }, ctx, to_dict=True)
+            }, ctx)
         if response is None:
             return
         if response == 1:
@@ -570,16 +588,22 @@ RTT: {elapsed * 1000:.2f}ms""")
     async def profiler_stop(self, ctx: commands.Context, server_id: str, type: Optional[str]):
         """Stops the profiler on a given server, returns output."""
         goonservers = self.bot.get_cog('GoonServers')
+        self.last_profiler_check_message = ctx.message
+        self.last_profiler_id = server_id
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "profile",
                 'action': "stop",
                 'profiler_type': type,
-            }, ctx, to_dict=True)
+            }, ctx)
         if response is None:
             return
-        dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
-        await ctx.send(file=prof_file)
+        if response == 1:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            await ctx.send("Unknown error.")
+        # dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
+        # await ctx.send(file=prof_file)
 
     @profiler.command(name="clear")
     async def profiler_clear(self, ctx: commands.Context, server_id: str, type: Optional[str]):
@@ -589,7 +613,7 @@ RTT: {elapsed * 1000:.2f}ms""")
                 'type': "profile",
                 'action': "clear",
                 'profiler_type': type,
-            }, ctx, to_dict=True)
+            }, ctx)
         if response is None:
             return
         if response == 1:
@@ -605,7 +629,7 @@ RTT: {elapsed * 1000:.2f}ms""")
                 'type': "profile",
                 'action': "restart",
                 'profiler_type': type,
-            }, ctx, to_dict=True)
+            }, ctx)
         if response is None:
             return
         if response == 1:
@@ -621,24 +645,30 @@ RTT: {elapsed * 1000:.2f}ms""")
                 'type': "profile",
                 'action': "save",
                 'profiler_type': type,
-            }, ctx, to_dict=True)
+            }, ctx)
         if response is None:
             return
-        await ctx.send(f"Profiling result saved in `{response}`.")
+        await ctx.send(f"Profiling result saved in `{response}`. Consider using https://mini.xkeeper.net/ss13/profiler/ to view the results.")
 
     @profiler.command(name="get", aliases=["check"])
     async def profiler_get(self, ctx: commands.Context, server_id: str, type: Optional[str], average: Optional[int]):
         """Fetches and returns current profiling data of a server."""
         goonservers = self.bot.get_cog('GoonServers')
+        self.last_profiler_check_message = ctx.message
+        self.last_profiler_id = server_id
         response = await goonservers.send_to_server_safe(server_id, {
                 'type': "profile",
                 'action': "refresh",
                 'profiler_type': type,
                 'average': average,
-            }, ctx, to_dict=True)
+            }, ctx)
         if response is None:
             return
-        dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
-        await ctx.send(file=prof_file)
+        if response == 1:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            await ctx.send("Unknown error.")
+        # dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
+        # await ctx.send(file=prof_file)
 
