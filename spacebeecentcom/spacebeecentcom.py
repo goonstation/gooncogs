@@ -157,6 +157,15 @@ class SpacebeeCentcom(commands.Cog):
             await server.subtype.channel_broadcast(self.bot, 'admin_misc', out)
             return self.SUCCESS_REPLY
 
+        @app.get("/admin_debug")
+        async def admin_debug(msg: str, key: str = "", name: str = "", server = Depends(self.server_dep)):
+            out = f"[{server.full_name}] "
+            if key or name:
+                out += f"{name} ({key}) "
+            out += msg
+            await server.subtype.channel_broadcast(self.bot, 'debug', out)
+            return self.SUCCESS_REPLY
+
     def get_server(self, server_id):
         goonservers_cog = self.bot.get_cog("GoonServers")
         return goonservers_cog.resolve_server(server_id)
