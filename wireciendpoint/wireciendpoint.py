@@ -144,7 +144,7 @@ class WireCiEndpoint(commands.Cog):
                     message = message_start + message_end
                     if data.commit not in self.processed_successful_commits:
                         message += f"\nCode quality: {await self.funny_message(data.commit, guild)}"
-                    elif all(msg.channel.last_message == msg for msg in self.processed_successful_commits[data.commit]):
+                    elif all(msg.channel.last_message.id == msg.id for msg in self.processed_successful_commits[data.commit]):
                         for msg in self.processed_successful_commits[data.commit]:
                             first_part, second_part = msg.content.split("\N{WHITE HEAVY CHECK MARK}")
                             message = first_part[:-1] + ", " + server.short_name + " \N{WHITE HEAVY CHECK MARK}" + second_part
