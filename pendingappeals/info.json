@@ -1,0 +1,15 @@
+{
+    "name": "PendingAppeals",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "TODO",
+    "description": "TODO",
+    "requirements": [
+	"aiohttp",
+	"bs4"
+    ],
+    "tags": [
+	"forum"
+    ]
+}
