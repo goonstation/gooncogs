@@ -211,6 +211,10 @@ class SpacebeeCentcom(commands.Cog):
         if current_ckey:
             await ctx.send(f"You are already linked to ckey `{current_ckey}`. If you wish to unlink please contact an administrator (ideally using the ]report command).")
             return
+        ckeys_linked_account = await self.config.custom("ckey", ckey).discord_id()
+        if ckeys_linked_account:
+            await ctx.send(f"That ckey is already linked to an account.")
+            return
         verif = secrets.token_hex(8)
         full_verif = f"{ctx.author.id}-{verif}"
         await self.config.user(ctx.author).link_verification.set(verif)
@@ -238,6 +242,13 @@ class SpacebeeCentcom(commands.Cog):
         """Directly links a Discord user to a BYOND ckey."""
         ckey = self.ckeyify(ckey)
         current_ckey = await self.config.user(target).linked_ckey()
+        if current_ckey:
+            await ctx.send(f"That user is already linked to a ckey `{current_ckey}`. Unlink it first.")
+            return
+        ckeys_linked_account = await self.config.custom("ckey", ckey).discord_id()
+        if ckeys_linked_account:
+            await ctx.send(f"That ckey is already linked to user <@{ckeys_linked_account}>.")
+            return
         await self.config.user(target).linked_ckey.set(ckey)
         await self.config.custom("ckey", ckey).discord_id.set(target.id)
         msg = f"Linked ckey `{ckey}` to {target.mention}"
