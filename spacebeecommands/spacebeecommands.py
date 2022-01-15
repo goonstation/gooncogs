@@ -530,10 +530,19 @@ RTT: {elapsed * 1000:.2f}ms""")
     @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(1, wait=True)
-    async def stats(self, ctx: commands.Context, *, ckey: str):
+    async def stats(self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]):
         """Shows playtime stats of a given ckey."""
         goonservers = self.bot.get_cog('GoonServers')
-        ckey = self.ckeyify(ckey)
+        if ckey is None:
+            ckey = ctx.author
+        if isinstance(ckey, str):
+            ckey = self.ckeyify(ckey)
+        else:
+            spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
+            ckey = await spacebeecentcom.user_to_ckey(ckey)
+            if not ckey:
+                await ctx.message.reply("That user has no BYOND account linked")
+                return
         response = await goonservers.send_to_server_safe('2', {'type': 'getPlayerStats', 'ckey': ckey}, ctx.message)
         if response is None:
             return

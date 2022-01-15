@@ -245,6 +245,9 @@ class SpacebeeCentcom(commands.Cog):
             msg += f" (Their previous ckey was `{current_ckey}`)"
         await ctx.send(msg)
 
+    async def user_to_ckey(self, user):
+        return await self.config.user(user).linked_ckey()
+
     @commands.command()
     @checks.admin()
     async def checklink(self, ctx: commands.Context, target: Union[discord.User, str]):
