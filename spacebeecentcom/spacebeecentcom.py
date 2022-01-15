@@ -30,7 +30,9 @@ class SpacebeeCentcom(commands.Cog):
         self.bot = bot
         self.asay_uses_embed = False
         self.config = Config.get_conf(self, identifier=5525879512398)
+        self.config.init_custom("ckey", 1)
         self.config.register_user(**self.default_user_settings)
+        self.config.register_custom("ckey", discord_id=None)
 
     class SpacebeeError(Exception):
         def __init__(self, message: str, status_code: int, error_code: int = 0):
@@ -178,18 +180,20 @@ class SpacebeeCentcom(commands.Cog):
             if '-' not in code:
                 return None
             user_id, verification = code.split('-')
-            user = self.bot.get_user(int(user_id))
+            user_id = int(user_id)
+            user = self.bot.get_user(user_id)
             target_verif = await self.config.user(user).link_verification()
             if target_verif != verification:
                 return None
             await self.config.user(user).link_verification.set(None)
             await self.config.user(user).linked_ckey.set(ckey)
+            await self.config.custom("ckey", ckey).discord_id.set(user_id)
             try:
                 await user.send(f"Account successfully linked to ckey `{ckey}`.")
             except:
                 pass
             guild = self.bot.get_guild(182249960895545344)
-            member = guild.get_member(int(user_id))
+            member = guild.get_member(user_id)
             if member is not None:
                 await member.add_roles(guild.get_role(182284445837950977))
             return self.SUCCESS_REPLY
@@ -221,8 +225,12 @@ class SpacebeeCentcom(commands.Cog):
     async def unlinkother(self, ctx: commands.Context, target: discord.User):
         """Unlinks a Discord user from their ckey."""
         current_ckey = await self.config.user(target).linked_ckey()
-        await self.config.user(target).linked_ckey.set(None)
-        await ctx.send(f"Unlinked ckey `{current_ckey}` from {target.mention}")
+        if current_ckey:
+            await self.config.user(target).linked_ckey.set(None)
+            await self.config.custom("ckey", current_ckey).discord_id.set(None)
+            await ctx.send(f"Unlinked ckey `{current_ckey}` from {target.mention}")
+        else:
+            await ctx.send("They had no linked ckey")
 
     @commands.command()
     @checks.admin()
@@ -231,6 +239,7 @@ class SpacebeeCentcom(commands.Cog):
         ckey = self.ckeyify(ckey)
         current_ckey = await self.config.user(target).linked_ckey()
         await self.config.user(target).linked_ckey.set(ckey)
+        await self.config.custom("ckey", ckey).discord_id.set(target.id)
         msg = f"Linked ckey `{ckey}` to {target.mention}"
         if current_ckey:
             msg += f" (Their previous ckey was `{current_ckey}`)"
@@ -238,13 +247,21 @@ class SpacebeeCentcom(commands.Cog):
 
     @commands.command()
     @checks.admin()
-    async def checklink(self, ctx: commands.Context, target: discord.User):
+    async def checklink(self, ctx: commands.Context, target: Union[discord.User, str]):
         """Checks linked account of a Discord user."""
-        current_ckey = await self.config.user(target).linked_ckey()
-        if current_ckey:
-            await ctx.send(f"{target.mention}'s ckey is `{current_ckey}`")
+        if not isinstance(target, str):
+            current_ckey = await self.config.user(target).linked_ckey()
+            if current_ckey:
+                await ctx.send(f"{target.mention}'s ckey is `{current_ckey}`")
+            else:
+                await ctx.send(f"{target.mention} has not linked their account")
         else:
-            await ctx.send(f"{target.mention} has not linked their account")
+            ckey = self.ckeyify(target)
+            user_id = await self.config.custom("ckey", ckey).discord_id()
+            if user_id:
+                await ctx.send(f"`{ckey}`'s Discord account is {self.bot.get_user(user_id).mention}")
+            else:
+                await ctx.send(f"Ckey `{ckey}` has not lonked their Discord account")
 
     def get_server(self, server_id):
         goonservers_cog = self.bot.get_cog("GoonServers")
