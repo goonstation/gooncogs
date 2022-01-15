@@ -14,16 +14,23 @@ import time
 import functools
 import inspect
 import collections
+import secrets
 
 class SpacebeeCentcom(commands.Cog):
     AHELP_COLOUR = discord.Colour.from_rgb(184, 46, 0)
     ASAY_COLOUR = discord.Colour.from_rgb(174, 80, 186)
     MHELP_COLOUR = discord.Colour.from_rgb(123, 0, 255)
     SUCCESS_REPLY = {'status': 'ok'}
+    default_user_settings = {
+            'linked_ckey': None,
+            'link_verification': None,
+        }
 
     def __init__(self, bot: Red):
         self.bot = bot
         self.asay_uses_embed = False
+        self.config = Config.get_conf(self, identifier=5525879512398)
+        self.config.register_user(**self.default_user_settings)
 
     class SpacebeeError(Exception):
         def __init__(self, message: str, status_code: int, error_code: int = 0):
@@ -165,6 +172,79 @@ class SpacebeeCentcom(commands.Cog):
             out += msg
             await server.subtype.channel_broadcast(self.bot, 'debug', out)
             return self.SUCCESS_REPLY
+
+        @app.get("/link")
+        async def link(key: str, ckey: str, code: str, server = Depends(self.server_dep)):
+            if '-' not in code:
+                return None
+            user_id, verification = code.split('-')
+            user = self.bot.get_user(int(user_id))
+            target_verif = await self.config.user(user).link_verification()
+            if target_verif != verification:
+                return None
+            await self.config.user(user).link_verification.set(None)
+            await self.config.user(user).linked_ckey.set(ckey)
+            try:
+                await user.send(f"Account successfully linked to ckey `{ckey}`.")
+            except:
+                pass
+            guild = self.bot.get_guild(182249960895545344)
+            member = guild.get_member(int(user_id))
+            if member is not None:
+                await member.add_roles(guild.get_role(182284445837950977))
+            return self.SUCCESS_REPLY
+
+    def ckeyify(self, text):
+        return ''.join(c.lower() for c in text if c.isalnum())
+
+    @commands.command()
+    async def link(self, ctx: commands.Context, *, ckey: str):
+        """Links your Discord account with your BYOND username.
+
+        ckey - your BYOND username"""
+        ckey = self.ckeyify(ckey)
+        current_ckey = await self.config.user(ctx.author).linked_ckey()
+        if current_ckey:
+            await ctx.send(f"You are already linked to ckey `{current_ckey}`. If you wish to unlink please contact an administrator (ideally using the ]report command).")
+            return
+        verif = secrets.token_hex(8)
+        full_verif = f"{ctx.author.id}-{verif}"
+        await self.config.user(ctx.author).link_verification.set(verif)
+        try:
+            msg = f"Login into one of Goonstation servers and use the Link Discord verb in the Commands tab on the right. Enter code `{full_verif}` when prompted."
+            await ctx.author.send(msg)
+        except:
+            await ctx.send("You need DMs enabled to link your account.")
+
+    @commands.command()
+    @checks.admin()
+    async def unlinkother(self, ctx: commands.Context, target: discord.User):
+        """Unlinks a Discord user from their ckey."""
+        current_ckey = await self.config.user(target).linked_ckey()
+        await self.config.user(target).linked_ckey.set(None)
+        await ctx.send(f"Unlinked ckey `{current_ckey}` from {target.mention}")
+
+    @commands.command()
+    @checks.admin()
+    async def linkother(self, ctx: commands.Context, target: discord.User, *, ckey: str):
+        """Directly links a Discord user to a BYOND ckey."""
+        ckey = self.ckeyify(ckey)
+        current_ckey = await self.config.user(target).linked_ckey()
+        await self.config.user(target).linked_ckey.set(ckey)
+        msg = f"Linked ckey `{ckey}` to {target.mention}"
+        if current_ckey:
+            msg += f" (Their previous ckey was `{current_ckey}`)"
+        await ctx.send(msg)
+
+    @commands.command()
+    @checks.admin()
+    async def checklink(self, ctx: commands.Context, target: discord.User):
+        """Checks linked account of a Discord user."""
+        current_ckey = await self.config.user(target).linked_ckey()
+        if current_ckey:
+            await ctx.send(f"{target.mention}'s ckey is `{current_ckey}`")
+        else:
+            await ctx.send(f"{target.mention} has not linked their account")
 
     def get_server(self, server_id):
         goonservers_cog = self.bot.get_cog("GoonServers")
