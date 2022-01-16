@@ -224,6 +224,14 @@ class SpacebeeCentcom(commands.Cog):
         except:
             await ctx.send("You need DMs enabled to link your account.")
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        if member.guild.id != 182249960895545344:
+            return
+        current_ckey = await self.config.user(member).linked_ckey()
+        if current_ckey:
+            await member.add_roles(member.guild.get_role(182284445837950977))
+
     @commands.command()
     @checks.admin()
     async def unlinkother(self, ctx: commands.Context, target: discord.User):
