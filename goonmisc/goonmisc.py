@@ -622,6 +622,8 @@ class GoonMisc(commands.Cog):
             await ctx.send("Donate2day! https://www.patreon.com/goonstation (Patreon, for recurring donations) or https://paypal.me/Wirewraith (Paypal, for one-off donations)")
         elif who == "pali":
             await ctx.send("https://ko-fi.com/pali6")
+        elif who in ["cogwerks", "cog", "cogs"]:
+            await ctx.send("https://ko-fi.com/cogwerks")
         else:
             await ctx.send("No idea who that is!")
 
