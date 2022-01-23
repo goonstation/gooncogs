@@ -9,6 +9,7 @@ from redbot.core.bot import Red
 from typing import *
 from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from github import Github
 import re
 import time
 import functools
@@ -33,6 +34,10 @@ class SpacebeeCentcom(commands.Cog):
         self.config.init_custom("ckey", 1)
         self.config.register_user(**self.default_user_settings)
         self.config.register_custom("ckey", discord_id=None)
+        self.gh = None
+
+    async def init(self):
+        self.gh = Github((await self.bot.get_shared_api_tokens("github")).get("token"))
 
     class SpacebeeError(Exception):
         def __init__(self, message: str, status_code: int, error_code: int = 0):
@@ -173,6 +178,13 @@ class SpacebeeCentcom(commands.Cog):
                 out += f"{name} ({key}) "
             out += msg
             await server.subtype.channel_broadcast(self.bot, 'debug', out)
+            return self.SUCCESS_REPLY
+
+        @app.get("/issue")
+        async def admin_debug(title: str, body: str, secret: bool, server = Depends(self.server_dep)):
+            repo_name = "goonstation/goonstation-secret" if secret else "goonstation/goonstation"
+            repo = self.gh.get_repo(repo_name)
+            repo.create_issue(title, body)
             return self.SUCCESS_REPLY
 
         @app.get("/link")
