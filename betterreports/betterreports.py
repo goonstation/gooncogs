@@ -268,6 +268,9 @@ class BetterReports(commands.Cog):
         Use without arguments for interactive reporting, or do
         `[p]report <text>` to use it non-interactively.
         """
+        if ctx.guild:
+            await ctx.send("Please use this command in DMs with the bot (or use the /report version).")
+            return
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
 
     @commands.group(name="reportanon", invoke_without_command=True)
@@ -277,6 +280,9 @@ class BetterReports(commands.Cog):
         Use without arguments for interactive reporting, or do
         `[p]report <text>` to use it non-interactively.
         """
+        if ctx.guild:
+            await ctx.send("Please use this command in DMs with the bot (or use the /report version).")
+            return
         return await self._report(ctx=ctx, _report=_report, anonymous=True) 
 
     async def _report(self, ctx: commands.Context, *, _report: str = "", anonymous = False, default_guild = None, reply_command = None):
@@ -372,11 +378,13 @@ class BetterReports(commands.Cog):
 
     @reportanon.after_invoke
     async def reportanon_cleanup(self, ctx: commands.Context):
-        await self._report_cleanup(ctx)
+        if not ctx.guild:
+            await self._report_cleanup(ctx)
 
     @report.after_invoke
     async def report_cleanup(self, ctx: commands.Context):
-        await self._report_cleanup(ctx)
+        if not ctx.guild:
+            await self._report_cleanup(ctx)
 
     async def _report_cleanup(self, ctx: commands.Context):
         """
