@@ -17,6 +17,8 @@ import inspect
 import collections
 import secrets
 
+PLAYER_ROLE_ID = 182284445837950977
+
 class SpacebeeCentcom(commands.Cog):
     AHELP_COLOUR = discord.Colour.from_rgb(184, 46, 0)
     ASAY_COLOUR = discord.Colour.from_rgb(174, 80, 186)
@@ -214,7 +216,7 @@ class SpacebeeCentcom(commands.Cog):
             guild = self.bot.get_guild(182249960895545344)
             member = guild.get_member(user_id)
             if member is not None:
-                await member.add_roles(guild.get_role(182284445837950977))
+                await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
             return self.SUCCESS_REPLY
 
     def ckeyify(self, text):
@@ -242,7 +244,14 @@ class SpacebeeCentcom(commands.Cog):
             return
         current_ckey = await self.config.user(member).linked_ckey()
         if current_ckey:
-            await member.add_roles(member.guild.get_role(182284445837950977))
+            rolestuff_cog = self.bot.get_cog("RoleStuff")
+            player_added = False
+            if rolestuff_cog:
+                roles_added, _ = await rolestuff_cog.restore_roles_internal(member)
+                if any(r.id == PLAYER_ROLE_ID for r in roles_added):
+                    player_added = True
+            if not player_added:
+                await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
 
     @commands.command()
     @checks.admin()

@@ -97,6 +97,13 @@ class RoleStuff(commands.Cog):
 
     @commands.command()
     @checks.mod_or_permissions(manage_roles=True)
+    async def purgeroles(self, ctx: commands.Context, user: discord.User):
+        """Clears saved roles of a given user."""
+        await self.config.user(user).last_roles.clear()
+        await ctx.send("Roles have been wiped out.")
+
+    @commands.command()
+    @checks.mod_or_permissions(manage_roles=True)
     async def lastroles(self, ctx: commands.Context, user: discord.User):
         """Shows a list of roles an user had the last time they left the guild."""
         user_data = await self.config.user(user).last_roles()
@@ -120,27 +127,34 @@ class RoleStuff(commands.Cog):
             reply += f"Number of removed roles they had: {unsuccessful_count}."
         await ctx.send(reply)
 
-
-
-    @commands.command()
-    @checks.mod_or_permissions(manage_roles=True)
-    async def restoreroles(self, ctx: commands.Context, member: discord.Member):
-        """Tries to restore a member's roles to what they had the last time they left."""
+    async def restore_roles_internal(self, member: discord.Member, ctx=None):
         user_data = await self.config.user(member).last_roles()
-        guild_id = str(ctx.guild.id)
+        guild_id = str(member.guild.id)
         if guild_id not in user_data:
-            return await ctx.send("Never heard of them.")
+            return None, None
         roles_to_add = []
         unsuccessful_count = 0
         for role_id in user_data[guild_id]:
-            role = ctx.guild.get_role(role_id)
+            role = member.guild.get_role(role_id)
             if role == self.lets_chat_role:
                 continue
             if role and not role.managed:
                 roles_to_add.append(role)
             else:
                 unsuccessful_count += 1
-        await member.add_roles(*roles_to_add, reason=f"restored last roles at the request of {ctx.message.author}")
+        reason = "restored last roles on leaving"
+        if ctx:
+            reason = f"restored last roles at the request of {ctx.message.author}"
+        await member.add_roles(*roles_to_add, reason=reason)
+        return roles_to_add, unsuccessful_count
+
+    @commands.command()
+    @checks.mod_or_permissions(manage_roles=True)
+    async def restoreroles(self, ctx: commands.Context, member: discord.Member):
+        """Tries to restore a member's roles to what they had the last time they left."""
+        roles_to_add, unsuccessful_count = self.restore_roles_internal(member)
+        if roles_to_add is None:
+            return await ctx.send("Never head of them.")
         reply = ""
         if len(roles_to_add) == 0:
             reply += "Restored no roles. "
