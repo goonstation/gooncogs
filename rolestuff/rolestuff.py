@@ -152,7 +152,7 @@ class RoleStuff(commands.Cog):
     @checks.mod_or_permissions(manage_roles=True)
     async def restoreroles(self, ctx: commands.Context, member: discord.Member):
         """Tries to restore a member's roles to what they had the last time they left."""
-        roles_to_add, unsuccessful_count = self.restore_roles_internal(member)
+        roles_to_add, unsuccessful_count = await self.restore_roles_internal(member)
         if roles_to_add is None:
             return await ctx.send("Never head of them.")
         reply = ""
