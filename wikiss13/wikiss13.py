@@ -212,7 +212,7 @@ class Wikiss13(commands.Cog):
             text = re.sub(r'<a[^>]*?href="(#.*?)"[^>]*?>(.*?)</a>', r'[\2](' + url.split('#')[0] + r'\1)', text)
             text = re.sub(self.HTML_TAG, "", text)
             text = text.replace('____', '')
-            text = re.sub("\[_?_?edit_?_?\]", "", text).strip()
+            text = re.sub(r"\[_?_?edit_?_?\]", "", text).strip()
             return text
 
         description = page_text
@@ -237,7 +237,7 @@ class Wikiss13(commands.Cog):
                 if len(description) >= 60:
                     break
 
-        description = re.sub('\s*(\n|\r)\s*', '\n', description)
+        description = re.sub(r'\s*(\n|\r)\s*', '\n', description)
 
 
         image = (
