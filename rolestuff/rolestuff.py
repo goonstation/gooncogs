@@ -17,28 +17,16 @@ class RoleStuff(commands.Cog):
         self.lets_talk_timeout_task = None
         self.suppress_next_lets_chat_role_removal_message = False
 
-        try:
-            self.init_stuff()
-        except:
-            pass
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.init_stuff()
-
-    def init_stuff(self):
+    async def init(self):
         # TODO: unhardcode all of this PLEASE
         self.admin_channel = self.bot.get_channel(182254222694285312)
         self.debug_channel = self.bot.get_channel(412381738510319626)
         self.lets_chat_channel = self.bot.get_channel(683769319259111549)
         self.lets_chat_role = self.lets_chat_channel.guild.get_role(683768446680563725)
         self.player_role = self.lets_chat_channel.guild.get_role(182284445837950977)
-        self.spacebee = self.admin_channel.guild.get_member(182251046783942656)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        if not hasattr(self, "spacebee"):
-            self.init_stuff()
         user_data = await self.config.user(member).last_roles()
         if len(member.roles) > 1:
             user_data[str(member.guild.id)] = [role.id for role in member.roles][1:]
@@ -167,8 +155,6 @@ class RoleStuff(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not hasattr(self, "spacebee"):
-            self.init_stuff()
         try:
             if message.author == self.spacebee and message.content == "Youre already linked!":
                 async for msg in message.channel.history(limit=10):
