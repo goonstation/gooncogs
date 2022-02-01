@@ -151,46 +151,6 @@ class RoleStuff(commands.Cog):
         if unsuccessful_count > 0:
             reply += f"Failed to restore {unsuccessful_count} roles."
         await ctx.send(reply)
-
-
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        try:
-            if message.author == self.spacebee and message.content == "Youre already linked!":
-                async for msg in message.channel.history(limit=10):
-                    if msg.content.startswith(".link") or msg.content.startswith("!link"):
-                        author = msg.author
-                        if self.player_role not in author.roles:
-                            await author.add_roles(self.player_role, reason=f"already linked via .link")
-                            await self.debug_channel.send(f"Gave {self.player_role.name} to {author.mention}.")
-                            return
-
-            return # disabling feature for now as Spacebee is broken
-            if message.content.startswith(".link") or message.content.startswith("!link") or message.content.startswith("]debuglink"):
-                tries = 10
-                while self.player_role not in message.author.roles and tries > 0:
-                    tries -= 1
-                    await asyncio.sleep(60)
-                    if self.player_role in message.author.roles:
-                        return
-                    await self.debug_channel.send(f".keyof {message.author.mention}")
-                    def check(m):
-                        return m.author == self.spacebee
-                    try:
-                        msg = await self.bot.wait_for('message', check=check, timeout=60)
-                    except asyncio.TimeoutError:
-                        continue
-                    if not msg:
-                        continue
-                    if msg.content.startswith("Their key is ") and \
-                            self.player_role not in message.author.roles and \
-                            "<not associated>" not in msg.content:
-                        await message.author.add_roles(self.player_role, reason=f"linked via .link")
-                        await self.debug_channel.send(f"Gave {self.player_role.name} to {message.author.mention}.")
-                        return
-        except Exception as e:
-            import traceback
-            return await self.bot.send_to_owners(traceback.format_exc())
     
 
 
