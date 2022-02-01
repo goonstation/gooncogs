@@ -205,7 +205,7 @@ class GithubStuff(commands.Cog):
         embeds = []
         query += " repo:" + await self.config.repo()
         async with ctx.typing():
-            results = self.gh.search_issues(query, sort='update', order='desc')
+            results = self.gh.search_issues(query, sort='updated', order='desc')
             embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
             descs = [] 
             current_desc = ""
