@@ -335,7 +335,7 @@ RTT: {elapsed * 1000:.2f}ms""")
                 try:
                     response = await self.youtube_play(ctx, link, server_id)
                 except youtube_dl.utils.DownloadError as e:
-                    await ctx.send(e.message)
+                    await ctx.send("YoutubeDL error: " + str(e))
                     return
             if response:
                 await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
