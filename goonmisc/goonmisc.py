@@ -609,7 +609,7 @@ class GoonMisc(commands.Cog):
         await ctx.send(file=img_file)
 
     @commands.command()
-    async def choose(self, ctx: commands.Context, *, choices: str):
+    async def pick(self, ctx: commands.Context, *, choices: str):
         """Chooses one of the choices separated by commas."""
         await ctx.message.reply("Chosen: " + random.choice(choices.split(",")).strip() or "empty message", allowed_mentions=discord.AllowedMentions.none())
 
