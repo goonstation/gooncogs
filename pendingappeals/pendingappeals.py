@@ -21,7 +21,7 @@ class PendingAppeals(commands.Cog):
     def cog_unload(self):
         asyncio.create_task(self.session.cancel())
 
-    async def test_thread(self, elem):
+    async def test_thread(self, elem, labels_only=True):
         try:
             if "forumdisplay_sticky" in elem.find_parent("td").get_attribute_list("class"):
                 return None
@@ -30,33 +30,34 @@ class PendingAppeals(commands.Cog):
         except:
             pass
         url = BASE_URL + elem.a.get_attribute_list("href")[0]
-        async with self.session.get(url) as res:
-            bs = BeautifulSoup(await res.text())
-            for auth_info in bs.find_all(class_="author_information"):
-                try:
-                    rank = auth_info.find(class_="smalltext").text.strip().lower()
-                    if "admin" in rank or "developer" in rank:
-                        return None
-                except:
-                    pass
-        return f"{url} {elem.a.text}"
+        if not labels_only:
+            async with self.session.get(url) as res:
+                bs = BeautifulSoup(await res.text())
+                for auth_info in bs.find_all(class_="author_information"):
+                    try:
+                        rank = auth_info.find(class_="smalltext").text.strip().lower()
+                        if "admin" in rank or "developer" in rank:
+                            return None
+                    except:
+                        pass
+        return f"<{url}> {elem.a.text}"
 
-    async def scrape_page(self, page):
+    async def scrape_page(self, page, labels_only=True):
         result = []
         async with self.session.get(BASE_URL + f"forumdisplay.php?fid=4&page={page}") as res:
             bs = BeautifulSoup(await res.text())
             elems = bs.find_all(class_="subject_new")
             result = await asyncio.gather(*[
-                self.test_thread(elem)
+                self.test_thread(elem, labels_only)
                 for elem in elems
                 ])
         return [x for x in result if x is not None]
 
     @commands.command()
     @checks.admin()
-    async def pendingappeals(self, ctx: commands.Context, pages: int = 4):
+    async def pendingappeals(self, ctx: commands.Context, pages: int = 4, check_only_labels: bool=True):
         """Scrapes the Goonstation forum for unresponded to appeals."""
-        results = await asyncio.gather(*[self.scrape_page(page) for page in range(1, pages + 1)])
+        results = await asyncio.gather(*[self.scrape_page(page, check_only_labels) for page in range(1, pages + 1)])
         result = itertools.chain(*results)
         if not result:
             await ctx.send("No pending appeals found")
