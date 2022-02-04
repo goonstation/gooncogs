@@ -541,8 +541,12 @@ RTT: {elapsed * 1000:.2f}ms""")
             spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
             ckey = await spacebeecentcom.user_to_ckey(ckey)
             if not ckey:
-                await ctx.message.reply("That user has no BYOND account linked")
-                return
+                maybe_ckey = ctx.message.content.split(' ', 1)[1]
+                if maybe_ckey[0] != '<':
+                    ckey = maybe_ckey
+                else:
+                    await ctx.message.reply("That user has no BYOND account linked")
+                    return
         response = await goonservers.send_to_server_safe('2', {'type': 'getPlayerStats', 'ckey': ckey}, ctx.message)
         if response is None:
             return
