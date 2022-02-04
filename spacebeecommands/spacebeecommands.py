@@ -313,7 +313,7 @@ RTT: {elapsed * 1000:.2f}ms""")
                 'type': "youtube",
                 'data': json.dumps({
                         'key': ctx.message.author.name + " (Discord)",
-                        'file': f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/youtube/{play_file_name}",
+                        'file': f"https://medass.pali.link/static/youtube/{play_file_name}",
                         'duration': "?",
                         'title': info['title'] if info else file_name,
                     }),
@@ -332,7 +332,11 @@ RTT: {elapsed * 1000:.2f}ms""")
         if link is not None and "youtube.com" in link:
             response = None
             with ctx.typing():
-                response = await self.youtube_play(ctx, link, server_id)
+                try:
+                    response = await self.youtube_play(ctx, link, server_id)
+                except youtube_dl.utils.DownloadError as e:
+                    await ctx.send(e.message)
+                    return
             if response:
                 await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             else:
