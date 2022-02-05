@@ -545,8 +545,9 @@ RTT: {elapsed * 1000:.2f}ms""")
             spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
             ckey = await spacebeecentcom.user_to_ckey(ckey)
             if not ckey:
-                maybe_ckey = ctx.message.content.split(' ', 1)[1]
-                if maybe_ckey[0] != '<':
+                message_parts = ctx.message.content.split(' ', 1)
+                maybe_ckey = message_parts[1] if len(message_parts) >= 2 else None
+                if maybe_ckey and maybe_ckey[0] != '<':
                     ckey = maybe_ckey
                 else:
                     await ctx.message.reply("That user has no BYOND account linked")
