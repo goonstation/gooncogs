@@ -23,7 +23,7 @@ class ByondCom(commands.Cog):
 
     @checks.admin()
     @commands.command()
-    async def byondsnoop(self, ckey):
+    async def byondsnoop(self, ctx: commands.Context, ckey: str):
         url = f"{BASE_URL}/members/{ckey}?tab=medals&all=1"
         async with self.session.get(url) as res:
             bs = BeautifulSoup(await res.text(), "html")
