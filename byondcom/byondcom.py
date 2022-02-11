@@ -29,18 +29,18 @@ class ByondCom(commands.Cog):
             bs = BeautifulSoup(await res.text(), "html")
             joined = None
             try:
-                bs.find(id="joined").find(class_="info_text").text
-            except:
+                joined = bs.find(id="joined").find(class_="info_text").text
+            except AttributeError:
                 pass
             earned_fish = None
             try:
-                earned_fish = b.find(src=fish_medal).parent.find(class_="smaller").text
-            except:
+                earned_fish = bs.find(src=FISH_MEDAL).parent.find(class_="smaller").text
+            except AttributeError:
                 pass
             if joined is None:
                 await ctx.send(f"Account `{ckey}` does not exist")
             else:
-                out = "Account `{ckey}`:\nJoined: {joined}\n"
+                out = f"Account `{ckey}`:\nJoined: {joined}\n"
                 if earned_fish:
                     out += "Fish " + earned_fish
                 else:
