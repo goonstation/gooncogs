@@ -72,6 +72,7 @@ class ByondCom(commands.Cog):
         medals = await self.get_medals(ckey)
         if medals is None:
             await ctx.send(f"Account `{ckey}` does not exist")
+            return
         for medal in medals:
             if target_medal == ''.join(c for c in medal if c.isalpha()).lower():
                 await ctx.send(f"Account `{ckey}` has medal `{medal}`")
