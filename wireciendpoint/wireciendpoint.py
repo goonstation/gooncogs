@@ -220,7 +220,7 @@ class WireCiEndpoint(commands.Cog):
     async def status(self, ctx: commands.Context):
         """Check status of CI builds."""
         tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
-        url = tokens.get('api_path') + '/status'
+        url = tokens.get('cd_path') + '/status'
         api_key = tokens.get('outgoing_api_key')
         async with self.session.get(
                 url,
@@ -251,7 +251,7 @@ class WireCiEndpoint(commands.Cog):
     async def build(self, ctx: commands.Context, *, server_name: str):
         """Start a CI build."""
         tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
-        url = tokens.get('api_path') + '/build'
+        url = tokens.get('cd_path') + '/build'
         api_key = tokens.get('outgoing_api_key')
         goonservers = self.bot.get_cog("GoonServers")
         servers = set()
@@ -286,7 +286,7 @@ class WireCiEndpoint(commands.Cog):
     async def restart(self, ctx: commands.Context, server_name: str):
         """Restart a server managed by CI."""
         tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
-        url = tokens.get('api_path') + '/restart'
+        url = tokens.get('ci_path') + '/restart'
         api_key = tokens.get('outgoing_api_key')
         goonservers = self.bot.get_cog("GoonServers")
         servers = goonservers.resolve_server_or_category(server_name)
