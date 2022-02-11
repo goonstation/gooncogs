@@ -18,7 +18,7 @@ class IPInfo(commands.Cog):
     @commands.command()
     async def ipinfo(self, ctx: commands.Context, ip: str):
         tokens = await self.bot.get_shared_api_tokens('vpnapi')
-        url = f"https://vpnapi.io/api/[ip]?key={tokens['api_key']}"
+        url = f"https://vpnapi.io/api/{ip}?key={tokens['api_key']}"
         out = ""
         async with self.session.get(url) as res:
             if res.status != 200:
@@ -26,8 +26,9 @@ class IPInfo(commands.Cog):
                 return
             data = await res.json()
             security_stuff = [k for k, v in data['security'].items() if v] or ["not-VPN"]
-            maps_link = f"https://www.google.com/maps/place/{data['location']['latitude']},{data['location']['longtitude']}"
-            message = """`{data['ip']}`
+            location = data['location']
+            maps_link = f"https://www.google.com/maps/place/{location['latitude']},{location['longitude']}"
+            message = f"""`{data['ip']}`
 {' '.join(security_stuff)}
 {maps_link}
 {location['country']}, {location['region']}, {location['city']}
