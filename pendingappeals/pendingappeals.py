@@ -32,7 +32,7 @@ class PendingAppeals(commands.Cog):
         url = BASE_URL + elem.a.get_attribute_list("href")[0]
         if not labels_only:
             async with self.session.get(url) as res:
-                bs = BeautifulSoup(await res.text())
+                bs = BeautifulSoup(await res.text(), "html")
                 for auth_info in bs.find_all(class_="author_information"):
                     try:
                         rank = auth_info.find(class_="smalltext").text.strip().lower()
