@@ -202,11 +202,14 @@ class SpacebeeCommands(commands.Cog):
         elapsed = time.time() - start_time
         if response is None:
             return
-        await ctx.send(f"""CPU: {response['cpu']}
+        out = f"""CPU: {response['cpu']}
 time scaling: {response['time']}
 ticklag: {response.get('ticklag', 'N/A')}
 runtimes: {response.get('runtimes', 'N/A')}
-RTT: {elapsed * 1000:.2f}ms""")
+RTT: {elapsed * 1000:.2f}ms"""
+        if 'meminfo' in response:
+            out += f"\n```{response['meminfo']}```"
+        await ctx.send(out)
 
     @commands.command()
     @checks.admin()
