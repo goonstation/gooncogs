@@ -17,14 +17,29 @@ class RoleStuff(commands.Cog):
         self.lets_talk_timeout_task = None
         self.suppress_next_lets_chat_role_removal_message = False
 
-    async def init(self):
-        # TODO: unhardcode all of this PLEASE
-        await self.bot.wait_until_ready()
-        self.admin_channel = self.bot.get_channel(182254222694285312)
-        self.debug_channel = self.bot.get_channel(412381738510319626)
-        self.lets_chat_channel = self.bot.get_channel(683769319259111549)
-        self.lets_chat_role = self.lets_chat_channel.guild.get_role(683768446680563725)
-        self.player_role = self.lets_chat_channel.guild.get_role(182284445837950977)
+    @property
+    def admin_channel(self):
+        return self.bot.get_channel(182254222694285312)
+
+    @property
+    def debug_channel(self):
+        return self.bot.get_channel(412381738510319626)
+    
+    @property
+    def lets_chat_channel(self):
+        return self.bot.get_channel(683769319259111549)
+    
+    @property
+    def lets_chat_role(self):
+        channel = self.lets_chat_channel
+        if channel:
+            return channel.guild.get_role(683768446680563725)
+    
+    @property
+    def player_role(self):
+        channel = self.lets_chat_channel
+        if channel:
+            return channel.guild.get_role(182284445837950977)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
