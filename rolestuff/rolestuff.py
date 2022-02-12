@@ -19,6 +19,7 @@ class RoleStuff(commands.Cog):
 
     async def init(self):
         # TODO: unhardcode all of this PLEASE
+        await self.bot.wait_until_ready()
         self.admin_channel = self.bot.get_channel(182254222694285312)
         self.debug_channel = self.bot.get_channel(412381738510319626)
         self.lets_chat_channel = self.bot.get_channel(683769319259111549)
