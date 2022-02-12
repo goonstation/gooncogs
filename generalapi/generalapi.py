@@ -69,3 +69,9 @@ class GeneralApi(commands.Cog):
 
     def cog_unload(self):
         self.server.should_exit = True
+
+    @commands.Cog.listener()
+    async def on_cog_add(self, cog: commands.Cog) -> None:
+        if hasattr(cog, "register_to_general_api"):
+            cog.register_to_general_api(self.app)
+            self.app.openapi_schema = None
