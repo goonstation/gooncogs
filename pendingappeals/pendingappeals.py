@@ -9,6 +9,7 @@ import logging
 import datetime
 from bs4 import BeautifulSoup
 import itertools
+from redbot.core.utils.chat_formatting import pagify
 
 BASE_URL = "https://forum.ss13.co/"
 
@@ -42,9 +43,9 @@ class PendingAppeals(commands.Cog):
                         pass
         return f"<{url}> {elem.a.text}"
 
-    async def scrape_page(self, page, labels_only=True):
+    async def scrape_page(self, page, forum_id, labels_only=True):
         result = []
-        async with self.session.get(BASE_URL + f"forumdisplay.php?fid=4&page={page}") as res:
+        async with self.session.get(BASE_URL + f"forumdisplay.php?fid={forum_id}&page={page}") as res:
             bs = BeautifulSoup(await res.text())
             elems = bs.find_all(class_="subject_new")
             result = await asyncio.gather(*[
@@ -57,9 +58,13 @@ class PendingAppeals(commands.Cog):
     @checks.admin()
     async def pendingappeals(self, ctx: commands.Context, pages: int = 4, check_only_labels: bool=True):
         """Scrapes the Goonstation forum for unresponded to appeals."""
-        results = await asyncio.gather(*[self.scrape_page(page, check_only_labels) for page in range(1, pages + 1)])
+        results = await asyncio.gather(*(
+            [self.scrape_page(page, forum_id=4, labels_only=check_only_labels) for page in range(1, pages + 1)] +
+            [self.scrape_page(page, forum_id=35, labels_only=False) for page in range(1, pages + 1)]
+            ))
         result = itertools.chain(*results)
         if not result:
             await ctx.send("No pending appeals found")
         else:
-            await ctx.send("\n".join(result))
+            for page in pagify("\n".join(result)):
+                await ctx.send(page)
