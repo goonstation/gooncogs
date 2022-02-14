@@ -8,10 +8,11 @@ from typing import Optional
 from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
+
 class RoundReminder(commands.Cog):
-    default_user_settings = {'match_strings': []}
+    default_user_settings = {"match_strings": []}
     GOON_COLOUR = discord.Colour.from_rgb(222, 190, 49)
-    SUCCESS_REPLY = {'status': 'ok'}
+    SUCCESS_REPLY = {"status": "ok"}
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -25,66 +26,78 @@ class RoundReminder(commands.Cog):
             self.error_code = error_code
 
     async def server_dep(self, server: str, server_name: str, api_key: str):
-        if api_key != (await self.bot.get_shared_api_tokens('spacebee'))['api_key']:
+        if api_key != (await self.bot.get_shared_api_tokens("spacebee"))["api_key"]:
             raise self.SpacebeeError("Invalid API key.", 403)
-        goonservers = self.bot.get_cog('GoonServers')
-        server = goonservers.resolve_server(server_name) or goonservers.resolve_server(server)
+        goonservers = self.bot.get_cog("GoonServers")
+        server = goonservers.resolve_server(server_name) or goonservers.resolve_server(
+            server
+        )
         if server is None:
             raise self.SpacebeeError("Unknown server.", 404)
         return server
 
     def register_to_general_api(self, app):
         @app.exception_handler(self.SpacebeeError)
-        async def invalid_api_key_error_handler(request: Request, exc: self.SpacebeeError):
+        async def invalid_api_key_error_handler(
+            request: Request, exc: self.SpacebeeError
+        ):
             return JSONResponse(
-                    status_code=exc.status_code,
-                    content={
-                        "status": "error",
-                        "errormsg": exc.message,
-                        "error": exc.error_code,
-                        },
-                    )
+                status_code=exc.status_code,
+                content={
+                    "status": "error",
+                    "errormsg": exc.message,
+                    "error": exc.error_code,
+                },
+            )
 
         @app.get("/event")
-        async def event(type: str, request: Request, server = Depends(self.server_dep)):
+        async def event(type: str, request: Request, server=Depends(self.server_dep)):
             goonservers = self.bot.get_cog("GoonServers")
-            if type == 'serverstart':
+            if type == "serverstart":
                 embed = discord.Embed()
                 embed.title = server.full_name
                 if server.url:
                     embed.url = server.url
                 embed.description = "is starting a new round!"
-                embed.add_field(name="Map", value=request.query_params['map'])
-                embed.add_field(name="Gamemode", value=request.query_params['gamemode'])
+                embed.add_field(name="Map", value=request.query_params["map"])
+                embed.add_field(name="Gamemode", value=request.query_params["gamemode"])
                 embed.colour = self.GOON_COLOUR
-                embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/412381738510319626/892497840151076904/logo.png")
-                for channel_id in server.subtype.channels['updates']:
+                embed.set_thumbnail(
+                    url="https://cdn.discordapp.com/attachments/412381738510319626/892497840151076904/logo.png"
+                )
+                for channel_id in server.subtype.channels["updates"]:
                     await self.bot.get_channel(channel_id).send(embed=embed)
                 await self.process_embed(embed)
-                await goonservers.send_to_servers(server.subtype.servers, {
-                        'type': "roundEnd",
-                        'server': server.full_name,
-                        'address': server.connect_url,
-                    }, exception=server)
+                await goonservers.send_to_servers(
+                    server.subtype.servers,
+                    {
+                        "type": "roundEnd",
+                        "server": server.full_name,
+                        "address": server.connect_url,
+                    },
+                    exception=server,
+                )
                 return self.SUCCESS_REPLY
-            elif type == 'login':
-                self.bot.dispatch("goon_login",  server, str(list(request.query_params.keys())[1]))
+            elif type == "login":
+                self.bot.dispatch(
+                    "goon_login", server, str(list(request.query_params.keys())[1])
+                )
                 return self.SUCCESS_REPLY
-            elif type == 'roundstart':
+            elif type == "roundstart":
                 return self.SUCCESS_REPLY
-            elif type == 'roundend':
+            elif type == "roundend":
                 return self.SUCCESS_REPLY
-            elif type == 'shuttlecall':
+            elif type == "shuttlecall":
                 return self.SUCCESS_REPLY
-            elif type == 'shuttledock':
+            elif type == "shuttledock":
                 return self.SUCCESS_REPLY
-            elif type == 'shuttlerecall':
+            elif type == "shuttlerecall":
                 return self.SUCCESS_REPLY
 
     def normalize(self, text):
         if text is None:
             return text
-        return ''.join(c for c in text.lower() if c.isalnum())
+        return "".join(c for c in text.lower() if c.isalnum())
 
     @commands.command()
     async def listnextround(self, ctx: commands.Context):
@@ -127,13 +140,13 @@ class RoundReminder(commands.Cog):
             pass
 
     async def process_embed(self, embed):
-        goonservers = self.bot.get_cog('GoonServers')
+        goonservers = self.bot.get_cog("GoonServers")
         server = goonservers.resolve_server(embed.title)
-        fulltext = ' '.join(f.value for f in embed.fields)
+        fulltext = " ".join(f.value for f in embed.fields)
         fulltext = self.normalize(fulltext)
 
         for user_id, data in (await self.config.all_users()).items():
-            match_strings = data['match_strings']
+            match_strings = data["match_strings"]
             for match_string in match_strings:
                 match = False
                 if match_string is None:
@@ -155,7 +168,9 @@ class RoundReminder(commands.Cog):
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
         try:
-            if message.channel.id != 421047584623427584: # TODO unhardcode #game-updates
+            if (
+                message.channel.id != 421047584623427584
+            ):  # TODO unhardcode #game-updates
                 return
             if message.author == self.bot.user:
                 return
@@ -164,5 +179,5 @@ class RoundReminder(commands.Cog):
                 await process_embed(embed)
         except:
             import traceback
-            return await self.bot.send_to_owners(traceback.format_exc())
 
+            return await self.bot.send_to_owners(traceback.format_exc())

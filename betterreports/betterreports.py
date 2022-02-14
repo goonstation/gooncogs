@@ -20,7 +20,6 @@ from discord_slash import SlashCommand, SlashContext
 from discord_slash.cog_ext import cog_slash
 
 
-
 _ = Translator("Reports", __file__)
 
 log = logging.getLogger("red.goon.reports")
@@ -65,7 +64,7 @@ class BetterReports(commands.Cog):
         # (guild, ticket#):
         #   {'tun': Tunnel, 'msgs': List[int]}
         self.bot.slash.get_cog_commands(self)
-        
+
     @property
     def default_guild(self):
         return self.bot.get_guild(182249960895545344)
@@ -119,7 +118,9 @@ class BetterReports(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @reportset.command(name="output")
-    async def reportset_output(self, ctx: commands.Context, channel: discord.TextChannel):
+    async def reportset_output(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
         """Set the channel where reports will be sent."""
         await self.config.guild(ctx.guild).output_channel.set(channel.id)
         await ctx.send(_("The report channel has been set."))
@@ -189,7 +190,9 @@ class BetterReports(commands.Cog):
         try:
             message = await self.bot.wait_for(
                 "message",
-                check=MessagePredicate.same_context(channel=author.dm_channel, user=author),
+                check=MessagePredicate.same_context(
+                    channel=author.dm_channel, user=author
+                ),
                 timeout=45,
             )
         except asyncio.TimeoutError:
@@ -205,7 +208,13 @@ class BetterReports(commands.Cog):
         else:
             return guild
 
-    async def send_report(self, ctx: commands.Context, msg: Union[discord.Message, str], guild: discord.Guild, anonymous = False):
+    async def send_report(
+        self,
+        ctx: commands.Context,
+        msg: Union[discord.Message, str],
+        guild: discord.Guild,
+        anonymous=False,
+    ):
 
         msg_obj = isinstance(msg, discord.Message)
         author = guild.get_member(msg.author.id if msg_obj else ctx.author_id)
@@ -216,28 +225,43 @@ class BetterReports(commands.Cog):
         if channel is None:
             return None
 
-        files: List[discord.File] = (await Tunnel.files_from_attach(msg)) if msg_obj else []
+        files: List[discord.File] = (
+            (await Tunnel.files_from_attach(msg)) if msg_obj else []
+        )
 
         ticket_number = await self.config.guild(guild).next_ticket()
         await self.config.guild(guild).next_ticket.set(ticket_number + 1)
 
         title = _("Report from {author}{maybe_nick}").format(
-                author=author, maybe_nick=(f" ({author.nick})" if author.nick else ""))
+            author=author, maybe_nick=(f" ({author.nick})" if author.nick else "")
+        )
         if anonymous:
             title = _("Anonymous report")
         desc = report
         report_url = None
-        if not anonymous and isinstance(ctx.channel, discord.abc.GuildChannel) and ctx.channel.guild == guild:
-            async for message in ctx.channel.history(limit=1, before=msg.created_at if msg_obj else None):
+        if (
+            not anonymous
+            and isinstance(ctx.channel, discord.abc.GuildChannel)
+            and ctx.channel.guild == guild
+        ):
+            async for message in ctx.channel.history(
+                limit=1, before=msg.created_at if msg_obj else None
+            ):
                 report_url = message.jump_url
         if await self.bot.embed_requested(channel, author):
             if report_url:
                 desc += f"\n[link]({report_url})"
-            embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
+            embed_colour = await (
+                ctx.embed_colour()
+                if hasattr(ctx, "embed_colour")
+                else self.bot.get_embed_colour(ctx.channel)
+            )
             em = discord.Embed(description=desc, colour=embed_colour)
             em.set_author(
                 name=title,
-                icon_url=author.avatar_url if not anonymous else "https://cdn.discordapp.com/attachments/826191787991367721/826203765467381780/unknown.png",
+                icon_url=author.avatar_url
+                if not anonymous
+                else "https://cdn.discordapp.com/attachments/826191787991367721/826203765467381780/unknown.png",
             )
             footer = _("Report #{}").format(ticket_number)
             if not anonymous:
@@ -269,7 +293,9 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.send("Please use this command in DMs with the bot (or use the /report version).")
+            await ctx.send(
+                "Please use this command in DMs with the bot (or use the /report version)."
+            )
             return
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
 
@@ -281,11 +307,21 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.send("Please use this command in DMs with the bot (or use the /report version).")
+            await ctx.send(
+                "Please use this command in DMs with the bot (or use the /report version)."
+            )
             return
-        return await self._report(ctx=ctx, _report=_report, anonymous=True) 
+        return await self._report(ctx=ctx, _report=_report, anonymous=True)
 
-    async def _report(self, ctx: commands.Context, *, _report: str = "", anonymous = False, default_guild = None, reply_command = None):
+    async def _report(
+        self,
+        ctx: commands.Context,
+        *,
+        _report: str = "",
+        anonymous=False,
+        default_guild=None,
+        reply_command=None,
+    ):
         if reply_command is None:
             reply_command = lambda x: author.send(x)
 
@@ -336,7 +372,9 @@ class BetterReports(commands.Cog):
             val = await self.send_report(ctx, _m, guild, anonymous=anonymous)
         else:
             try:
-                anon_message = "This report **IS" + ("" if anonymous else " NOT") + "** anonymous."
+                anon_message = (
+                    "This report **IS" + ("" if anonymous else " NOT") + "** anonymous."
+                )
                 await reply_command(
                     _(
                         "Please respond to this message with your Report.{anon_message}"
@@ -369,10 +407,14 @@ class BetterReports(commands.Cog):
                     )
                 else:
                     await reply_command(
-                        _("There was an error sending your report, please contact a server admin.")
+                        _(
+                            "There was an error sending your report, please contact a server admin."
+                        )
                     )
             else:
-                await reply_command(_("Your report was submitted. (Ticket #{})").format(val))
+                await reply_command(
+                    _("Your report was submitted. (Ticket #{})").format(val)
+                )
                 self.antispam[guild.id][author.id].stamp()
         return True
 
@@ -401,27 +443,31 @@ class BetterReports(commands.Cog):
 
     async def _report_slash(self, ctx: SlashContext, report: str, anonymous: bool):
         try:
-            result = await self._report(ctx=ctx, _report=report, anonymous=anonymous,
-                    default_guild=self.default_guild,
-                    reply_command=lambda x: ctx.send(x, hidden=True))
+            result = await self._report(
+                ctx=ctx,
+                _report=report,
+                anonymous=anonymous,
+                default_guild=self.default_guild,
+                reply_command=lambda x: ctx.send(x, hidden=True),
+            )
             if ctx.author.id in self.user_cache:
                 self.user_cache.remove(ctx.author.id)
         except Exception as e:
             import traceback
+
             await ctx.send("Something broke, sorry!", hidden=True)
             return await ctx.bot.send_to_owners(traceback.format_exc())
 
-
-    @cog_slash(name="report",
-            description="Report something to the administrators.")
+    @cog_slash(name="report", description="Report something to the administrators.")
     async def slash_report(self, ctx: SlashContext, report: str):
         await self._report_slash(ctx, report, False)
 
-    @cog_slash(name="reportanon",
-            description="Report something to the administrators anonymously.")
+    @cog_slash(
+        name="reportanon",
+        description="Report something to the administrators anonymously.",
+    )
     async def slash_reportanon(self, ctx: SlashContext, report: str):
         await self._report_slash(ctx, report, True)
-
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -447,13 +493,11 @@ class BetterReports(commands.Cog):
                 await tun.origin.send("You have closed the correspondence.")
             else:
                 await tun.recipient.send("You have closed the correspondence.")
-            await tun.react_close(
-                uid=payload.user_id, message=_(close_msg)
-            )
+            await tun.react_close(uid=payload.user_id, message=_(close_msg))
             self.tunnel_store.pop(t[0], None)
-            
+
             t = None
-            gc.collect() # lol
+            gc.collect()  # lol
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -514,17 +558,22 @@ class BetterReports(commands.Cog):
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 
-        log.info(f"Deanonymization: {ctx.author}({ctx.author.id}) deanonymized ticket {ticket_number} in guild {guild}({guild.id}). The result was {user}({user.id}).")
+        log.info(
+            f"Deanonymization: {ctx.author}({ctx.author.id}) deanonymized ticket {ticket_number} in guild {guild}({guild.id}). The result was {user}({user.id})."
+        )
 
-        return await ctx.send(_("Report {ticket} was sent by {user}{maybe_nick} ({id}). Deanonymization done by {author} ({author_id}).").format(
-            ticket=ticket_number,
-            user=user,
-            maybe_nick=(f" ({user.nick})" if user.nick else ""),
-            id=user.id,
-            author=ctx.author,
-            author_id=ctx.author.id,
-            ))
-
+        return await ctx.send(
+            _(
+                "Report {ticket} was sent by {user}{maybe_nick} ({id}). Deanonymization done by {author} ({author_id})."
+            ).format(
+                ticket=ticket_number,
+                user=user,
+                maybe_nick=(f" ({user.nick})" if user.nick else ""),
+                id=user.id,
+                author=ctx.author,
+                author_id=ctx.author.id,
+            )
+        )
 
     @commands.guild_only()
     @checks.mod_or_permissions(manage_roles=True)
@@ -539,7 +588,9 @@ class BetterReports(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(manage_roles=True)
     @commands.command(name="respond")
-    async def respond(self, ctx, ticket_number: Optional[int], *, first_msg : Optional[str]):
+    async def respond(
+        self, ctx, ticket_number: Optional[int], *, first_msg: Optional[str]
+    ):
         """Open a message tunnel.
 
         This tunnel will forward things you say in this channel
@@ -593,15 +644,23 @@ class BetterReports(commands.Cog):
             + big_topic
         )
         try:
-            m = await tun.communicate(message=ctx.message, topic=topic, skip_message_content=True)
+            m = await tun.communicate(
+                message=ctx.message, topic=topic, skip_message_content=True
+            )
         except discord.Forbidden:
             await ctx.send(_("That user has DMs disabled."))
         else:
             if first_msg:
-                topic = _("Re: ticket# {ticket_number} in {guild.name}").format(
-                    ticket_number=ticket_number, guild=guild
-                ) + '\n' + first_msg
-                m += await tun.communicate(message=ctx.message, topic=topic, skip_message_content=True)
+                topic = (
+                    _("Re: ticket# {ticket_number} in {guild.name}").format(
+                        ticket_number=ticket_number, guild=guild
+                    )
+                    + "\n"
+                    + first_msg
+                )
+                m += await tun.communicate(
+                    message=ctx.message, topic=topic, skip_message_content=True
+                )
             self.tunnel_store[(guild, ticket_number)] = {"tun": tun, "msgs": m}
             await ctx.send(
                 _(

@@ -5,6 +5,7 @@ from typing import Optional
 import datetime
 import dateparser
 
+
 class TimeStamp(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -18,5 +19,5 @@ class TimeStamp(commands.Cog):
             return
         unix_timestamp = int(time_obj.timestamp())
         stamp_lines = [f"<t:{unix_timestamp}:{s}>" for s in suffixes]
-        response = '\n'.join(f"{stamp} `{stamp}`" for stamp in stamp_lines)
+        response = "\n".join(f"{stamp} `{stamp}`" for stamp in stamp_lines)
         await ctx.send(response)

@@ -13,6 +13,7 @@ from redbot.core.utils.chat_formatting import pagify
 
 BASE_URL = "https://forum.ss13.co/"
 
+
 class PendingAppeals(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -24,9 +25,13 @@ class PendingAppeals(commands.Cog):
 
     async def test_thread(self, elem, labels_only=True):
         try:
-            if "forumdisplay_sticky" in elem.find_parent("td").get_attribute_list("class"):
+            if "forumdisplay_sticky" in elem.find_parent("td").get_attribute_list(
+                "class"
+            ):
                 return None
-            if "label" in elem.previousSibling.previousSibling.get_attribute_list("class"):
+            if "label" in elem.previousSibling.previousSibling.get_attribute_list(
+                "class"
+            ):
                 return None
         except:
             pass
@@ -45,23 +50,34 @@ class PendingAppeals(commands.Cog):
 
     async def scrape_page(self, page, forum_id, labels_only=True):
         result = []
-        async with self.session.get(BASE_URL + f"forumdisplay.php?fid={forum_id}&page={page}") as res:
+        async with self.session.get(
+            BASE_URL + f"forumdisplay.php?fid={forum_id}&page={page}"
+        ) as res:
             bs = BeautifulSoup(await res.text())
             elems = bs.find_all(class_="subject_new")
-            result = await asyncio.gather(*[
-                self.test_thread(elem, labels_only)
-                for elem in elems
-                ])
+            result = await asyncio.gather(
+                *[self.test_thread(elem, labels_only) for elem in elems]
+            )
         return [x for x in result if x is not None]
 
     @commands.command()
     @checks.admin()
-    async def pendingappeals(self, ctx: commands.Context, pages: int = 4, check_only_labels: bool=True):
+    async def pendingappeals(
+        self, ctx: commands.Context, pages: int = 4, check_only_labels: bool = True
+    ):
         """Scrapes the Goonstation forum for unresponded to appeals."""
-        results = await asyncio.gather(*(
-            [self.scrape_page(page, forum_id=4, labels_only=check_only_labels) for page in range(1, pages + 1)] +
-            [self.scrape_page(page, forum_id=35, labels_only=False) for page in range(1, pages + 1)]
-            ))
+        results = await asyncio.gather(
+            *(
+                [
+                    self.scrape_page(page, forum_id=4, labels_only=check_only_labels)
+                    for page in range(1, pages + 1)
+                ]
+                + [
+                    self.scrape_page(page, forum_id=35, labels_only=False)
+                    for page in range(1, pages + 1)
+                ]
+            )
+        )
         result = itertools.chain(*results)
         if not result:
             await ctx.send("No pending appeals found")

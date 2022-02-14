@@ -5,6 +5,7 @@ from redbot.core.bot import Red
 from copy import copy
 import re
 
+
 class InlineCommands(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -40,6 +41,5 @@ class InlineCommands(commands.Cog):
             alias_task = await self._handle_alias(message, command, prefix)
             if alias_task:
                 tasks.append(alias_task)
-            
-        await asyncio.gather(*tasks, return_exceptions=True)
 
+        await asyncio.gather(*tasks, return_exceptions=True)

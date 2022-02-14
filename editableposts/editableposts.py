@@ -7,6 +7,7 @@ import re
 from typing import Optional, Union
 from redbot.core.utils.chat_formatting import pagify
 
+
 class EditablePosts(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -24,11 +25,19 @@ class EditablePosts(commands.Cog):
     async def valid_message(self, message: discord.Message):
         msg_id = message.id
         return await self.config.custom("editable_posts", msg_id).editable()
-    
+
     @editable_posts.command()
     @checks.admin()
-    async def create(self, ctx: commands.Context, channel: discord.TextChannel, *, title: Optional[str]):
-        embed = discord.Embed(title=title or "[reserved post]", color=await ctx.embed_color())
+    async def create(
+        self,
+        ctx: commands.Context,
+        channel: discord.TextChannel,
+        *,
+        title: Optional[str]
+    ):
+        embed = discord.Embed(
+            title=title or "[reserved post]", color=await ctx.embed_color()
+        )
         msg = await channel.send(embed=embed)
         await self.config.custom("editable_posts", msg.id).editable.set(True)
         await self.config.custom("editable_posts", msg.id).channel.set(msg.channel.id)
@@ -36,7 +45,9 @@ class EditablePosts(commands.Cog):
 
     @editable_posts.command()
     @checks.admin()
-    async def title(self, ctx: commands.Context, message: discord.Message, *, title: str):
+    async def title(
+        self, ctx: commands.Context, message: discord.Message, *, title: str
+    ):
         if not await self.valid_message(message):
             return
         embed = message.embeds[0]
@@ -67,15 +78,19 @@ class EditablePosts(commands.Cog):
     async def list(self, ctx: commands.Context):
         async with ctx.typing():
             messages = []
-            for msg_id, data in (await self.config.custom("editable_posts").all()).items():
-                channel = self.bot.get_channel(data['channel'])
-                if channel.guild != ctx.guild or not data['editable']:
+            for msg_id, data in (
+                await self.config.custom("editable_posts").all()
+            ).items():
+                channel = self.bot.get_channel(data["channel"])
+                if channel.guild != ctx.guild or not data["editable"]:
                     continue
                 message = None
                 try:
                     message = await channel.fetch_message(msg_id)
                 except discord.errors.NotFound:
-                    await self.config.custom("editable_posts", msg_id).editable.set(False)
+                    await self.config.custom("editable_posts", msg_id).editable.set(
+                        False
+                    )
                     continue
                 messages.append(message)
             lines = []
@@ -88,4 +103,3 @@ class EditablePosts(commands.Cog):
                     await ctx.send(page)
             else:
                 await ctx.send("No editable posts made.")
-

@@ -7,20 +7,23 @@ from github import Github
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import requests
 
+
 class GithubStuff(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=825749154751274)
         self.config.register_global(
-                repo=None,
-                branch="master",
-                changelog_path=None,
-            )
+            repo=None,
+            branch="master",
+            changelog_path=None,
+        )
         self.gh = None
 
     async def cog_before_invoke(self, ctx: commands.Context):
         if self.gh is None:
-            self.gh = Github((await self.bot.get_shared_api_tokens("github")).get("token"))
+            self.gh = Github(
+                (await self.bot.get_shared_api_tokens("github")).get("token")
+            )
         return await super().cog_before_invoke(ctx)
 
     @commands.group(aliases=["gh"])
@@ -36,7 +39,9 @@ class GithubStuff(commands.Cog):
             await self.config.changelog_path.set(changelog)
             await ctx.send(f"Changelog path set to '{changelog}'")
         else:
-            await ctx.send(f"Current changelog path is '{await self.config.changelog_path()}'")
+            await ctx.send(
+                f"Current changelog path is '{await self.config.changelog_path()}'"
+            )
 
     @github.command(name="repo")
     @commands.is_owner()
@@ -50,24 +55,24 @@ class GithubStuff(commands.Cog):
 
     @property
     async def repo(self):
-       return self.gh.get_repo(await self.config.repo())
+        return self.gh.get_repo(await self.config.repo())
 
     @property
     async def branch(self):
-       return (await self.repo).get_branch(await self.config.branch())
+        return (await self.repo).get_branch(await self.config.branch())
 
     def conclusion_emoji(self, conclusion):
         replacements = {
-            'action_required': '\N{Three Button Mouse}', 
-            'cancelled': '\N{No Entry}',
-            'failure': '\N{Cross Mark}',
-            'neutral': '\N{Neutral Face}',
-            'success': '\N{White Heavy Check Mark}',
-            'skipped': '\N{Black Right-Pointing Double Triangle}',
-            'stale': '\N{Calendar}',
-            'timed_out': '\N{Clock Face Four Oclock}',
-            None: '\N{Runner}',
-            }
+            "action_required": "\N{Three Button Mouse}",
+            "cancelled": "\N{No Entry}",
+            "failure": "\N{Cross Mark}",
+            "neutral": "\N{Neutral Face}",
+            "success": "\N{White Heavy Check Mark}",
+            "skipped": "\N{Black Right-Pointing Double Triangle}",
+            "stale": "\N{Calendar}",
+            "timed_out": "\N{Clock Face Four Oclock}",
+            None: "\N{Runner}",
+        }
         return replacements[conclusion]
 
     @github.command()
@@ -81,24 +86,37 @@ class GithubStuff(commands.Cog):
             commit = pull_request.head.repo.get_commit(pull_request.head.sha)
         else:
             commit = (await self.branch).commit
-        failing_checks = [ch for ch in commit.get_check_runs() if ch.conclusion not in ['success', 'skipped']]
+        failing_checks = [
+            ch
+            for ch in commit.get_check_runs()
+            if ch.conclusion not in ["success", "skipped"]
+        ]
         message = ""
         if not failing_checks:
             message = "All checks succeeding!"
         else:
-            message = '\n'.join(f"{self.conclusion_emoji(ch.conclusion)} **{ch.name}** {ch.conclusion or 'running'}" for ch in failing_checks)
-        if mergeable_state is not None and mergeable_state != 'clean':
+            message = "\n".join(
+                f"{self.conclusion_emoji(ch.conclusion)} **{ch.name}** {ch.conclusion or 'running'}"
+                for ch in failing_checks
+            )
+        if mergeable_state is not None and mergeable_state != "clean":
             message += f"\nMergeable state: {mergeable_state}"
         return await ctx.send(message)
 
     @github.command()
     async def changelog(self, ctx: commands.Context):
         """Shows a fancy paginated menu view of the changelog."""
-        content = (await self.repo).get_contents(await self.config.changelog_path(), ref=await self.config.branch())
-        content_text = content.decoded_content.decode('utf8')
+        content = (await self.repo).get_contents(
+            await self.config.changelog_path(), ref=await self.config.branch()
+        )
+        content_text = content.decoded_content.decode("utf8")
         content_text = "\n" + content_text.strip()
         lines = content_text.split("\n(")
-        embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
+        embed_colour = await (
+            ctx.embed_colour()
+            if hasattr(ctx, "embed_colour")
+            else self.bot.get_embed_colour(ctx.channel)
+        )
         embeds = []
         current_embed = None
         current_entry = None
@@ -114,7 +132,7 @@ class GithubStuff(commands.Cog):
                 continue
             line_type = line[0]
             line = line[2:]
-            if line_type == 't':
+            if line_type == "t":
                 if current_embed:
                     flush_entry()
                     embeds.append(current_embed)
@@ -122,25 +140,24 @@ class GithubStuff(commands.Cog):
                     title=line,
                     color=embed_colour,
                 )
-            elif line_type == 'u':
+            elif line_type == "u":
                 flush_entry()
                 current_entry = [line, ""]
-            elif line_type in ('+', '*'):
+            elif line_type in ("+", "*"):
                 if current_entry[1]:
                     current_entry[1] += "\n"
-                if line_type == '+':
+                if line_type == "+":
                     line = "*" + line + "*"
                 current_entry[1] += line
-            elif line_type == 'e':
+            elif line_type == "e":
                 emojis = line
-                if '|' in emojis:
-                    emojis = emojis.split('|')[0]
+                if "|" in emojis:
+                    emojis = emojis.split("|")[0]
                 current_entry[0] += " " + emojis
         if current_embed:
             flush_entry()
             embeds.append(current_embed)
         await menu(ctx, embeds, DEFAULT_CONTROLS, timeout=60.0)
-
 
     @github.command()
     async def lastcommit(self, ctx: commands.Context, how_far_back: int = 0):
@@ -148,10 +165,12 @@ class GithubStuff(commands.Cog):
         if how_far_back > 10:
             await ctx.send("Heck no that's too far back, go find that yourself >:(")
             return
+
         def skip_ignored(commit):
-            while '[skip ci]' in commit.commit.message:
+            while "[skip ci]" in commit.commit.message:
                 commit = commit.parents[0]
             return commit
+
         commit = skip_ignored((await self.branch).commit)
         for i in range(how_far_back):
             commit = skip_ignored(commit.parents[0])
@@ -168,17 +187,21 @@ class GithubStuff(commands.Cog):
             tree = (await self.repo).get_git_tree(sha, recursive=True).tree
             start_line = None
             end_line = None
-            if ':' in file:
-                file, line = file.split(':')
-                if '-' in line:
-                    start_line, end_line = line.split('-')
+            if ":" in file:
+                file, line = file.split(":")
+                if "-" in line:
+                    start_line, end_line = line.split("-")
                     start_line = int(start_line)
                     end_line = int(end_line)
                 else:
                     start_line = int(line)
             results = []
             for element in tree:
-                if file in element.path.split('/')[-1] or file in element.path and '/' in file:
+                if (
+                    file in element.path.split("/")[-1]
+                    or file in element.path
+                    and "/" in file
+                ):
                     path = element.path
                     name = element.path
                     if start_line:
@@ -188,11 +211,17 @@ class GithubStuff(commands.Cog):
                             name += f" lines {start_line}-{end_line}"
                         else:
                             name += f" line {start_line}"
-                    results.append((
-                        name,
-                        await self.file_url(path),
-                        ))
-            embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
+                    results.append(
+                        (
+                            name,
+                            await self.file_url(path),
+                        )
+                    )
+            embed_colour = await (
+                ctx.embed_colour()
+                if hasattr(ctx, "embed_colour")
+                else self.bot.get_embed_colour(ctx.channel)
+            )
             if len(results) > 10:
                 results = results[:10] + [("...", "")]
             elif not results:
@@ -201,13 +230,19 @@ class GithubStuff(commands.Cog):
             em = discord.Embed(description=desc, colour=embed_colour)
             await ctx.send(embed=em)
 
-    async def issue_search_menu(self, ctx: commands.Context, query, empty_message="No results", title=""):
+    async def issue_search_menu(
+        self, ctx: commands.Context, query, empty_message="No results", title=""
+    ):
         embeds = []
         query += " repo:" + await self.config.repo()
         async with ctx.typing():
-            results = self.gh.search_issues(query, sort='updated', order='desc')
-            embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
-            descs = [] 
+            results = self.gh.search_issues(query, sort="updated", order="desc")
+            embed_colour = await (
+                ctx.embed_colour()
+                if hasattr(ctx, "embed_colour")
+                else self.bot.get_embed_colour(ctx.channel)
+            )
+            descs = []
             current_desc = ""
             for pull in results:
                 line = f"[**#{pull.number}** {pull.title}]({pull.html_url})"
@@ -223,7 +258,9 @@ class GithubStuff(commands.Cog):
             if not descs:
                 descs.append(empty_message)
             for i, desc in enumerate(descs):
-                embed = discord.Embed(description=desc, colour=embed_colour, title=title)
+                embed = discord.Embed(
+                    description=desc, colour=embed_colour, title=title
+                )
                 if len(descs) > 1:
                     embed.set_footer(text=f"page {i+1}/{len(descs)}")
                 embeds.append(embed)
@@ -238,19 +275,17 @@ class GithubStuff(commands.Cog):
     async def prs(self, ctx: commands.Context, *, query: str):
         """Searches PRs."""
         query = query.strip()
-        await self.issue_search_menu(ctx,
-                query + " is:pr",
-                title = f"PRs matching '{query}'"
-            )
+        await self.issue_search_menu(
+            ctx, query + " is:pr", title=f"PRs matching '{query}'"
+        )
 
     @github.command(rest_is_raw=True)
     async def issues(self, ctx: commands.Context, *, query: str):
         """Searches issues."""
         query = query.strip()
-        await self.issue_search_menu(ctx,
-                query + " is:issue",
-                title = f"Issues matching '{query}'"
-            )
+        await self.issue_search_menu(
+            ctx, query + " is:issue", title=f"Issues matching '{query}'"
+        )
 
     @github.command(aliases=["commit"], rest_is_raw=True)
     async def commits(self, ctx: commands.Context, *, query: str):
@@ -260,13 +295,17 @@ class GithubStuff(commands.Cog):
         MAX_PAGES = 10
         query += " repo:" + await self.config.repo()
         async with ctx.typing():
-            results = self.gh.search_commits(query, sort='author-date', order='desc')
-            embed_colour = await (ctx.embed_colour() if hasattr(ctx, "embed_colour") else self.bot.get_embed_colour(ctx.channel))
-            descs = [] 
+            results = self.gh.search_commits(query, sort="author-date", order="desc")
+            embed_colour = await (
+                ctx.embed_colour()
+                if hasattr(ctx, "embed_colour")
+                else self.bot.get_embed_colour(ctx.channel)
+            )
+            descs = []
             current_desc = ""
             for commit in results:
                 cmsg = commit.commit.message
-                cmsg = '\n'.join(l.strip() for l in cmsg.split('\n') if l.strip())
+                cmsg = "\n".join(l.strip() for l in cmsg.split("\n") if l.strip())
                 line = f"[**{commit.sha[:7]}**]({commit.html_url}) {cmsg}"
                 if len(line) > 4000:
                     line = line[:4000] + "..."
@@ -284,7 +323,9 @@ class GithubStuff(commands.Cog):
             if not descs:
                 descs.append("No results found.")
             for i, desc in enumerate(descs):
-                embed = discord.Embed(description=desc, colour=embed_colour, title="Commits")
+                embed = discord.Embed(
+                    description=desc, colour=embed_colour, title="Commits"
+                )
                 if len(descs) > 1:
                     embed.set_footer(text=f"page {i+1}/{len(descs)}")
                 embeds.append(embed)
@@ -298,13 +339,18 @@ class GithubStuff(commands.Cog):
     @github.command()
     async def labelled(self, ctx: commands.Context, label: str):
         """Displays open PRs with a given label."""
-        await self.issue_search_menu(ctx, f"is:pr is:open label:\"{label}\"", title=f"Open PRs with label '{label}'")
+        await self.issue_search_menu(
+            ctx,
+            f'is:pr is:open label:"{label}"',
+            title=f"Open PRs with label '{label}'",
+        )
 
     @github.command()
     async def wiki(self, ctx: commands.Context):
         """Displays PRs that have not yet been added to the wiki."""
-        await self.issue_search_menu(ctx,
-                "type:pr is:merged label:\"add to wiki\"",
-                "Nothing to add to the wiki, yay!",
-                "PRs that are yet to be added to the wiki"
-            )
+        await self.issue_search_menu(
+            ctx,
+            'type:pr is:merged label:"add to wiki"',
+            "Nothing to add to the wiki, yay!",
+            "PRs that are yet to be added to the wiki",
+        )

@@ -17,6 +17,7 @@ import collections
 from pydantic import BaseModel
 import datetime
 
+
 class GithubEndpoint(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -39,7 +40,10 @@ class GithubEndpoint(commands.Cog):
 
         @app.post("/github/workflow_failed")
         async def workflow_failed(data: WorkflowFailedModel):
-            if data.api_key != (await self.bot.get_shared_api_tokens('githubendpoint'))['api_key']:
+            if (
+                data.api_key
+                != (await self.bot.get_shared_api_tokens("githubendpoint"))["api_key"]
+            ):
                 return
             channels = await self.channels_of_repo(data.repo)
             if not channels:
@@ -48,13 +52,20 @@ class GithubEndpoint(commands.Cog):
             embed.title = f"`{data.branch}`: {data.name} failed"
             embed.colour = discord.Colour.from_rgb(225, 60, 45)
             embed.timestamp = datetime.datetime.utcnow()
-            embed.set_image(url=f"https://opengraph.githubassets.com/1/{data.repo}/commit/{data.commit}")
+            embed.set_image(
+                url=f"https://opengraph.githubassets.com/1/{data.repo}/commit/{data.commit}"
+            )
             embed.url = data.url
-            embed.add_field(name="commit", value=f"[{data.commit[:7]}](https://github.com/{data.repo}/commit/{data.commit})")
+            embed.add_field(
+                name="commit",
+                value=f"[{data.commit[:7]}](https://github.com/{data.repo}/commit/{data.commit})",
+            )
             embed.add_field(name="message", value=data.message)
             embed.add_field(name="author", value=data.author)
             message = ""
-            author_discord_id = await self.config.custom("contributors", data.author).discord_id()
+            author_discord_id = await self.config.custom(
+                "contributors", data.author
+            ).discord_id()
             if author_discord_id is not None:
                 message = self.bot.get_user(author_discord_id).mention
             for channel in channels:
@@ -73,13 +84,19 @@ class GithubEndpoint(commands.Cog):
     @githubendpoint.command()
     async def registerself(self, ctx: commands.Context, git_name: str):
         await self.config.custom("contributors", git_name).discord_id.set(ctx.author.id)
-        await ctx.send(f"Your Discord account will now get pings aimed at git committer {git_name}")
+        await ctx.send(
+            f"Your Discord account will now get pings aimed at git committer {git_name}"
+        )
 
     @githubendpoint.command()
     @checks.is_owner()
-    async def registerother(self, ctx: commands.Context, git_name: str, user: discord.User):
+    async def registerother(
+        self, ctx: commands.Context, git_name: str, user: discord.User
+    ):
         await self.config.custom("contributors", git_name).discord_id.set(user.id)
-        await ctx.send(f"{user.name} will now get pings aimed at git committer {git_name}")
+        await ctx.send(
+            f"{user.name} will now get pings aimed at git committer {git_name}"
+        )
 
     @githubendpoint.command()
     @checks.is_owner()
@@ -88,20 +105,28 @@ class GithubEndpoint(commands.Cog):
         await ctx.send(f"Unregistered the Discord account linked to {git_name}")
 
     @githubendpoint.command()
-    async def addchannel(self, ctx: commands.Context, repo: str, channel: Optional[discord.TextChannel]):
+    async def addchannel(
+        self, ctx: commands.Context, repo: str, channel: Optional[discord.TextChannel]
+    ):
         if channel is None:
             channel = ctx.channel
         async with self.config.custom("repos", repo).channel_ids() as channel_ids:
             channel_ids[str(channel.id)] = None
-        await ctx.send(f"Channel {channel.mention} will now receive notifications from `{repo}`.")
+        await ctx.send(
+            f"Channel {channel.mention} will now receive notifications from `{repo}`."
+        )
 
     @githubendpoint.command()
-    async def removechannel(self, ctx: commands.Context, repo: str, channel: Optional[discord.TextChannel]):
+    async def removechannel(
+        self, ctx: commands.Context, repo: str, channel: Optional[discord.TextChannel]
+    ):
         if channel is None:
             channel = ctx.channel
         async with self.config.custom("repos", repo).channel_ids() as channel_ids:
             del channel_ids[str(channel.id)]
-        await ctx.send(f"Channel {channel.mention} will no longer receive notifications from `{repo}`.")
+        await ctx.send(
+            f"Channel {channel.mention} will no longer receive notifications from `{repo}`."
+        )
 
     @githubendpoint.command()
     async def checkchannels(self, ctx: commands.Context, repo: str):
@@ -109,5 +134,6 @@ class GithubEndpoint(commands.Cog):
         if not channel_ids:
             await ctx.send("No channels.")
         else:
-            await ctx.send("\n".join(ch.mention for ch in await self.channels_of_repo(repo)))
-
+            await ctx.send(
+                "\n".join(ch.mention for ch in await self.channels_of_repo(repo))
+            )
