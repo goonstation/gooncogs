@@ -211,7 +211,9 @@ class GithubStuff(commands.Cog):
             current_desc = ""
             for pull in results:
                 line = f"[**#{pull.number}** {pull.title}]({pull.html_url})"
-                if len(line) + len(current_desc) > 2000:
+                if len(line) > 4000:
+                    line = line[:4000] + "..."
+                if len(line) + len(current_desc) > 4000:
                     descs.append(current_desc)
                     current_desc = line
                 else:
@@ -266,7 +268,9 @@ class GithubStuff(commands.Cog):
                 cmsg = commit.commit.message
                 cmsg = '\n'.join(l.strip() for l in cmsg.split('\n') if l.strip())
                 line = f"[**{commit.sha[:7]}**]({commit.html_url}) {cmsg}"
-                if len(line) + len(current_desc) > 2000:
+                if len(line) > 4000:
+                    line = line[:4000] + "..."
+                if len(line) + len(current_desc) > 4000:
                     if current_desc:
                         descs.append(current_desc)
                     if len(descs) >= MAX_PAGES:
