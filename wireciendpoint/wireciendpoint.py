@@ -25,41 +25,42 @@ import aiohttp
 
 EMOJI_RANGES_UNICODE = {
     6: [
-        ('\U0001F300', '\U0001F320'),
-        ('\U0001F330', '\U0001F335'),
-        ('\U0001F337', '\U0001F37C'),
-        ('\U0001F380', '\U0001F393'),
-        ('\U0001F3A0', '\U0001F3C4'),
-        ('\U0001F3C6', '\U0001F3CA'),
-        ('\U0001F3E0', '\U0001F3F0'),
-        ('\U0001F400', '\U0001F43E'),
-        ('\U0001F440', ),
-        ('\U0001F442', '\U0001F4F7'),
-        ('\U0001F4F9', '\U0001F4FC'),
-        ('\U0001F500', '\U0001F53C'),
-        ('\U0001F540', '\U0001F543'),
-        ('\U0001F550', '\U0001F567'),
-        ('\U0001F5FB', '\U0001F5FF')
+        ("\U0001F300", "\U0001F320"),
+        ("\U0001F330", "\U0001F335"),
+        ("\U0001F337", "\U0001F37C"),
+        ("\U0001F380", "\U0001F393"),
+        ("\U0001F3A0", "\U0001F3C4"),
+        ("\U0001F3C6", "\U0001F3CA"),
+        ("\U0001F3E0", "\U0001F3F0"),
+        ("\U0001F400", "\U0001F43E"),
+        ("\U0001F440",),
+        ("\U0001F442", "\U0001F4F7"),
+        ("\U0001F4F9", "\U0001F4FC"),
+        ("\U0001F500", "\U0001F53C"),
+        ("\U0001F540", "\U0001F543"),
+        ("\U0001F550", "\U0001F567"),
+        ("\U0001F5FB", "\U0001F5FF"),
     ],
     7: [
-        ('\U0001F300', '\U0001F32C'),
-        ('\U0001F330', '\U0001F37D'),
-        ('\U0001F380', '\U0001F3CE'),
-        ('\U0001F3D4', '\U0001F3F7'),
-        ('\U0001F400', '\U0001F4FE'),
-        ('\U0001F500', '\U0001F54A'),
-        ('\U0001F550', '\U0001F579'),
-        ('\U0001F57B', '\U0001F5A3'),
-        ('\U0001F5A5', '\U0001F5FF')
+        ("\U0001F300", "\U0001F32C"),
+        ("\U0001F330", "\U0001F37D"),
+        ("\U0001F380", "\U0001F3CE"),
+        ("\U0001F3D4", "\U0001F3F7"),
+        ("\U0001F400", "\U0001F4FE"),
+        ("\U0001F500", "\U0001F54A"),
+        ("\U0001F550", "\U0001F579"),
+        ("\U0001F57B", "\U0001F5A3"),
+        ("\U0001F5A5", "\U0001F5FF"),
     ],
     8: [
-        ('\U0001F300', '\U0001F579'),
-        ('\U0001F57B', '\U0001F5A3'),
-        ('\U0001F5A5', '\U0001F5FF')
-    ]
+        ("\U0001F300", "\U0001F579"),
+        ("\U0001F57B", "\U0001F5A3"),
+        ("\U0001F5A5", "\U0001F5FF"),
+    ],
 }
 
-def random_emoji(unicode_version = 8, rnd = random):
+
+def random_emoji(unicode_version=8, rnd=random):
     if unicode_version in EMOJI_RANGES_UNICODE:
         emoji_ranges = EMOJI_RANGES_UNICODE[unicode_version]
     else:
@@ -94,7 +95,9 @@ class WireCiEndpoint(commands.Cog):
         self.config = Config.get_conf(self, 1482189223515)
         self.config.register_global(channels={}, repo=None)
         self.rnd = random.Random()
-        self.funny_messages = open(bundled_data_path(self) / "code_quality.txt").readlines()
+        self.funny_messages = open(
+            bundled_data_path(self) / "code_quality.txt"
+        ).readlines()
         self.session = aiohttp.ClientSession()
         self.processed_successful_commits = {}
         self.processed_failed_commits = set()
@@ -117,8 +120,13 @@ class WireCiEndpoint(commands.Cog):
         @app.post("/wireci/build_finished")
         async def build_finished(data: BuildFinishedModel):
             async with self.build_finished_lock:
-                if data.api_key != (await self.bot.get_shared_api_tokens('wireciendpoint'))['incoming_api_key']:
-                    return 
+                if (
+                    data.api_key
+                    != (await self.bot.get_shared_api_tokens("wireciendpoint"))[
+                        "incoming_api_key"
+                    ]
+                ):
+                    return
                 success = data.error is None
                 channels = await self.config.channels()
                 if not len(channels):
@@ -132,48 +140,74 @@ class WireCiEndpoint(commands.Cog):
                 repo = await self.config.repo()
                 message = ""
                 embed = None
-                goonservers = self.bot.get_cog('GoonServers')
+                goonservers = self.bot.get_cog("GoonServers")
                 server = goonservers.resolve_server(data.server)
                 if success:
                     commit_message = data.message
-                    if '\n' in commit_message:
-                        commit_message = commit_message.split('\n')[0]
+                    if "\n" in commit_message:
+                        commit_message = commit_message.split("\n")[0]
                     guild = self.bot.get_channel(int(next(iter(channels)))).guild
                     message_start = f"__{data.branch}__ on "
                     message_end = f"{server.short_name} \N{white heavy check mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
                     message = message_start + message_end
                     if data.commit not in self.processed_successful_commits:
                         message += f"\nCode quality: {await self.funny_message(data.commit, guild)}"
-                    elif all(msg.channel.last_message_id == msg.id for msg in self.processed_successful_commits[data.commit]):
+                    elif all(
+                        msg.channel.last_message_id == msg.id
+                        for msg in self.processed_successful_commits[data.commit]
+                    ):
                         for msg in self.processed_successful_commits[data.commit]:
-                            first_part, second_part = msg.content.split("\N{WHITE HEAVY CHECK MARK}")
-                            message = first_part[:-1] + ", " + server.short_name + " \N{WHITE HEAVY CHECK MARK}" + second_part
+                            first_part, second_part = msg.content.split(
+                                "\N{WHITE HEAVY CHECK MARK}"
+                            )
+                            message = (
+                                first_part[:-1]
+                                + ", "
+                                + server.short_name
+                                + " \N{WHITE HEAVY CHECK MARK}"
+                                + second_part
+                            )
                             await msg.edit(content=message)
                         return
                 else:
                     embed = discord.Embed()
-                    embed.title = f"`{data.branch}` on {server.short_name}: " + ("succeeded" if success else "failed")
-                    embed.colour = discord.Colour.from_rgb(60, 100, 45) if success else discord.Colour.from_rgb(150, 60, 45)
+                    embed.title = f"`{data.branch}` on {server.short_name}: " + (
+                        "succeeded" if success else "failed"
+                    )
+                    embed.colour = (
+                        discord.Colour.from_rgb(60, 100, 45)
+                        if success
+                        else discord.Colour.from_rgb(150, 60, 45)
+                    )
                     embed.description = f"```\n{data.last_compile}\n```"
                     if not success:
                         error_message = data.error
                         if error_message.lower() == "true":
                             pass
-                        elif '\n' in error_message.strip():
+                        elif "\n" in error_message.strip():
                             embed.description += f"\nError:\n```{error_message}```"
                         else:
                             embed.description += f"\nError: `{error_message.strip()}`"
                     embed.timestamp = datetime.datetime.utcnow()
-                    embed.set_image(url=f"https://opengraph.githubassets.com/1/{repo}/commit/{data.commit}")
-                    embed.add_field(name="commit", value=f"[{data.commit[:7]}](https://github.com/{repo}/commit/{data.commit})")
+                    embed.set_image(
+                        url=f"https://opengraph.githubassets.com/1/{repo}/commit/{data.commit}"
+                    )
+                    embed.add_field(
+                        name="commit",
+                        value=f"[{data.commit[:7]}](https://github.com/{repo}/commit/{data.commit})",
+                    )
                     embed.add_field(name="message", value=data.message)
                     embed.add_field(name="author", value=data.author)
-                    embed.set_footer(text="Code quality: " + await self.funny_message(data.commit))
+                    embed.set_footer(
+                        text="Code quality: " + await self.funny_message(data.commit)
+                    )
                     if not success and data.commit not in self.processed_failed_commits:
                         author_discord_id = None
                         githubendpoint = self.bot.get_cog("GithubEndpoint")
                         if githubendpoint:
-                            author_discord_id = await githubendpoint.config.custom("contributors", data.author).discord_id()
+                            author_discord_id = await githubendpoint.config.custom(
+                                "contributors", data.author
+                            ).discord_id()
                         if author_discord_id is not None:
                             message = self.bot.get_user(author_discord_id).mention
                 succ_messages = []
@@ -203,11 +237,19 @@ class WireCiEndpoint(commands.Cog):
         if self.rnd.randint(1, 2 + len(self.funny_messages)) <= 2:
             githubendpoint = self.bot.get_cog("GithubEndpoint")
             if githubendpoint:
-                person = self.rnd.choice(list((await githubendpoint.config.custom("contributors").all()).keys()))
-                return self.rnd.choice([
-                    f"Like a thing {person} wrote",
-                    f"{person}-approved",
-                    ])
+                person = self.rnd.choice(
+                    list(
+                        (
+                            await githubendpoint.config.custom("contributors").all()
+                        ).keys()
+                    )
+                )
+                return self.rnd.choice(
+                    [
+                        f"Like a thing {person} wrote",
+                        f"{person}-approved",
+                    ]
+                )
         return self.rnd.choice(self.funny_messages).strip()
 
     @commands.group(name="ci")
@@ -219,40 +261,54 @@ class WireCiEndpoint(commands.Cog):
     @wireciendpoint.command(aliases=["check"])
     async def status(self, ctx: commands.Context):
         """Check status of CI builds."""
-        tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
-        url = tokens.get('cd_path') + '/status'
-        api_key = tokens.get('outgoing_api_key')
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        url = tokens.get("cd_path") + "/status"
+        api_key = tokens.get("outgoing_api_key")
         async with self.session.get(
-                url,
-                headers = {
-                    'Api-Key': api_key,
-                    },
-                ) as res:
+            url,
+            headers={
+                "Api-Key": api_key,
+            },
+        ) as res:
             if res.status != 200:
-                for page in pagify(f"Server responded with an error code {res.status}: `{await res.text()}`"):
+                for page in pagify(
+                    f"Server responded with an error code {res.status}: `{await res.text()}`"
+                ):
                     await ctx.send(page)
                 return
             data = await res.json(content_type=None)
             goonservers = self.bot.get_cog("GoonServers")
             message = [f"Max compile jobs: {data.get('maxCompileJobs', 'N/A')}"]
-            current_jobs = data.get('currentCompileJobs', [])
+            current_jobs = data.get("currentCompileJobs", [])
             if not current_jobs:
                 message.append("No jobs currently running")
             else:
-                message.append(f"Currently compiling: " + ", ".join(goonservers.resolve_server(sid).short_name for sid in current_jobs))
-            queued_jobs = data.get('queuedJobs', [])
+                message.append(
+                    f"Currently compiling: "
+                    + ", ".join(
+                        goonservers.resolve_server(sid).short_name
+                        for sid in current_jobs
+                    )
+                )
+            queued_jobs = data.get("queuedJobs", [])
             if not queued_jobs:
                 message.append("No jobs queued")
             else:
-                message.append(f"Queued: " + ", ".join(goonservers.resolve_server(sid).short_name for sid in queued_jobs))
-            await ctx.send('\n'.join(message))
+                message.append(
+                    f"Queued: "
+                    + ", ".join(
+                        goonservers.resolve_server(sid).short_name
+                        for sid in queued_jobs
+                    )
+                )
+            await ctx.send("\n".join(message))
 
     @wireciendpoint.command()
     async def build(self, ctx: commands.Context, *, server_name: str):
         """Start a CI build."""
-        tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
-        url = tokens.get('cd_path') + '/build'
-        api_key = tokens.get('outgoing_api_key')
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        url = tokens.get("cd_path") + "/build"
+        api_key = tokens.get("outgoing_api_key")
         goonservers = self.bot.get_cog("GoonServers")
         servers = set()
         for server_name in server_name.split():
@@ -264,20 +320,24 @@ class WireCiEndpoint(commands.Cog):
         for server in servers:
             server_id = server.tgs
             async with self.session.post(
-                    url,
-                    headers = {
-                        'Api-Key': api_key,
-                        },
-                    json = {'server': server_id}
-                    ) as res:
+                url,
+                headers={
+                    "Api-Key": api_key,
+                },
+                json={"server": server_id},
+            ) as res:
                 if res.status != 200:
-                    for page in pagify(f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"):
+                    for page in pagify(
+                        f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
+                    ):
                         await ctx.send(page)
                     success = False
                     continue
                 data = await res.json(content_type=None)
                 if not data.get("success"):
-                    await ctx.send(f"`{server_id}`: Idk what happened: `{await res.text()}`")
+                    await ctx.send(
+                        f"`{server_id}`: Idk what happened: `{await res.text()}`"
+                    )
                     success = False
         if success:
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
@@ -285,9 +345,9 @@ class WireCiEndpoint(commands.Cog):
     @wireciendpoint.command()
     async def restart(self, ctx: commands.Context, server_name: str):
         """Restart a server managed by CI."""
-        tokens = await self.bot.get_shared_api_tokens('wireciendpoint')
-        url = tokens.get('ci_path') + '/restart'
-        api_key = tokens.get('outgoing_api_key')
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        url = tokens.get("ci_path") + "/restart"
+        api_key = tokens.get("outgoing_api_key")
         goonservers = self.bot.get_cog("GoonServers")
         servers = goonservers.resolve_server_or_category(server_name)
         if not servers:
@@ -297,32 +357,40 @@ class WireCiEndpoint(commands.Cog):
         for server in servers:
             server_id = server.tgs
             async with self.session.post(
-                    url,
-                    headers = {
-                        'Api-Key': api_key,
-                        },
-                    json = {'server': server_id}
-                    ) as res:
+                url,
+                headers={
+                    "Api-Key": api_key,
+                },
+                json={"server": server_id},
+            ) as res:
                 if res.status != 200:
-                    for page in pagify(f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"):
+                    for page in pagify(
+                        f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
+                    ):
                         await ctx.send(page)
                     success = False
                     continue
                 data = await res.json(content_type=None)
                 if not data.get("success"):
-                    await ctx.send(f"`{server_id}`: Idk what happened: `{await res.text()}`")
+                    await ctx.send(
+                        f"`{server_id}`: Idk what happened: `{await res.text()}`"
+                    )
                     success = False
         if success:
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @wireciendpoint.command()
-    async def addchannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
+    async def addchannel(
+        self, ctx: commands.Context, channel: Optional[discord.TextChannel]
+    ):
         """Subscribe a channel to receive CI build updates."""
         if channel is None:
             channel = ctx.channel
         async with self.config.channels() as channels:
             channels[str(channel.id)] = None
-        await ctx.send(f"Channel {channel.mention} will now receive notifications about builds.")
+        await ctx.send(
+            f"Channel {channel.mention} will now receive notifications about builds."
+        )
 
     @wireciendpoint.command()
     async def setrepo(self, ctx: commands.Context, repo: str):
@@ -331,13 +399,17 @@ class WireCiEndpoint(commands.Cog):
         await ctx.send(f"Repo set to `{repo}`.")
 
     @wireciendpoint.command()
-    async def removechannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
+    async def removechannel(
+        self, ctx: commands.Context, channel: Optional[discord.TextChannel]
+    ):
         """Unsubscribe a channel from CI build updates."""
         if channel is None:
             channel = ctx.channel
         async with self.config.channels() as channels:
             del channels[str(channel.id)]
-        await ctx.send(f"Channel {channel.mention} will no longer receive notifications about builds.")
+        await ctx.send(
+            f"Channel {channel.mention} will no longer receive notifications about builds."
+        )
 
     @wireciendpoint.command()
     async def checkchannels(self, ctx: commands.Context):
@@ -346,5 +418,6 @@ class WireCiEndpoint(commands.Cog):
         if not channel_ids:
             await ctx.send("No channels.")
         else:
-            await ctx.send("\n".join(self.bot.get_channel(int(ch)).mention for ch in channel_ids))
-
+            await ctx.send(
+                "\n".join(self.bot.get_channel(int(ch)).mention for ch in channel_ids)
+            )

@@ -13,6 +13,7 @@ import itertools
 BASE_URL = "http://www.byond.com"
 FISH_MEDAL = "http://www.byond.com/games/hubmedal/4893.png"
 
+
 class ByondCom(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -62,21 +63,21 @@ class ByondCom(commands.Cog):
             if bs.find(id="joined") is None:
                 return None
             return [m.text for m in bs.find_all(class_="medal_name")]
-        
+
     @commands.command()
     @commands.cooldown(3, 3)
     @commands.max_concurrency(10, wait=False)
     async def hasmedal(self, ctx: commands.Context, ckey: str, *, medal: str):
         orig_medal = medal.strip('"')
-        target_medal = ''.join(c for c in orig_medal if c.isalpha()).lower()
+        target_medal = "".join(c for c in orig_medal if c.isalpha()).lower()
         medals = await self.get_medals(ckey)
         if medals is None:
             await ctx.send(f"Account `{ckey}` does not exist")
             return
         for medal in medals:
-            if target_medal == ''.join(c for c in medal if c.isalpha()).lower():
+            if target_medal == "".join(c for c in medal if c.isalpha()).lower():
                 await ctx.send(f"Account `{ckey}` has medal `{medal}`")
                 return
-        await ctx.send(f"Account `{ckey}` does not have the medal `{orig_medal.title()}`")
-
-        
+        await ctx.send(
+            f"Account `{ckey}` does not have the medal `{orig_medal.title()}`"
+        )

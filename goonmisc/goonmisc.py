@@ -21,16 +21,17 @@ import colorsys
 import cairosvg
 import json
 
+
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=11530251279432)
         self.config.register_global(
-                repository=None,
-            )
+            repository=None,
+        )
         self.config.register_guild(
-                logos={},
-            )
+            logos={},
+        )
         self.CONTRIB_PATH = cog_data_path(self) / "contributors.txt"
         self.reload_contrib()
         self.is_dad = False
@@ -41,7 +42,7 @@ class GoonMisc(commands.Cog):
         self.contributors = []
         if os.path.exists(self.CONTRIB_PATH):
             for line in open(self.CONTRIB_PATH):
-                who, how_much = line.split(': ')
+                who, how_much = line.split(": ")
                 how_much = int(how_much)
                 self.total += how_much
                 self.contributors.append((who, how_much))
@@ -49,7 +50,7 @@ class GoonMisc(commands.Cog):
     def _rebuild_wheel(self, token, repo):
         g = Github(token)
         repo = g.get_repo(repo)
-        with open(self.CONTRIB_PATH, 'w') as f:
+        with open(self.CONTRIB_PATH, "w") as f:
             for contributor in repo.get_stats_contributors():
                 name = contributor.author.name or contributor.author.login
                 f.write("{}: {}\n".format(name, contributor.total))
@@ -69,10 +70,9 @@ class GoonMisc(commands.Cog):
         if github_keys.get("token") is None:
             return await ctx.send("The GitHub token needs to be set!")
         token = github_keys.get("token")
-        await asyncio.get_running_loop().run_in_executor(executor, self._rebuild_wheel,
-                token,
-                await self.config.repo()
-            )
+        await asyncio.get_running_loop().run_in_executor(
+            executor, self._rebuild_wheel, token, await self.config.repo()
+        )
         self.reload_contrib()
         await ctx.send("Wheel of Blame rebuilt (probably)!")
 
@@ -96,7 +96,7 @@ class GoonMisc(commands.Cog):
     @commands.guild_only()
     async def add(self, ctx: commands.Context, name: str, logo_url: Optional[str]):
         """Adds a selectable preset logo under a certain name.
-        
+
         The file itself is not saved so make sure your URL points to a resource that's not temporary."""
         guild = ctx.guild
         icon = None
@@ -107,7 +107,7 @@ class GoonMisc(commands.Cog):
             return
         async with self.config.guild(guild).logos() as logos:
             logos[name] = logo_url
-        await ctx.message.add_reaction('\N{White Heavy Check Mark}')
+        await ctx.message.add_reaction("\N{White Heavy Check Mark}")
 
     @logo.command()
     @commands.guild_only()
@@ -118,7 +118,7 @@ class GoonMisc(commands.Cog):
         if not presets:
             await ctx.send("No logo prests exist for this server.")
             return
-        await ctx.send(', '.join(f"`{preset}`" for preset in presets.keys()))
+        await ctx.send(", ".join(f"`{preset}`" for preset in presets.keys()))
 
     @logo.command()
     @commands.guild_only()
@@ -157,9 +157,9 @@ class GoonMisc(commands.Cog):
     async def get(self, ctx: commands.Context):
         """Posts current server logo."""
         if ctx.guild.icon:
-            fname = ctx.guild.icon_url._url.split('/')[-1]
-            if '?' in fname:
-                fname = fname.split('?')[0]
+            fname = ctx.guild.icon_url._url.split("/")[-1]
+            if "?" in fname:
+                fname = fname.split("?")[0]
             data = await ctx.guild.icon_url.read()
             f = discord.File(io.BytesIO(data), fname)
             await ctx.send("Current logo:", file=f)
@@ -177,9 +177,9 @@ class GoonMisc(commands.Cog):
         guild = ctx.guild
         presets = await self.config.guild(guild).logos()
         if guild.icon:
-            fname = guild.icon_url._url.split('/')[-1]
-            if '?' in fname:
-                fname = fname.split('?')[0]
+            fname = guild.icon_url._url.split("/")[-1]
+            if "?" in fname:
+                fname = fname.split("?")[0]
             data = await guild.icon_url.read()
             f = discord.File(io.BytesIO(data), fname)
             await ctx.send("Previous logo:", file=f)
@@ -199,8 +199,12 @@ class GoonMisc(commands.Cog):
         if error_out:
             preset_string = ""
             if len(presets) > 0:
-                preset_string = " or select one of: " + ', '.join(f"`{preset}`" for preset in presets.keys())
-            await ctx.send(f"You need to either give a valid URL or attach a valid file{preset_string}!")
+                preset_string = " or select one of: " + ", ".join(
+                    f"`{preset}`" for preset in presets.keys()
+                )
+            await ctx.send(
+                f"You need to either give a valid URL or attach a valid file{preset_string}!"
+            )
             ctx.command.reset_cooldown(ctx)
             return
         await guild.edit(icon=icon, reason=f"requested by {ctx.message.author.name}")
@@ -208,7 +212,7 @@ class GoonMisc(commands.Cog):
 
     @commands.command()
     async def blastfromthepast(self, ctx: commands.Context):
-        channel = ctx.bot.get_channel(383743035894267905) # TODO: unhardcode
+        channel = ctx.bot.get_channel(383743035894267905)  # TODO: unhardcode
         time = datetime.datetime.now()
         time -= datetime.timedelta(days=365)
         async for message in channel.history(limit=1, before=time):
@@ -219,66 +223,64 @@ class GoonMisc(commands.Cog):
         alt_index = defaultdict(int)
         alternatives = {
             # TODO probably remove the custom emoji from here for general purpose usage
-            'O': [842117713656545382, '\N{Heavy Large Circle}'],
-            'E': [842112367861039115],
-            '?': "\N{Black Question Mark Ornament}\N{White Question Mark Ornament}",
-            '!': "❕❗⚠❣",
-            'A': '🅰',
-            'B': '🅱',
-            '$': '💲💰💵💸🤑',
-            'C': '↪️©',
-            'R': '®',
-            'X': '❌❎✖',
-            'M': 'Ⓜ♏♍〽️',
-            'H': '♓🏩',
-            'P': '🅿',
-            '+': ['➕', '🇨🇭'],
-            '-': '➖',
-            '8': '🎱',
-            'I': 'ℹ',
-            'S': '⚡🪱',
-            'T': '✝️',
-            'D': '↩️',
-            'V': '♈',
-            '1': '🥇',
-            '2': '🥈',
-            '3': '🥉',
-
+            "O": [842117713656545382, "\N{Heavy Large Circle}"],
+            "E": [842112367861039115],
+            "?": "\N{Black Question Mark Ornament}\N{White Question Mark Ornament}",
+            "!": "❕❗⚠❣",
+            "A": "🅰",
+            "B": "🅱",
+            "$": "💲💰💵💸🤑",
+            "C": "↪️©",
+            "R": "®",
+            "X": "❌❎✖",
+            "M": "Ⓜ♏♍〽️",
+            "H": "♓🏩",
+            "P": "🅿",
+            "+": ["➕", "🇨🇭"],
+            "-": "➖",
+            "8": "🎱",
+            "I": "ℹ",
+            "S": "⚡🪱",
+            "T": "✝️",
+            "D": "↩️",
+            "V": "♈",
+            "1": "🥇",
+            "2": "🥈",
+            "3": "🥉",
         }
-        word = word.upper().replace(' ', '')
+        word = word.upper().replace(" ", "")
         replacements = [
-                ('OK', "🆗"),
-                ('!?', "⁉"),
-                ('!!', "‼"),
-                ('COOL', "🆒"),
-                ('ID', "🆔"),
-                ('VS', "🆚"),
-                ('CL', "🆑"),
-                ('SOS', "🆘"),
-                ('100', "💯"),
-                ('UP', "🆙"),
-                ('NG', "🆖"),
-                ('NEW', "🆕"),
-                ('FREE', "🆓"),
-                ('10', "🔟"),
-                ('ABCD', "🔠"),
-                ('ABC', "🔤"),
-                ('AB', "🆎"),
-                ('ATM', "🏧"),
-                ('TM', "™"),
-                ('WC', "🚾"),
-                ('18', "🔞"),
-                ('1234', "🔢"),
-                ('ZZZ', "💤"),
-                ('777', "\N{slot machine}"),
-                ('69', "♋︎"),
-
+            ("OK", "🆗"),
+            ("!?", "⁉"),
+            ("!!", "‼"),
+            ("COOL", "🆒"),
+            ("ID", "🆔"),
+            ("VS", "🆚"),
+            ("CL", "🆑"),
+            ("SOS", "🆘"),
+            ("100", "💯"),
+            ("UP", "🆙"),
+            ("NG", "🆖"),
+            ("NEW", "🆕"),
+            ("FREE", "🆓"),
+            ("10", "🔟"),
+            ("ABCD", "🔠"),
+            ("ABC", "🔤"),
+            ("AB", "🆎"),
+            ("ATM", "🏧"),
+            ("TM", "™"),
+            ("WC", "🚾"),
+            ("18", "🔞"),
+            ("1234", "🔢"),
+            ("ZZZ", "💤"),
+            ("777", "\N{slot machine}"),
+            ("69", "♋︎"),
         ]
         split = re.split(r"(<.*?>)", word)
         for part in split:
             if not part:
                 continue
-            if part[0] == '<':
+            if part[0] == "<":
                 match = re.match(r"<a?:.+?:([0-9]+?)>", part)
                 if match:
                     id = int(match.group(1))
@@ -295,8 +297,14 @@ class GoonMisc(commands.Cog):
                 if alt_index[letter] == 0:
                     added = True
                     if letter.isalpha():
-                        emojis.append(chr(ord("\N{REGIONAL INDICATOR SYMBOL LETTER A}") + ord(letter) - ord('A')))
-                    elif letter.isdigit() or letter in '#*':
+                        emojis.append(
+                            chr(
+                                ord("\N{REGIONAL INDICATOR SYMBOL LETTER A}")
+                                + ord(letter)
+                                - ord("A")
+                            )
+                        )
+                    elif letter.isdigit() or letter in "#*":
                         emojis.append(letter + "\N{COMBINING ENCLOSING KEYCAP}")
                     elif letter in "?!+-$":
                         added = False
@@ -305,7 +313,10 @@ class GoonMisc(commands.Cog):
                     alt_index[letter] += 1
                 if not added and letter in alternatives:
                     alternative = None
-                    while alternative is None and len(alternatives[letter]) >= alt_index[letter]:
+                    while (
+                        alternative is None
+                        and len(alternatives[letter]) >= alt_index[letter]
+                    ):
                         alternative = alternatives[letter][alt_index[letter] - 1]
                         if isinstance(alternative, int):
                             alternative = self.bot.get_emoji(alternative)
@@ -318,7 +329,7 @@ class GoonMisc(commands.Cog):
                 continue
             try:
                 await message.add_reaction(emoji)
-            except discord.errors.HTTPException: # not a valid emoji
+            except discord.errors.HTTPException:  # not a valid emoji
                 pass
 
     @commands.command()
@@ -327,9 +338,11 @@ class GoonMisc(commands.Cog):
 
     @checks.admin()
     @commands.command()
-    async def react_to_message(self, ctx: commands.Context, message: discord.Message, *, text: str):
+    async def react_to_message(
+        self, ctx: commands.Context, message: discord.Message, *, text: str
+    ):
         await self.word_react(message, text)
-        await ctx.message.add_reaction('\N{White Heavy Check Mark}')
+        await ctx.message.add_reaction("\N{White Heavy Check Mark}")
 
     @checks.admin()
     @commands.command()
@@ -340,11 +353,15 @@ class GoonMisc(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         words = message.clean_content.split()
-        if len(words) == 2 and words[1] == 'below' and random.randint(1, 100) == 1:
+        if len(words) == 2 and words[1] == "below" and random.randint(1, 100) == 1:
             await message.channel.send("I'm " + words[0])
-        
+
         # TODO: unhardcode
-        if message.channel.id == 890226559691157524 and len(words) > 1 and words[-1].lower().strip("?.!") in ["when", "whence"]:
+        if (
+            message.channel.id == 890226559691157524
+            and len(words) > 1
+            and words[-1].lower().strip("?.!") in ["when", "whence"]
+        ):
             msg = "when you code it"
             if random.randint(1, 100) == 1:
                 msg = "never"
@@ -352,13 +369,17 @@ class GoonMisc(commands.Cog):
                 msg = f"when {random.choose('pali', 'zewaka', 'mbc', 'flourish', 'yass', 'sov')} codes it"
             await self.word_react(message, msg)
 
-        if random.randint(1, 20) == 1 and re.match(r".*\b69\b.*", message.clean_content):
+        if random.randint(1, 20) == 1 and re.match(
+            r".*\b69\b.*", message.clean_content
+        ):
             await self.word_react(message, "nice")
 
         whatchance = 0.005
         if message.author.id == 184210654683594754:
             whatchance *= 6
-        if random.random() < whatchance and re.match(r".*\bwhat\b.*", message.clean_content, re.IGNORECASE):
+        if random.random() < whatchance and re.match(
+            r".*\bwhat\b.*", message.clean_content, re.IGNORECASE
+        ):
             await message.add_reaction(self.bot.get_emoji(875269167383740436))
 
         if self.is_dad:
@@ -368,13 +389,18 @@ class GoonMisc(commands.Cog):
 
     @commands.command()
     @checks.admin()
-    async def anontalk(self, ctx: commands.Context, channel: discord.TextChannel, *, message: str):
+    async def anontalk(
+        self, ctx: commands.Context, channel: discord.TextChannel, *, message: str
+    ):
         """Admin command to send a message to a channel through the bot without identifying yourself."""
-        await channel.send("\N{LARGE RED SQUARE} __admin message__ \N{LARGE RED SQUARE}\n" + message)
+        await channel.send(
+            "\N{LARGE RED SQUARE} __admin message__ \N{LARGE RED SQUARE}\n" + message
+        )
 
     def _pretty_paint(self, img, from_col, to_col):
         from_hsv = colorsys.rgb_to_hsv(*from_col)
         to_hsv = colorsys.rgb_to_hsv(*to_col)
+
         def transform(p):
             r, g, b, a = p
             h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
@@ -383,14 +409,18 @@ class GoonMisc(commands.Cog):
             v *= to_hsv[2] / from_hsv[2]
             ro, go, bo = colorsys.hsv_to_rgb(h, s, v)
             return (int(ro * 255), int(go * 255), int(bo * 255), a)
-        img.putdata(list(map(transform, img.convert('RGBA').getdata())))
+
+        img.putdata(list(map(transform, img.convert("RGBA").getdata())))
 
     @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(1, wait=True)
-    async def makelogo(self, ctx: commands.Context,
-            background: Optional[Union[discord.Member, discord.PartialEmoji, str]],
-            foreground: Optional[Union[discord.Member, discord.PartialEmoji, str]]):
+    async def makelogo(
+        self,
+        ctx: commands.Context,
+        background: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+        foreground: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+    ):
         """
         Creates a variant of the Goonstation logo with given background and foreground.
         Both background and foreground can be entered either as colours (word or #rrggbb) or as URLs to images or as attachments to the message or as custom emoji or as usernames.
@@ -398,7 +428,7 @@ class GoonMisc(commands.Cog):
 
         datapath = bundled_data_path(self)
         bg = None
-        fg = PIL.Image.open(datapath / "logo_g.png").convert('RGBA')
+        fg = PIL.Image.open(datapath / "logo_g.png").convert("RGBA")
 
         async def make_paint(arg, attachment_index):
             img_bytes = None
@@ -409,40 +439,54 @@ class GoonMisc(commands.Cog):
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
-                img_bytes = await arg.avatar_url_as(format='png').read()
+                img_bytes = await arg.avatar_url_as(format="png").read()
             elif isinstance(arg, discord.PartialEmoji):
-                img_bytes = await arg.url_as(format='png').read()
+                img_bytes = await arg.url_as(format="png").read()
             elif ord(arg[0]) > 127:
-                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg if ord(c) != 0xfe0f))
-            elif arg and '.' not in arg:
-                return PIL.Image.new('RGBA', bg.size, color=arg)
+                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format(
+                    "-".join(
+                        "{cp:x}".format(cp=ord(c)) for c in arg if ord(c) != 0xFE0F
+                    )
+                )
+            elif arg and "." not in arg:
+                return PIL.Image.new("RGBA", bg.size, color=arg)
             if arg is None and img_bytes is None:
                 return None
             if img_bytes is None:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(arg) as response:
-                        img_bytes = await response.read() if response.status == 200 else b""
+                        img_bytes = (
+                            await response.read() if response.status == 200 else b""
+                        )
                 if arg.endswith(".svg") and len(img_bytes):
-                    img_bytes = cairosvg.svg2png(bytestring=img_bytes, parent_width=bg.size[0], parent_height=bg.size[1])
+                    img_bytes = cairosvg.svg2png(
+                        bytestring=img_bytes,
+                        parent_width=bg.size[0],
+                        parent_height=bg.size[1],
+                    )
             image = PIL.Image.open(io.BytesIO(img_bytes))
             scale_factors = [bsize / isize for bsize, isize in zip(bg.size, image.size)]
             scale_factor = max(scale_factors)
-            if scale_factor != 1.:
-                image = image.resize((int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC)
+            if scale_factor != 1.0:
+                image = image.resize(
+                    (int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC
+                )
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
                 center_x = image.size[0] / 2
                 center_y = image.size[1] / 2
-                image = image.crop((
-                    int(center_x - half_new_size),
-                    int(center_y - half_new_size),
-                    int(center_x + half_new_size),
-                    int(center_y + half_new_size)
-                    ))
+                image = image.crop(
+                    (
+                        int(center_x - half_new_size),
+                        int(center_y - half_new_size),
+                        int(center_x + half_new_size),
+                        int(center_y + half_new_size),
+                    )
+                )
             return image
 
         bg_color = None
-        if isinstance(background, str) and len(background) > 0 and background[0] == '!':
+        if isinstance(background, str) and len(background) > 0 and background[0] == "!":
             try:
                 bg_color = PIL.ImageColor.getrgb(background[1:])
             except ValueError:
@@ -451,15 +495,21 @@ class GoonMisc(commands.Cog):
             bg = PIL.Image.open(datapath / "logo_bg_color.png")
             executor = ThreadPoolExecutor(max_workers=1)
             async with ctx.typing():
-                await asyncio.get_running_loop().run_in_executor(executor, self._pretty_paint,
-                        bg,
-                        PIL.ImageColor.getrgb("#eced42"),
-                        bg_color
-                    )
-        elif isinstance(background, str) and background.lower() in ["goon", "goonstation", "default"]:
-            bg = PIL.Image.open(datapath / "logo_bg_color.png").convert('RGBA')
+                await asyncio.get_running_loop().run_in_executor(
+                    executor,
+                    self._pretty_paint,
+                    bg,
+                    PIL.ImageColor.getrgb("#eced42"),
+                    bg_color,
+                )
+        elif isinstance(background, str) and background.lower() in [
+            "goon",
+            "goonstation",
+            "default",
+        ]:
+            bg = PIL.Image.open(datapath / "logo_bg_color.png").convert("RGBA")
         else:
-            bg = PIL.Image.open(datapath / "logo_bg.png").convert('RGBA')
+            bg = PIL.Image.open(datapath / "logo_bg.png").convert("RGBA")
             try:
                 bg_paint = await make_paint(background, 0)
             except ValueError:
@@ -467,23 +517,27 @@ class GoonMisc(commands.Cog):
             except PIL.UnidentifiedImageError:
                 return await ctx.send(f"Cannot read background image.")
             if bg_paint:
-                bg = PIL.ImageChops.multiply(bg, bg_paint.convert('RGBA'))
+                bg = PIL.ImageChops.multiply(bg, bg_paint.convert("RGBA"))
             else:
-                return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
+                return await ctx.send(
+                    "You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username)."
+                )
 
         try:
-            fg_paint = await make_paint(background if len(ctx.message.attachments) > 0 else foreground, 1)
+            fg_paint = await make_paint(
+                background if len(ctx.message.attachments) > 0 else foreground, 1
+            )
         except ValueError:
             return await ctx.send(f"Unknown foreground color {foreground}.")
         except PIL.UnidentifiedImageError:
             return await ctx.send(f"Cannot read foreground image.")
         if fg_paint:
-            fg = PIL.ImageChops.multiply(fg, fg_paint.convert('RGBA'))
+            fg = PIL.ImageChops.multiply(fg, fg_paint.convert("RGBA"))
 
-        bg.paste(fg.convert('RGB'), (0, 0), fg)
+        bg.paste(fg.convert("RGB"), (0, 0), fg)
 
         img_data = io.BytesIO()
-        bg.save(img_data, format='png')
+        bg.save(img_data, format="png")
         img_data.seek(0)
         img_file = discord.File(img_data, filename="logo.png")
         await ctx.send(file=img_file)
@@ -491,12 +545,14 @@ class GoonMisc(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(1, wait=True)
-    async def makefrog(self, ctx: commands.Context,
-            bottom: Optional[Union[discord.Member, discord.PartialEmoji, str]],
-            top: Optional[Union[discord.Member, discord.PartialEmoji, str]],
-            *, 
-            flags: Optional[str]
-            ):
+    async def makefrog(
+        self,
+        ctx: commands.Context,
+        bottom: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+        top: Optional[Union[discord.Member, discord.PartialEmoji, str]],
+        *,
+        flags: Optional[str],
+    ):
         """
         Creates a variant of the shelterfrog with given bottom and top.
 
@@ -509,10 +565,10 @@ class GoonMisc(commands.Cog):
         flags = flags.lower().split()
 
         datapath = bundled_data_path(self)
-        bottom_img = PIL.Image.open(datapath / "shelterbottom.png").convert('RGBA')
-        top_img = PIL.Image.open(datapath / "sheltertop.png").convert('RGBA')
-        eyes_img = PIL.Image.open(datapath / "sheltereyes.png").convert('RGBA')
-        mouth_img = PIL.Image.open(datapath / "sheltermouth.png").convert('RGBA')
+        bottom_img = PIL.Image.open(datapath / "shelterbottom.png").convert("RGBA")
+        top_img = PIL.Image.open(datapath / "sheltertop.png").convert("RGBA")
+        eyes_img = PIL.Image.open(datapath / "sheltereyes.png").convert("RGBA")
+        mouth_img = PIL.Image.open(datapath / "sheltermouth.png").convert("RGBA")
 
         async def make_paint(arg, attachment_index):
             img_bytes = None
@@ -523,39 +579,55 @@ class GoonMisc(commands.Cog):
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
-                img_bytes = await arg.avatar_url_as(format='png').read()
+                img_bytes = await arg.avatar_url_as(format="png").read()
             elif isinstance(arg, discord.PartialEmoji):
-                img_bytes = await arg.url_as(format='png').read()
+                img_bytes = await arg.url_as(format="png").read()
             elif ord(arg[0]) > 127:
-                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format('-'.join("{cp:x}".format(cp=ord(c)) for c in arg if ord(c) != 0xfe0f))
-            elif arg and '.' not in arg:
-                return PIL.Image.new('RGBA', bottom_img.size, color=arg)
+                arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format(
+                    "-".join(
+                        "{cp:x}".format(cp=ord(c)) for c in arg if ord(c) != 0xFE0F
+                    )
+                )
+            elif arg and "." not in arg:
+                return PIL.Image.new("RGBA", bottom_img.size, color=arg)
             if arg is None and img_bytes is None:
                 return None
             if img_bytes is None:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(arg) as response:
-                        img_bytes = await response.read() if response.status == 200 else b""
+                        img_bytes = (
+                            await response.read() if response.status == 200 else b""
+                        )
                 if arg.endswith(".svg") and len(img_bytes):
-                    img_bytes = cairosvg.svg2png(bytestring=img_bytes, parent_width=bottom_img.size[0], parent_height=bottom_img.size[1])
+                    img_bytes = cairosvg.svg2png(
+                        bytestring=img_bytes,
+                        parent_width=bottom_img.size[0],
+                        parent_height=bottom_img.size[1],
+                    )
             image = PIL.Image.open(io.BytesIO(img_bytes))
-            scale_factors = [bsize / isize for bsize, isize in zip(bottom_img.size, image.size)]
+            scale_factors = [
+                bsize / isize for bsize, isize in zip(bottom_img.size, image.size)
+            ]
             scale_factor = max(scale_factors)
-            if scale_factor != 1.:
-                image = image.resize((int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC)
+            if scale_factor != 1.0:
+                image = image.resize(
+                    (int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC
+                )
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
                 center_x = image.size[0] / 2
                 center_y = image.size[1] / 2
-                image = image.crop((
-                    int(center_x - half_new_size),
-                    int(center_y - half_new_size),
-                    int(center_x + half_new_size),
-                    int(center_y + half_new_size)
-                    ))
+                image = image.crop(
+                    (
+                        int(center_x - half_new_size),
+                        int(center_y - half_new_size),
+                        int(center_x + half_new_size),
+                        int(center_y + half_new_size),
+                    )
+                )
             return image
 
-        if isinstance(bottom, str) and bottom.lower() in ['default', 'shelter']:
+        if isinstance(bottom, str) and bottom.lower() in ["default", "shelter"]:
             bottom = "#cddfc1"
         try:
             bottom_paint = await make_paint(bottom, 0)
@@ -565,15 +637,19 @@ class GoonMisc(commands.Cog):
             return await ctx.send(f"Cannot read bottom image.")
         orig_bottom_paint = bottom_paint
         if bottom_paint:
-            if 'flipbottom' in flags:
-                bottom_paint = PIL.ImageOps.flip(bottom_paint) 
-            if 'mirrorbottom' in flags:
-                bottom_paint = PIL.ImageOps.mirror(bottom_paint) 
-            bottom_img = PIL.ImageChops.multiply(bottom_img, bottom_paint.convert('RGBA'))
+            if "flipbottom" in flags:
+                bottom_paint = PIL.ImageOps.flip(bottom_paint)
+            if "mirrorbottom" in flags:
+                bottom_paint = PIL.ImageOps.mirror(bottom_paint)
+            bottom_img = PIL.ImageChops.multiply(
+                bottom_img, bottom_paint.convert("RGBA")
+            )
         else:
-            return await ctx.send("You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username).")
+            return await ctx.send(
+                "You need to provide either a colour or a picture (either as an URL or as an attachment or as a custom emoji or as a username)."
+            )
 
-        if isinstance(top, str) and top.lower() in ['default', 'shelter']:
+        if isinstance(top, str) and top.lower() in ["default", "shelter"]:
             top = "#91b978"
         try:
             top_paint = await make_paint(top, 1)
@@ -584,26 +660,25 @@ class GoonMisc(commands.Cog):
         if not top_paint:
             top_paint = orig_bottom_paint
 
-        if 'fliptop' in flags:
-            top_paint = PIL.ImageOps.flip(top_paint) 
-        if 'mirrortop' in flags:
-            top_paint = PIL.ImageOps.mirror(top_paint) 
-        top_img = PIL.ImageChops.multiply(top_img, top_paint.convert('RGBA'))
-            
+        if "fliptop" in flags:
+            top_paint = PIL.ImageOps.flip(top_paint)
+        if "mirrortop" in flags:
+            top_paint = PIL.ImageOps.mirror(top_paint)
+        top_img = PIL.ImageChops.multiply(top_img, top_paint.convert("RGBA"))
 
-        bottom_img.paste(top_img.convert('RGB'), (0, 0), top_img)
-        if 'noface' not in flags and 'noeyes' not in flags:
-            bottom_img.paste(eyes_img.convert('RGB'), (0, 0), eyes_img)
-        if 'noface' not in flags and 'nomouth' not in flags:
-            bottom_img.paste(mouth_img.convert('RGB'), (0, 0), mouth_img)
+        bottom_img.paste(top_img.convert("RGB"), (0, 0), top_img)
+        if "noface" not in flags and "noeyes" not in flags:
+            bottom_img.paste(eyes_img.convert("RGB"), (0, 0), eyes_img)
+        if "noface" not in flags and "nomouth" not in flags:
+            bottom_img.paste(mouth_img.convert("RGB"), (0, 0), mouth_img)
 
-        if 'flip' in flags:
-            bottom_img = PIL.ImageOps.flip(bottom_img) 
-        if 'mirror' in flags:
-            bottom_img = PIL.ImageOps.mirror(bottom_img) 
+        if "flip" in flags:
+            bottom_img = PIL.ImageOps.flip(bottom_img)
+        if "mirror" in flags:
+            bottom_img = PIL.ImageOps.mirror(bottom_img)
 
         img_data = io.BytesIO()
-        bottom_img.save(img_data, format='png')
+        bottom_img.save(img_data, format="png")
         img_data.seek(0)
         img_file = discord.File(img_data, filename="shelterfrog.png")
         await ctx.send(file=img_file)
@@ -611,7 +686,10 @@ class GoonMisc(commands.Cog):
     @commands.command()
     async def pick(self, ctx: commands.Context, *, choices: str):
         """Chooses one of the choices separated by commas."""
-        await ctx.message.reply("Chosen: " + random.choice(choices.split(",")).strip() or "empty message", allowed_mentions=discord.AllowedMentions.none())
+        await ctx.message.reply(
+            "Chosen: " + random.choice(choices.split(",")).strip() or "empty message",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
 
     @commands.command(aliases=["donate"])
     async def donate2day(self, ctx: commands.Context, who: Optional[str] = None):
@@ -619,12 +697,12 @@ class GoonMisc(commands.Cog):
         if who is not None:
             who = who.lower()
         if who in [None, "goonstation"]:
-            await ctx.send("Donate2day! https://www.patreon.com/goonstation (Patreon, for recurring donations) or https://paypal.me/Wirewraith (Paypal, for one-off donations)")
+            await ctx.send(
+                "Donate2day! https://www.patreon.com/goonstation (Patreon, for recurring donations) or https://paypal.me/Wirewraith (Paypal, for one-off donations)"
+            )
         elif who == "pali":
             await ctx.send("https://ko-fi.com/pali6")
         elif who in ["cogwerks", "cog", "cogs"]:
             await ctx.send("https://ko-fi.com/cogwerks")
         else:
             await ctx.send("No idea who that is!")
-
-

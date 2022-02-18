@@ -5,6 +5,7 @@ import discord.errors
 from redbot.core.bot import Red
 from typing import *
 
+
 class PinOrder(commands.Cog):
     def __init__(self, bot: Red):
         super().__init__()
@@ -33,7 +34,7 @@ class PinOrder(commands.Cog):
                     break
             if last_wrong_index is None:
                 return
-            for position, message_id in reversed(pin_order[:last_wrong_index + 1]):
+            for position, message_id in reversed(pin_order[: last_wrong_index + 1]):
                 try:
                     message = await channel.fetch_message(message_id)
                 except discord.NotFound:
@@ -47,7 +48,7 @@ class PinOrder(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_message_edit(self, payload):
-        if not payload.data.get('pinned'):
+        if not payload.data.get("pinned"):
             return
         channel = self.bot.get_channel(payload.channel_id)
         pins = await self.config.channel(channel).pins()
@@ -68,7 +69,9 @@ class PinOrder(commands.Cog):
         async with self.config.channel(message.channel).pins() as pins:
             if position in pins:
                 conflict = ctx.channel.get_partial_message(pins[position])
-                return await ctx.send(f"Message {conflict.jump_url} is already pinned on this position.\nUse the `pinorder unpin` command to remove it first.")
+                return await ctx.send(
+                    f"Message {conflict.jump_url} is already pinned on this position.\nUse the `pinorder unpin` command to remove it first."
+                )
             pins[position] = message.id
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
         await self.refresh_pins(ctx.channel)
@@ -90,8 +93,11 @@ class PinOrder(commands.Cog):
         pin_order.sort()
         if not pin_order:
             return await ctx.send("No pin order set in this channel.")
-        lines = [f"**{position}** {channel.get_partial_message(message_id).jump_url}" for position, message_id in pin_order]
-        await ctx.send('\n'.join(lines))
+        lines = [
+            f"**{position}** {channel.get_partial_message(message_id).jump_url}"
+            for position, message_id in pin_order
+        ]
+        await ctx.send("\n".join(lines))
 
     @pinorder.command()
     @commands.has_permissions(manage_messages=True)
@@ -108,4 +114,3 @@ class PinOrder(commands.Cog):
             else:
                 return await ctx.send(f"This message does not have a pin position set.")
         await message.unpin(reason="Unpinned via the PinOrder cog.")
-

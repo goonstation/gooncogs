@@ -15,6 +15,7 @@ from uvicorn import Server, Config
 from redbot.core.data_manager import cog_data_path, bundled_data_path
 from fastapi.staticfiles import StaticFiles
 
+
 class GeneralApi(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
@@ -22,9 +23,9 @@ class GeneralApi(commands.Cog):
 
         self.config = redbot.core.Config.get_conf(self, identifier=563126567942)
         self.config.register_global(
-                port = None,
-                host = "0.0.0.0",
-            )
+            port=None,
+            host="0.0.0.0",
+        )
 
         for cog in self.bot.cogs.values():
             if hasattr(cog, "register_to_general_api"):
@@ -61,7 +62,9 @@ class GeneralApi(commands.Cog):
         host = await self.config.host()
         port = await self.config.port()
         if not port:
-            await self.bot.send_to_owners("GeneralAPI host/port not set, use the set_general_api command and reload the cog.")
+            await self.bot.send_to_owners(
+                "GeneralAPI host/port not set, use the set_general_api command and reload the cog."
+            )
             return
         self.uvi_config = Config(app=self.app, host=host, port=port, log_level="debug")
         self.server = Server(self.uvi_config)

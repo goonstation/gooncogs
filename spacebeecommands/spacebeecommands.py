@@ -22,6 +22,7 @@ from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
 import youtube_dl
 
+
 class SpacebeeCommands(commands.Cog):
     FILE_SIZE_LIMIT = 15 * 1024 * 1024
 
@@ -37,14 +38,17 @@ class SpacebeeCommands(commands.Cog):
             if self.last_profiler_check_message is None:
                 return
             dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            prof_file = discord.File(io.BytesIO(await request.body()), filename=f"profiling_{self.last_profiler_id}_{dat_string}.json")
+            prof_file = discord.File(
+                io.BytesIO(await request.body()),
+                filename=f"profiling_{self.last_profiler_id}_{dat_string}.json",
+            )
             msg = "Consider using https://mini.xkeeper.net/ss13/profiler/ to view the results:"
             await self.last_profiler_check_message.reply(msg, file=prof_file)
             self.last_profiler_check_message = None
             return "ok"
 
     def format_whois(self, response):
-        count = int(response['count'])
+        count = int(response["count"])
         out = []
         for i in range(1, count + 1):
             rolestuff = response.get(f"role{i}", "jobless")
@@ -52,24 +56,32 @@ class SpacebeeCommands(commands.Cog):
                 rolestuff += " DEAD"
             if response.get(f"t{i}"):
                 rolestuff += " \N{REGIONAL INDICATOR SYMBOL LETTER T}"
-            line = response.get(f"name{i}", "-") + \
-                " (" + response.get(f"ckey{i}", "-") + ") " + rolestuff
+            line = (
+                response.get(f"name{i}", "-")
+                + " ("
+                + response.get(f"ckey{i}", "-")
+                + ") "
+                + rolestuff
+            )
             out.append(line)
         if out:
-            return '\n'.join(out)
+            return "\n".join(out)
         return "No one found."
 
     def ckeyify(self, text):
-        return ''.join(c.lower() for c in text if c.isalnum())
+        return "".join(c.lower() for c in text if c.isalnum())
 
     @commands.command()
     @checks.admin()
     async def locate(self, ctx: commands.Context, *, who: str):
         """Locates a ckey on all servers."""
         who = self.ckeyify(who)
-        goonservers = self.bot.get_cog('GoonServers')
-        servers = [s for s in goonservers.servers if s.type == 'goon']
-        futures = [asyncio.Task(goonservers.send_to_server(s, "status", to_dict=True)) for s in servers]
+        goonservers = self.bot.get_cog("GoonServers")
+        servers = [s for s in goonservers.servers if s.type == "goon"]
+        futures = [
+            asyncio.Task(goonservers.send_to_server(s, "status", to_dict=True))
+            for s in servers
+        ]
         message = None
         done, pending = [], futures
         old_text = None
@@ -84,7 +96,7 @@ class SpacebeeCommands(commands.Cog):
                     result = f.result()
                     server_found = []
                     for k, v in result.items():
-                        if k.startswith('player') and who in self.ckeyify(v):
+                        if k.startswith("player") and who in self.ckeyify(v):
                             server_found.append(v)
                     if not server_found:
                         continue
@@ -110,11 +122,16 @@ class SpacebeeCommands(commands.Cog):
     @checks.admin()
     async def whois(self, ctx: commands.Context, server_id: str, *, query: str):
         """Looks for a person on a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "whois",
-                'target': query,
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "whois",
+                "target": query,
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
         for page in pagify(self.format_whois(response)):
@@ -123,14 +140,16 @@ class SpacebeeCommands(commands.Cog):
     @commands.command()
     async def players(self, ctx: commands.Context, server_id: str):
         """Lists players on a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, "status", ctx.message, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id, "status", ctx.message, to_dict=True
+        )
         if response is None:
             return
         players = []
         try:
-            for i in range(int(response['players'])):
-                players.append(response[f'player{i}'])
+            for i in range(int(response["players"])):
+                players.append(response[f"player{i}"])
         except KeyError:
             await ctx.message.reply("That server is not responding correctly.")
             return
@@ -144,21 +163,31 @@ class SpacebeeCommands(commands.Cog):
     @checks.admin()
     async def ooc(self, ctx: commands.Context, server_id: str, *, message: str):
         """Sends an OOC message to a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        await goonservers.send_to_server_safe(server_id, {
-                'type': "ooc",
-                'msg': message,
-                'nick': f"(Discord) {ctx.author.name}",
-            }, ctx.message, react_success=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "ooc",
+                "msg": message,
+                "nick": f"(Discord) {ctx.author.name}",
+            },
+            ctx.message,
+            react_success=True,
+        )
 
     @commands.command()
     @checks.admin()
     async def antags(self, ctx: commands.Context, server_id: str):
         """Lists antagonists on a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "antags",
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "antags",
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
         for page in pagify(self.format_whois(response)):
@@ -168,10 +197,15 @@ class SpacebeeCommands(commands.Cog):
     @checks.admin()
     async def ailaws(self, ctx: commands.Context, server_id: str):
         """Lists current AI laws on a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "ailaws",
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "ailaws",
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
         if response == 0.0:
@@ -185,7 +219,7 @@ class SpacebeeCommands(commands.Cog):
                 continue
             out.append(f"{key}: {value}")
         if out:
-            await ctx.send('\n'.join(out))
+            await ctx.send("\n".join(out))
         else:
             await ctx.send("No AI laws.")
 
@@ -193,10 +227,15 @@ class SpacebeeCommands(commands.Cog):
     @checks.admin()
     async def scheck(self, ctx: commands.Context, server_id: str):
         """Checks server health of a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "health",
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "health",
+            },
+            ctx,
+            to_dict=True,
+        )
         start_time = time.time()
         await goonservers.send_to_server_safe(server_id, "status", ctx)
         elapsed = time.time() - start_time
@@ -207,7 +246,7 @@ time scaling: {response['time']}
 ticklag: {response.get('ticklag', 'N/A')}
 runtimes: {response.get('runtimes', 'N/A')}
 RTT: {elapsed * 1000:.2f}ms"""
-        if 'meminfo' in response:
+        if "meminfo" in response:
             out += f"\n```{response['meminfo']}```"
         await ctx.send(out)
 
@@ -215,62 +254,93 @@ RTT: {elapsed * 1000:.2f}ms"""
     @checks.admin()
     async def rev(self, ctx: commands.Context, server_id: str):
         """Checks code revision of a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "rev",
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "rev",
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
-        rev, author = response['msg'].split(" by ")
-        await ctx.send(response['msg'] + "\nhttps://github.com/goonstation/goonstation/commit/" + rev)
+        rev, author = response["msg"].split(" by ")
+        await ctx.send(
+            response["msg"]
+            + "\nhttps://github.com/goonstation/goonstation/commit/"
+            + rev
+        )
 
     @commands.command()
     @checks.admin()
     async def version(self, ctx: commands.Context, server_id: str):
         """Checks BYOND version of a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "version",
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "version",
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
-        await ctx.send(f"BYOND {response['major']}.{response['minor']}\nGoonhub: {response['goonhub_api']}")
+        await ctx.send(
+            f"BYOND {response['major']}.{response['minor']}\nGoonhub: {response['goonhub_api']}"
+        )
 
     @commands.command()
     @checks.admin()
     async def delay(self, ctx: commands.Context, server_id: str):
         """Delays a Goonstation round end."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "delay",
-                'nick': ctx.message.author.name,
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "delay",
+                "nick": ctx.message.author.name,
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
-        await ctx.send(response['msg'])
+        await ctx.send(response["msg"])
 
     @commands.command()
     @checks.admin()
     async def undelay(self, ctx: commands.Context, server_id: str):
         """Undelays a Goonstation round end."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "undelay",
-                'nick': ctx.message.author.name,
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "undelay",
+                "nick": ctx.message.author.name,
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
-        await ctx.send(response['msg'])
+        await ctx.send(response["msg"])
 
     @commands.command()
     @checks.is_owner()
     async def rickroll(self, ctx: commands.Context, server_id: str):
         """Test command to check if playing music works."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "youtube",
-                'data': '{"key":"Pali6","title":"test","duration":4,"file":"https://qoret.com/dl/uploads/2019/07/Rick_Astley_-_Never_Gonna_Give_You_Up_Qoret.com.mp3"}',
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "youtube",
+                "data": '{"key":"Pali6","title":"test","duration":4,"file":"https://qoret.com/dl/uploads/2019/07/Rick_Astley_-_Never_Gonna_Give_You_Up_Qoret.com.mp3"}',
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
         await ctx.message.add_reaction("\N{FROG FACE}")
@@ -290,47 +360,66 @@ RTT: {elapsed * 1000:.2f}ms"""
         play_file_path = file_folder / play_file_name
         info = None
         if not play_file_path.is_file():
-            postprocessors = [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '8',
-                'nopostoverwrites': False,
-            }]
+            postprocessors = [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "8",
+                    "nopostoverwrites": False,
+                }
+            ]
             ydl_opts = {
-                'format': 'worstaudio/worst',
-                'geo_bypass': True,
-                'outtmpl': str(tmp_file_path),
-                'postprocessors': postprocessors,
-                'max_filesize': self.FILE_SIZE_LIMIT,
+                "format": "worstaudio/worst",
+                "geo_bypass": True,
+                "outtmpl": str(tmp_file_path),
+                "postprocessors": postprocessors,
+                "max_filesize": self.FILE_SIZE_LIMIT,
             }
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                filesize = min(fmt["filesize"] for fmt in info["formats"] if isinstance(fmt["filesize"], int))
+                filesize = min(
+                    fmt["filesize"]
+                    for fmt in info["formats"]
+                    if isinstance(fmt["filesize"], int)
+                )
                 if filesize > self.FILE_SIZE_LIMIT:
                     return None
-                await asyncio.get_running_loop().run_in_executor(self.executor, ydl.download, [url])
+                await asyncio.get_running_loop().run_in_executor(
+                    self.executor, ydl.download, [url]
+                )
         if not play_file_path.is_file():
             return None
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "youtube",
-                'data': json.dumps({
-                        'key': ctx.message.author.name + " (Discord)",
-                        'file': f"https://medass.pali.link/static/youtube/{play_file_name}",
-                        'duration': "?",
-                        'title': info['title'] if info else file_name,
-                    }),
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "youtube",
+                "data": json.dumps(
+                    {
+                        "key": ctx.message.author.name + " (Discord)",
+                        "file": f"https://medass.pali.link/static/youtube/{play_file_name}",
+                        "duration": "?",
+                        "title": info["title"] if info else file_name,
+                    }
+                ),
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return None
         return True
 
     @commands.command()
     @checks.admin()
-    async def remotemusic(self, ctx: commands.Context, server_id: str, link: Optional[str]):
+    async def remotemusic(
+        self, ctx: commands.Context, server_id: str, link: Optional[str]
+    ):
         """Attach a file to the command message and it plays on a given Goonstation server."""
         if len(ctx.message.attachments) == 0 and link is None:
-            await ctx.send("You need to attach a sound file to your message or provide a link.")
+            await ctx.send(
+                "You need to attach a sound file to your message or provide a link."
+            )
             return
         if link is not None and "youtube.com" in link:
             response = None
@@ -350,18 +439,27 @@ RTT: {elapsed * 1000:.2f}ms"""
         if len(ctx.message.attachments) > 0:
             url = ctx.message.attachments[0].url
             filename = ctx.message.attachments[0].filename
-        if not filename.endswith('mp3') and not filename.endswith('m4a'):
-            await ctx.send("That's not an mp3 nor an m4a file so it'll likely not work. But gonna try anyway.")
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "youtube",
-                'data': json.dumps({
-                        'key': ctx.message.author.name + " (Discord)",
-                        'file': url,
-                        'duration': "?",
-                        'title': filename, 
-                    }),
-            }, ctx, to_dict=True)
+        if not filename.endswith("mp3") and not filename.endswith("m4a"):
+            await ctx.send(
+                "That's not an mp3 nor an m4a file so it'll likely not work. But gonna try anyway."
+            )
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "youtube",
+                "data": json.dumps(
+                    {
+                        "key": ctx.message.author.name + " (Discord)",
+                        "file": url,
+                        "duration": "?",
+                        "title": filename,
+                    }
+                ),
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
@@ -377,22 +475,31 @@ RTT: {elapsed * 1000:.2f}ms"""
         file_path = speech_folder / file_name
         if not file_path.is_file():
             p = await asyncio.create_subprocess_shell(
-                    "text2wave -scale 3 | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 64k " + str(file_path),
-                    stdin=asyncio.subprocess.PIPE)
-            await p.communicate(text.encode('utf8'))
+                "text2wave -scale 3 | ffmpeg -i - -vn -ar 44100 -ac 2 -b:a 64k "
+                + str(file_path),
+                stdin=asyncio.subprocess.PIPE,
+            )
+            await p.communicate(text.encode("utf8"))
         if not file_path.is_file():
             await ctx.send("Could not generate sound.")
             return
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "youtube",
-                'data': json.dumps({
-                        'key': ctx.message.author.name + " (Discord)",
-                        'file': f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/speech/{file_name}",
-                        'duration': "?",
-                        'title': text,
-                    }),
-            }, ctx, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "youtube",
+                "data": json.dumps(
+                    {
+                        "key": ctx.message.author.name + " (Discord)",
+                        "file": f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/speech/{file_name}",
+                        "duration": "?",
+                        "title": text,
+                    }
+                ),
+            },
+            ctx,
+            to_dict=True,
+        )
         if response is None:
             return
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
@@ -401,15 +508,17 @@ RTT: {elapsed * 1000:.2f}ms"""
     @checks.admin()
     async def admins(self, ctx: commands.Context, server_id: str):
         """Lists admins in a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, "admins", ctx.message, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id, "admins", ctx.message, to_dict=True
+        )
         if response is None:
             return
         admins = []
         try:
-            for i in range(int(response['admins'])):
-                admin = response[f'admin{i}']
-                if admin.startswith('~'):
+            for i in range(int(response["admins"])):
+                admin = response[f"admin{i}"]
+                if admin.startswith("~"):
                     continue
                 admins.append(admin)
         except KeyError:
@@ -425,14 +534,16 @@ RTT: {elapsed * 1000:.2f}ms"""
     @checks.admin()
     async def mentors(self, ctx: commands.Context, server_id: str):
         """Lists mentors in a given Goonstation server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, "mentors", ctx.message, to_dict=True)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id, "mentors", ctx.message, to_dict=True
+        )
         if response is None:
             return
         mentors = []
         try:
-            for i in range(int(response['mentors'])):
-                mentor = response[f'mentor{i}']
+            for i in range(int(response["mentors"])):
+                mentor = response[f"mentor{i}"]
                 mentors.append(mentor)
         except KeyError:
             await ctx.message.reply("That server is not responding correctly.")
@@ -446,9 +557,11 @@ RTT: {elapsed * 1000:.2f}ms"""
     @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(1, wait=True)
-    async def stats(self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]):
+    async def stats(
+        self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]
+    ):
         """Shows playtime stats of a given ckey."""
-        goonservers = self.bot.get_cog('GoonServers')
+        goonservers = self.bot.get_cog("GoonServers")
         if ckey is None:
             ckey = ctx.author
         if isinstance(ckey, str):
@@ -457,38 +570,40 @@ RTT: {elapsed * 1000:.2f}ms"""
             spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
             ckey = await spacebeecentcom.user_to_ckey(ckey)
             if not ckey:
-                message_parts = ctx.message.content.split(' ', 1)
+                message_parts = ctx.message.content.split(" ", 1)
                 maybe_ckey = message_parts[1] if len(message_parts) >= 2 else None
-                if maybe_ckey and maybe_ckey[0] != '<':
+                if maybe_ckey and maybe_ckey[0] != "<":
                     ckey = maybe_ckey
                 else:
                     await ctx.message.reply("That user has no BYOND account linked")
                     return
-        response = await goonservers.send_to_server_safe('2', {'type': 'getPlayerStats', 'ckey': ckey}, ctx.message)
+        response = await goonservers.send_to_server_safe(
+            "2", {"type": "getPlayerStats", "ckey": ckey}, ctx.message
+        )
         if response is None:
             return
         if response == 0:
             await ctx.message.reply("Could not load stats.")
             return
         data = json.loads(response)
-        if isinstance(data, dict) and data.get('error'):
-            await ctx.message.reply("Error: " + data['error'])
+        if isinstance(data, dict) and data.get("error"):
+            await ctx.message.reply("Error: " + data["error"])
             return
         embed_colour = await ctx.embed_colour()
         embed = discord.Embed(
-                title=f"Stats of `{ckey}`",
-                timestamp=ctx.message.created_at,
-                color=embed_colour)
-        embed.add_field(name="rounds (total)", value=data['seen'])
-        embed.add_field(name="rounds (rp)", value=data['seen_rp'])
-        embed.add_field(name="rounds joined (total)", value=data['participated'])
-        embed.add_field(name="rounds joined (rp)", value=data['participated_rp'])
-        if 'playtime' in data:
-            playtime_seconds = int(json.loads(data['playtime'])[0]['time_played'])
+            title=f"Stats of `{ckey}`",
+            timestamp=ctx.message.created_at,
+            color=embed_colour,
+        )
+        embed.add_field(name="rounds (total)", value=data["seen"])
+        embed.add_field(name="rounds (rp)", value=data["seen_rp"])
+        embed.add_field(name="rounds joined (total)", value=data["participated"])
+        embed.add_field(name="rounds joined (rp)", value=data["participated_rp"])
+        if "playtime" in data:
+            playtime_seconds = int(json.loads(data["playtime"])[0]["time_played"])
             time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
             embed.add_field(name="time played", value=time_played)
         await ctx.send(embed=embed)
-
 
     @commands.group(name="profiler")
     @checks.admin()
@@ -497,16 +612,22 @@ RTT: {elapsed * 1000:.2f}ms"""
         pass
 
     @profiler.command(name="start")
-    async def profiler_start(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+    async def profiler_start(
+        self, ctx: commands.Context, server_id: str, type: Optional[str]
+    ):
         """Starts the profiler on a given server.
 
         type argument can be `sendmaps` per byond reference."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "profile",
-                'action': "start",
-                'profiler_type': type,
-            }, ctx)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "profile",
+                "action": "start",
+                "profiler_type": type,
+            },
+            ctx,
+        )
         if response is None:
             return
         if response == 1:
@@ -515,16 +636,22 @@ RTT: {elapsed * 1000:.2f}ms"""
             await ctx.send("Unknown error.")
 
     @profiler.command(name="stop")
-    async def profiler_stop(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+    async def profiler_stop(
+        self, ctx: commands.Context, server_id: str, type: Optional[str]
+    ):
         """Stops the profiler on a given server, returns output."""
-        goonservers = self.bot.get_cog('GoonServers')
+        goonservers = self.bot.get_cog("GoonServers")
         self.last_profiler_check_message = ctx.message
         self.last_profiler_id = server_id
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "profile",
-                'action': "stop",
-                'profiler_type': type,
-            }, ctx)
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "profile",
+                "action": "stop",
+                "profiler_type": type,
+            },
+            ctx,
+        )
         if response is None:
             return
         if response == 1:
@@ -536,14 +663,20 @@ RTT: {elapsed * 1000:.2f}ms"""
         # await ctx.send(file=prof_file)
 
     @profiler.command(name="clear")
-    async def profiler_clear(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+    async def profiler_clear(
+        self, ctx: commands.Context, server_id: str, type: Optional[str]
+    ):
         """Clears the profiler stats on a given server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "profile",
-                'action': "clear",
-                'profiler_type': type,
-            }, ctx)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "profile",
+                "action": "clear",
+                "profiler_type": type,
+            },
+            ctx,
+        )
         if response is None:
             return
         if response == 1:
@@ -552,14 +685,20 @@ RTT: {elapsed * 1000:.2f}ms"""
             await ctx.send("Unknown error.")
 
     @profiler.command(name="restart")
-    async def profiler_restart(self, ctx: commands.Context, server_id: str, type: Optional[str]):
+    async def profiler_restart(
+        self, ctx: commands.Context, server_id: str, type: Optional[str]
+    ):
         """Restarts the profiler on a given server."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "profile",
-                'action': "restart",
-                'profiler_type': type,
-            }, ctx)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "profile",
+                "action": "restart",
+                "profiler_type": type,
+            },
+            ctx,
+        )
         if response is None:
             return
         if response == 1:
@@ -568,30 +707,52 @@ RTT: {elapsed * 1000:.2f}ms"""
             await ctx.send("Unknown error.")
 
     @profiler.command(name="save")
-    async def profiler_save(self, ctx: commands.Context, server_id: str, type: Optional[str], average: Optional[int]):
+    async def profiler_save(
+        self,
+        ctx: commands.Context,
+        server_id: str,
+        type: Optional[str],
+        average: Optional[int],
+    ):
         """Saves current profiling data to the server's logs folder."""
-        goonservers = self.bot.get_cog('GoonServers')
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "profile",
-                'action': "save",
-                'profiler_type': type,
-            }, ctx)
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "profile",
+                "action": "save",
+                "profiler_type": type,
+            },
+            ctx,
+        )
         if response is None:
             return
-        await ctx.send(f"Profiling result saved in `{response}`. Consider using https://mini.xkeeper.net/ss13/profiler/ to view the results.")
+        await ctx.send(
+            f"Profiling result saved in `{response}`. Consider using https://mini.xkeeper.net/ss13/profiler/ to view the results."
+        )
 
     @profiler.command(name="get", aliases=["check"])
-    async def profiler_get(self, ctx: commands.Context, server_id: str, type: Optional[str], average: Optional[int]):
+    async def profiler_get(
+        self,
+        ctx: commands.Context,
+        server_id: str,
+        type: Optional[str],
+        average: Optional[int],
+    ):
         """Fetches and returns current profiling data of a server."""
-        goonservers = self.bot.get_cog('GoonServers')
+        goonservers = self.bot.get_cog("GoonServers")
         self.last_profiler_check_message = ctx.message
         self.last_profiler_id = server_id
-        response = await goonservers.send_to_server_safe(server_id, {
-                'type': "profile",
-                'action': "refresh",
-                'profiler_type': type,
-                'average': average,
-            }, ctx)
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "profile",
+                "action": "refresh",
+                "profiler_type": type,
+                "average": average,
+            },
+            ctx,
+        )
         if response is None:
             return
         if response == 1:
@@ -601,4 +762,3 @@ RTT: {elapsed * 1000:.2f}ms"""
         # dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         # prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
         # await ctx.send(file=prof_file)
-

@@ -10,12 +10,15 @@ import datetime
 
 log = logging.getLogger("red.goon.mybbnotif")
 
+
 class MybbNotif(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 856623215587)
         self.config.init_custom("subforums", 1)
-        self.config.register_custom("subforums", channel_ids={}, prefix=None, last_timestamp=None)
+        self.config.register_custom(
+            "subforums", channel_ids={}, prefix=None, last_timestamp=None
+        )
         self.config.register_global(forum_url=None, period=180)
         self.session = aiohttp.ClientSession()
         self.main_loop_task = None
@@ -43,30 +46,45 @@ class MybbNotif(commands.Cog):
             except asyncio.CancelledError:
                 break
 
-    async def check_subforum(self, url: str, prefix: str, channels: List[discord.TextChannel], last_timestamp: Optional[float]):
+    async def check_subforum(
+        self,
+        url: str,
+        prefix: str,
+        channels: List[discord.TextChannel],
+        last_timestamp: Optional[float],
+    ):
         async with self.session.get(url) as res:
             data = await res.json(content_type=None)
             if last_timestamp is not None:
-                for item in data.get('items', []):
-                    timestamp = datetime.datetime.fromisoformat(item['date_published']).timestamp()
+                for item in data.get("items", []):
+                    timestamp = datetime.datetime.fromisoformat(
+                        item["date_published"]
+                    ).timestamp()
                     if timestamp <= last_timestamp:
                         break
                     message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n{item['url']}"
                     for channel in channels:
                         await channel.send(message)
-            if not data.get('items'):
+            if not data.get("items"):
                 return None
-            isotime = data['items'][0]['date_published']
+            isotime = data["items"][0]["date_published"]
             return datetime.datetime.fromisoformat(isotime).timestamp()
 
     async def check_subforum_raw(self, base_url: str, forum_id: int, data: Dict):
-        prefix = data.get('prefix') or str(forum_id)
-        channels = [self.bot.get_channel(int(chid)) for chid in data.get('channel_ids', {}).keys()]
+        prefix = data.get("prefix") or str(forum_id)
+        channels = [
+            self.bot.get_channel(int(chid))
+            for chid in data.get("channel_ids", {}).keys()
+        ]
         url = f"{base_url}?fid={forum_id}&type=json&limit=30"
-        last_timestamp = data.get('last_timestamp')
-        new_last_timestamp = await self.check_subforum(url, prefix, channels, last_timestamp)
+        last_timestamp = data.get("last_timestamp")
+        new_last_timestamp = await self.check_subforum(
+            url, prefix, channels, last_timestamp
+        )
         if new_last_timestamp is not None:
-            await self.config.custom("subforums", forum_id).last_timestamp.set(new_last_timestamp)
+            await self.config.custom("subforums", forum_id).last_timestamp.set(
+                new_last_timestamp
+            )
 
     async def check_forum(self):
         tasks = []
@@ -96,7 +114,9 @@ class MybbNotif(commands.Cog):
         old = await self.config.period()
         if seconds is not None and seconds > 0:
             await self.config.period.set(seconds)
-            await ctx.send(f"Previously checking the forum every {old} seconds, now changed to {seconds}.")
+            await ctx.send(
+                f"Previously checking the forum every {old} seconds, now changed to {seconds}."
+            )
         else:
             await ctx.send(f"Currently checking the forum every {old} seconds.")
 
@@ -117,20 +137,38 @@ class MybbNotif(commands.Cog):
         await ctx.send(f"Subforum {forum_id} will now be denoted by prefix `{prefix}`.")
 
     @mybbnotif.command()
-    async def addchannel(self, ctx: commands.Context, forum_id: int, channel: Optional[discord.TextChannel]):
+    async def addchannel(
+        self,
+        ctx: commands.Context,
+        forum_id: int,
+        channel: Optional[discord.TextChannel],
+    ):
         if channel is None:
             channel = ctx.channel
-        async with self.config.custom("subforums", forum_id).channel_ids() as channel_ids:
+        async with self.config.custom(
+            "subforums", forum_id
+        ).channel_ids() as channel_ids:
             channel_ids[str(channel.id)] = None
-        await ctx.send(f"Channel {channel.mention} will now receive notifications from subforum number {forum_id}.")
+        await ctx.send(
+            f"Channel {channel.mention} will now receive notifications from subforum number {forum_id}."
+        )
 
     @mybbnotif.command()
-    async def removechannel(self, ctx: commands.Context, forum_id: int, channel: Optional[discord.TextChannel]):
+    async def removechannel(
+        self,
+        ctx: commands.Context,
+        forum_id: int,
+        channel: Optional[discord.TextChannel],
+    ):
         if channel is None:
             channel = ctx.channel
-        async with self.config.custom("subforums", forum_id).channel_ids() as channel_ids:
+        async with self.config.custom(
+            "subforums", forum_id
+        ).channel_ids() as channel_ids:
             del channel_ids[str(channel.id)]
-        await ctx.send(f"Channel {channel.mention} will no longer receive notifications from subforum number {forum_id}.")
+        await ctx.send(
+            f"Channel {channel.mention} will no longer receive notifications from subforum number {forum_id}."
+        )
 
     @mybbnotif.command()
     async def checkchannels(self, ctx: commands.Context, forum_id: int):
@@ -138,5 +176,8 @@ class MybbNotif(commands.Cog):
         if not channel_ids:
             await ctx.send("No channels.")
         else:
-            await ctx.send("\n".join(ch.mention for ch in await self.channels_of_subforum(forum_id)))
-
+            await ctx.send(
+                "\n".join(
+                    ch.mention for ch in await self.channels_of_subforum(forum_id)
+                )
+            )
