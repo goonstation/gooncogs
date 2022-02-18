@@ -20,7 +20,7 @@ class GoonHub(commands.Cog):
         asyncio.create_task(self.session.cancel())
 
     def country_to_emoji(self, country):
-        if len(country) == 2:
+        if country and len(country) == 2:
             try:
                 return ''.join(unicodedata.lookup("regional indicator symbol letter " + c) for c in country)
             except KeyError:
