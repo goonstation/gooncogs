@@ -444,97 +444,6 @@ RTT: {elapsed * 1000:.2f}ms"""
             await ctx.message.reply("No mentors.")
 
     @commands.command()
-    @checks.admin()
-    async def notes(self, ctx: commands.Context, *, ckey: str):
-        """Lists admin notes of a given ckey."""
-        await self._notes(ctx, ckey=ckey, clean=False)
-
-    @commands.command()
-    @checks.admin()
-    async def cleannotes(self, ctx: commands.Context, *, ckey: str):
-        """Lists admin notes of a given ckey but stripped of admin names."""
-        await self._notes(ctx, ckey=ckey, clean=True)
-
-    @commands.command()
-    @checks.admin()
-    async def singlenotes(self, ctx: commands.Context, *, ckey: str):
-        """Lists admin notes of a given ckey, now one per page."""
-        await self._notes(ctx, ckey=ckey, clean=False, one_per_page=True)
-
-    async def _notes(self, ctx: commands.Context, ckey: str, clean=False, one_per_page=False):
-        goonservers = self.bot.get_cog('GoonServers')
-        ckey = self.ckeyify(ckey)
-        response = await goonservers.send_to_server_safe('2', {'type': 'getNotes', 'ckey': ckey}, ctx.message)
-        if response is None:
-            return
-        if response == 0:
-            await ctx.message.reply("Could not load notes.")
-            return
-        data = json.loads(response)
-        if isinstance(data, dict) and data['error']:
-            await ctx.message.reply("Error: " + data['error'])
-            return
-        pages = []
-        embed_colour = await ctx.embed_colour()
-        current_embed = None
-        current_embed_size = 0
-        def add_field(name, value):
-            nonlocal current_embed, current_embed_size
-            for i, value_part in enumerate(pagify(value, delims=('\n', ' '), priority=True, page_length=1024)):
-                field_name = name
-                if i == 1:
-                    field_name = "..."
-                elif i > 1:
-                    field_name = f"... ({i})"
-                field_size = len(field_name) + len(value_part)
-                if current_embed and len(current_embed.fields) >= 25 or field_size + current_embed_size >= 5950:
-                    pages.append(current_embed)
-                    current_embed = None
-                    current_embed_size = 0
-                if current_embed is None:
-                    current_embed = discord.Embed(
-                            title = f"Clean notes of {ckey}" if clean else f"Notes of {ckey}",
-                            color = embed_colour,
-                        )
-                    current_embed_size += len(current_embed.title)
-                current_embed_size += field_size
-                current_embed.add_field(
-                        name = field_name,
-                        value = value_part,
-                        inline = False,
-                        )
-            if one_per_page:
-                pages.append(current_embed)
-                current_embed = None
-                current_embed_size = 0
-        for note in data:
-            timestamp = note['created']
-            try:
-                date = datetime.datetime.strptime(timestamp, '%b %d %Y %H:%M%p')
-                date = date.replace(tzinfo=datetime.timezone.utc)
-                timestamp = int(date.timestamp())
-                timestamp = f"<t:{timestamp}:F>"
-            except ValueError:
-                pass
-            if clean:
-                field_name = f"[{note['server']}] on {timestamp}"
-            else:
-                field_name = f"[{note['server']}] {note['akey']} on {timestamp}"
-            field_value = note['note']
-            add_field(field_name, field_value)
-        if current_embed:
-            pages.append(current_embed)
-        for i, page in enumerate(pages):
-            page.set_footer(text=f"{i+1}/{len(pages)}")
-        if not pages:
-            await ctx.send("Something went wrong")
-            return
-        if len(pages) > 1:
-            await menu(ctx, pages, DEFAULT_CONTROLS, timeout=60.0)
-        else:
-            await ctx.send(embed=pages[0])
-
-    @commands.command()
     @commands.cooldown(1, 1)
     @commands.max_concurrency(1, wait=True)
     async def stats(self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]):
@@ -559,7 +468,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if response is None:
             return
         if response == 0:
-            await ctx.message.reply("Could not load notes.")
+            await ctx.message.reply("Could not load stats.")
             return
         data = json.loads(response)
         if isinstance(data, dict) and data.get('error'):

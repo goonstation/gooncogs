@@ -1,0 +1,15 @@
+{
+    "name": "GoonHub",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "TODO",
+    "description": "TODO",
+    "requirements": [
+			"aiohttp",
+			"python-geoip-python3",
+			"python-geoip-geolite2"
+    ],
+    "tags": [
+    ]
+}
