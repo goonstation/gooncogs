@@ -67,7 +67,6 @@ class GoonHub(commands.Cog):
                         message += f"\nCountry: {ip_info.country}"
                         emoji = self.country_to_emoji(ip_info.country)
                         if emoji:
-                            A
                             message += " " + emoji
                     current_embed.add_field(
                             name = f"{info['ckey']} @ {info['ip']}",
