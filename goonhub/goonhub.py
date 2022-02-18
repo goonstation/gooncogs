@@ -65,7 +65,6 @@ class GoonHub(commands.Cog):
                     message = f"CID: {info['compid']}\nDate: <t:{int(recorded_date.timestamp())}:F>"
                     if ip_info:
                         message += f"\nCountry: {ip_info.country}"
-                        A
                         emoji = self.country_to_emoji(ip_info.country)
                         if emoji:
                             A
