@@ -40,7 +40,6 @@ class MessageCounter(commands.Cog):
             words[word] = self.init_word()
         await ctx.message.add_reaction("\N{White Heavy Check Mark}")
 
-    @commands.is_owner()
     @messagestats.command()
     async def delcounter(self, ctx: commands.Context, *, word: str):
         """Deletes the counter for this word."""
