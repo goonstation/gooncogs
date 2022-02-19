@@ -169,7 +169,7 @@ class MessageCounter(commands.Cog):
             return
 
         msg = message.clean_content
-        notify_message = f"{quote(msg)}\n{message.jump_url}\nin {message.channel.mention}\ntriggered words: "
+        notify_message = f"{quote(msg)}\n{message.jump_url}\nby {message.author.mention} in {message.channel.mention}\ntriggered words: "
         messages_to_send = {}
         async with self.config.guild(message.guild).words() as words:
             for word, data in words.items():
