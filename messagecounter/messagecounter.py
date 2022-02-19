@@ -47,6 +47,9 @@ class MessageCounter(commands.Cog):
             if word not in words:
                 await ctx.send("That word is not tracked")
                 return
+            if len(words[word]['notify_targets']):
+                await ctx.send("You can't delete a word which has people or channels listening to it")
+                return
             del words[word]
         await ctx.message.add_reaction("\N{White Heavy Check Mark}")
 
