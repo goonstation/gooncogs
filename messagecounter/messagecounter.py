@@ -166,12 +166,12 @@ class MessageCounter(commands.Cog):
         ):
             return
 
-        notify_message = f"{quote(message.clean_content)}\n{message.jump_url}\nin {message.channel.mention}\ntriggered words: "
-        msg = message.clean_content.lower()
+        msg = message.clean_content
+        notify_message = f"{quote(msg)}\n{message.jump_url}\nin {message.channel.mention}\ntriggered words: "
         messages_to_send = {}
         async with self.config.guild(message.guild).words() as words:
             for word, data in words.items():
-                if word.lower() in msg:
+                if re.search(word, msg, re.IGNORECASE | re.MULTILINE | re.DOTALL):
                     data['counter'] += 1
                     for target_id in data['notify_targets']:
                         target = self.resolve_target(target_id)
