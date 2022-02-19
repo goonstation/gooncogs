@@ -10,6 +10,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, box, quote
 import datetime
 import unicodedata
+import inspect
 
 class GoonHub(commands.Cog):
     def __init__(self, bot: Red):
@@ -52,7 +53,7 @@ class GoonHub(commands.Cog):
                         current_embed = None
                     if current_embed is None:
                         current_embed = discord.Embed(
-                                title = f"Investigating `{target_ckey}`",
+                                title = f"Investigating `{target_ckey or ' '}`",
                                 color = embed_colour,
                             )
                     ip_info = None
@@ -62,14 +63,23 @@ class GoonHub(commands.Cog):
                         pass
                     recorded_date = datetime.datetime.fromisoformat(info['recorded'])
                     recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
-                    message = f"CID: {info['compid']}\nDate: <t:{int(recorded_date.timestamp())}:F>"
+                    message = inspect.cleandoc(f"""
+                        IP: {info['ip']}
+                        CID: {info['compid']}
+                        Date: <t:{int(recorded_date.timestamp())}:F>
+                        """).strip()
                     if ip_info:
                         message += f"\nCountry: {ip_info.country}"
                         emoji = self.country_to_emoji(ip_info.country)
                         if emoji:
                             message += " " + emoji
+                    ckey_title = info['ckey']
+                    if self.ckeyify(ckey_title) == self.ckeyify(target_ckey):
+                        ckey_title = "\N{Large Green Circle} " + ckey_title
+                    else:
+                        ckey_title = "\N{Large Yellow Circle} " + ckey_title
                     current_embed.add_field(
-                            name = f"{info['ckey']} @ {info['ip']}",
+                            name = f"{ckey_title}",
                             value = message,
                             inline = True
                             )
