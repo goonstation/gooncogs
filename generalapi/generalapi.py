@@ -14,12 +14,21 @@ from fastapi import FastAPI, Request
 from uvicorn import Server, Config
 from redbot.core.data_manager import cog_data_path, bundled_data_path
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 
 class GeneralApi(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.app = FastAPI()
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
         self.config = redbot.core.Config.get_conf(self, identifier=563126567942)
         self.config.register_global(
