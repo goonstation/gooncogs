@@ -15,6 +15,7 @@ import inspect
 class GoonHub(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
+        self.cancelled_findalts = False
         self.session = aiohttp.ClientSession()
 
     def cog_unload(self):
@@ -31,58 +32,108 @@ class GoonHub(commands.Cog):
     def ckeyify(self, text):
         return ''.join(c.lower() for c in text if c.isalnum())
 
+    async def query_user_search(self, q):
+        tokens = await self.bot.get_shared_api_tokens('goonhub')
+        api_key = tokens['playernotes_api_key']
+        mod_q = q.replace('%%', '%%%').replace('\\', '')
+        url = f"{tokens['playernotes_url']}/?auth={api_key}&action=search_users&format=json&victim={mod_q}"
+        async with self.session.get(url) as res:
+            if res.status != 200:
+                return res
+            return await res.json(content_type='text/html')
+
+    @checks.admin()
+    @commands.command()
+    async def cancelfindalts(self, ctx: commands.Context):
+        self.cancelled_findalts = True
+
+    @checks.admin()
+    @commands.command()
+    @commands.cooldown(3, 3)
+    @commands.max_concurrency(1, wait=False)
+    async def findalts(self, ctx: commands.Context, *, target_ckey: str):
+        self.cancelled_findalts = False
+        queue = [self.ckeyify(target_ckey)]
+        output_msg = await ctx.send("[Initializing]")
+        ckeys = []
+        async def update_msg(position, finished=False):
+            nonlocal output_msg, ckeys
+            text = f"Alts of {target_ckey}:\n" + "\n".join(ckeys) + "\n"
+            if finished:
+                text += f"[Finished {position}]"
+                await ctx.reply(f"Search for {target_ckey}'s alts finished: {output_msg.jump_url}")
+            else:
+                text += f"[Working... {position}/{len(queue)}?]"
+            await output_msg.edit(content=text)
+        for i, query in enumerate(queue):
+            await update_msg(i + 1, False)
+            data = await self.query_user_search(query)
+            for info in data:
+                if query in info['ckey'] and query != info['ckey']: # inexact match, ew
+                    continue
+                for k in ["ckey", "ip", "compid"]:
+                    if info[k] not in queue:
+                        queue.append(info[k])
+                if info['ckey'] not in ckeys:
+                    ckeys.append(info['ckey'])
+            if not isinstance(data, list):
+                await update_msg("- Error", True)
+                return
+            if len(ckeys) > 100:
+                await update_msg("- Too Many Ckeys", True)
+                return
+            if self.cancelled_findalts:
+                await update_msg("- Cancelled", True)
+                return
+        await update_msg(len(queue), True)
+
     @checks.admin()
     @commands.command()
     async def investigate(self, ctx: commands.Context, target_ckey: str):
-        tokens = await self.bot.get_shared_api_tokens('goonhub')
-        api_key = tokens['playernotes_api_key']
-        mod_target_ckey = target_ckey.replace('%%', '%%%').replace('\\', '')
-        url = f"{tokens['playernotes_url']}/?auth={api_key}&action=search_users&format=json&victim={mod_target_ckey}"
         embed_colour = await ctx.embed_colour()
         current_embed = None
         pages = []
         with ctx.typing():
-            async with self.session.get(url) as res:
-                if res.status != 200:
-                    await ctx.send(f"Error code {res.status} occured when querying the API")
-                    return
-                data = await res.json(content_type='text/html')
-                for info in data:
-                    if current_embed and len(current_embed.fields) >= 12:
-                        pages.append(current_embed)
-                        current_embed = None
-                    if current_embed is None:
-                        current_embed = discord.Embed(
-                                title = f"Investigating `{target_ckey or ' '}`",
-                                color = embed_colour,
-                            )
-                    ip_info = None
-                    try:
-                        ip_info = geolite2.lookup(info['ip'])
-                    except ValueError:
-                        pass
-                    recorded_date = datetime.datetime.fromisoformat(info['recorded'])
-                    recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
-                    message = inspect.cleandoc(f"""
-                        IP: {info['ip']}
-                        CID: {info['compid']}
-                        Date: <t:{int(recorded_date.timestamp())}:F>
-                        """).strip()
-                    if ip_info:
-                        message += f"\nCountry: {ip_info.country}"
-                        emoji = self.country_to_emoji(ip_info.country)
-                        if emoji:
-                            message += " " + emoji
-                    ckey_title = info['ckey']
-                    if self.ckeyify(ckey_title) == self.ckeyify(target_ckey):
-                        ckey_title = "\N{Large Green Circle} " + ckey_title
-                    else:
-                        ckey_title = "\N{Large Yellow Circle} " + ckey_title
-                    current_embed.add_field(
-                            name = f"{ckey_title}",
-                            value = message,
-                            inline = True
-                            )
+            data = await self.query_user_search(target_ckey)
+            if not isinstance(data, list):
+                await ctx.send(f"Error code {data.status} occured when querying the API")
+                return
+            for info in data:
+                if current_embed and len(current_embed.fields) >= 12:
+                    pages.append(current_embed)
+                    current_embed = None
+                if current_embed is None:
+                    current_embed = discord.Embed(
+                            title = f"Investigating `{target_ckey or ' '}`",
+                            color = embed_colour,
+                        )
+                ip_info = None
+                try:
+                    ip_info = geolite2.lookup(info['ip'])
+                except ValueError:
+                    pass
+                recorded_date = datetime.datetime.fromisoformat(info['recorded'])
+                recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
+                message = inspect.cleandoc(f"""
+                    IP: {info['ip']}
+                    CID: {info['compid']}
+                    Date: <t:{int(recorded_date.timestamp())}:F>
+                    """).strip()
+                if ip_info:
+                    message += f"\nCountry: {ip_info.country}"
+                    emoji = self.country_to_emoji(ip_info.country)
+                    if emoji:
+                        message += " " + emoji
+                ckey_title = info['ckey']
+                if self.ckeyify(ckey_title) == self.ckeyify(target_ckey):
+                    ckey_title = "\N{Large Green Circle} " + ckey_title
+                else:
+                    ckey_title = "\N{Large Yellow Circle} " + ckey_title
+                current_embed.add_field(
+                        name = f"{ckey_title}",
+                        value = message,
+                        inline = True
+                        )
         if current_embed:
             pages.append(current_embed)
         n_matches = 0
