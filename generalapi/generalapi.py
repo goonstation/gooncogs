@@ -22,7 +22,7 @@ class GeneralApi(commands.Cog):
         self.bot = bot
         self.app = FastAPI()
 
-        app.add_middleware(
+        self.app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
             allow_credentials=True,
