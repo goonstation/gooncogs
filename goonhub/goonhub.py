@@ -11,6 +11,8 @@ from redbot.core.utils.chat_formatting import pagify, box, quote
 import datetime
 import unicodedata
 import inspect
+import urllib.parse
+import uuid
 
 class GoonHub(commands.Cog):
     def __init__(self, bot: Red):
@@ -32,11 +34,13 @@ class GoonHub(commands.Cog):
     def ckeyify(self, text):
         return ''.join(c.lower() for c in text if c.isalnum())
 
-    async def query_user_search(self, q):
+    async def query_user_search(self, q, exact=False):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['playernotes_api_key']
         mod_q = q.replace('%%', '%%%').replace('\\', '')
         url = f"{tokens['playernotes_url']}/?auth={api_key}&action=search_users&format=json&victim={mod_q}"
+        if exact:
+            url += "&exact=1"
         async with self.session.get(url) as res:
             if res.status != 200:
                 return res
@@ -54,6 +58,8 @@ class GoonHub(commands.Cog):
     async def findalts(self, ctx: commands.Context, *, target_ckey: str):
         self.cancelled_findalts = False
         queue = [self.ckeyify(target_ckey)]
+        graph_edges = set()
+        graph_nodes = set()
         output_msg = await ctx.send("[Initializing]")
         ckeys = []
         async def update_msg(position, finished=False):
@@ -61,9 +67,43 @@ class GoonHub(commands.Cog):
             text = f"Alts of {target_ckey}:\n" + "\n".join(ckeys) + "\n"
             if finished:
                 text += f"[Finished {position}]"
-                await ctx.reply(f"Search for {target_ckey}'s alts finished: {output_msg.jump_url}")
+                reply = f"Search for {target_ckey}'s alts finished:\n{output_msg.jump_url}"
+                generalapi = self.bot.get_cog("GeneralApi")
+                if generalapi:
+                    file_lines = ["graph {", "node [style=filled]"]
+                    ckeyckey = self.ckeyify(target_ckey)
+                    for node in graph_nodes:
+                        attr = []
+                        if node.startswith("ckey"):
+                            _, ckey = node.split('_')
+                            if ckey == ckeyckey:
+                                attr.append("color = red")
+                            else:
+                                attr.append("color = \"#ffcccc\"")
+                            attr.append(f"label = \"{ckey}\"")
+                        elif node.startswith("cid"):
+                            _, cid = node.split('_')
+                            attr.append("color = \"#ccffcc\"")
+                            attr.append(f"label = \"{cid}\"")
+                        elif node.startswith("ip"):
+                            ip_parts = node.split('_')
+                            attr.append("color = \"#ccccff\"")
+                            attr.append(f"label = \"{'.'.join(ip_parts[1:])}\"")
+                        file_lines.append(f"{node} [{','.join(attr)}]")
+                    file_lines.extend(f"{a} -- {b}" for a, b in graph_edges)
+                    file_lines.append("}")
+                    file_text = "\n".join(file_lines)
+                    fname = f"{self.ckeyify(target_ckey)}_{uuid.uuid4()}.dot"
+                    file_folder = generalapi.static_path / "gv"
+                    file_folder.mkdir(exist_ok=True)
+                    with open(file_folder / fname, 'w') as f:
+                        f.write(file_text)
+                    file_url = f"https://medass.pali.link/static/gv/{fname}"
+                    gv_url = "https://pali.link/graphviz/?url=" + urllib.parse.quote(file_url)
+                    reply += "\n" + gv_url
+                await ctx.reply(reply)
             else:
-                text += f"[Working... {position}/{len(queue)}?]"
+                text += f"[Working... {position}/{len(queue)}?]\nuse `]cancelfindalts` to cancel early"
             await output_msg.edit(content=text)
         for i, query in enumerate(queue):
             await update_msg(i + 1, False)
@@ -71,6 +111,13 @@ class GoonHub(commands.Cog):
             for info in data:
                 if query in info['ckey'] and query != info['ckey']: # inexact match, ew
                     continue
+                ip_node = "ip_" + info['ip'].replace('.', '_')
+                cid_node = "cid_" + info['compid']
+                ckey_node = "ckey_" + info['ckey']
+                graph_nodes |= {ip_node, cid_node, ckey_node}
+                graph_edges.add((ckey_node, cid_node))
+                graph_edges.add((ckey_node, ip_node))
+                graph_edges.add((ip_node, cid_node))
                 for k in ["ckey", "ip", "compid"]:
                     if info[k] not in queue:
                         queue.append(info[k])
@@ -90,11 +137,18 @@ class GoonHub(commands.Cog):
     @checks.admin()
     @commands.command()
     async def investigate(self, ctx: commands.Context, target_ckey: str):
+        """Investigates a given ckey.
+
+        Prefix the ckey with ! to do an exact search."""
         embed_colour = await ctx.embed_colour()
         current_embed = None
         pages = []
+        exact = False
+        if len(target_ckey) and target_ckey[0] == "!":
+            exact = True
+            target_ckey = target_ckey[1:]
         with ctx.typing():
-            data = await self.query_user_search(target_ckey)
+            data = await self.query_user_search(target_ckey, exact)
             if not isinstance(data, list):
                 await ctx.send(f"Error code {data.status} occured when querying the API")
                 return
