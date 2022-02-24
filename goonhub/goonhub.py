@@ -13,6 +13,7 @@ import unicodedata
 import inspect
 import urllib.parse
 import uuid
+import time
 
 class GoonHub(commands.Cog):
     def __init__(self, bot: Red):
@@ -60,10 +61,14 @@ class GoonHub(commands.Cog):
         queue = [self.ckeyify(target_ckey)]
         graph_edges = set()
         graph_nodes = set()
-        output_msg = await ctx.send("[Initializing]")
+        output_msg = await ctx.send("Alts of {target_ckey}:\n[Initializing]")
         ckeys = []
+        last_edit = time.time()
         async def update_msg(position, finished=False):
-            nonlocal output_msg, ckeys
+            nonlocal output_msg, ckeys, last_edit
+            if not finished and time.time() - last_edit < 2.5:
+                return
+            last_edit = time.time()
             text = f"Alts of {target_ckey}:\n" + "\n".join(ckeys) + "\n"
             if finished:
                 text += f"[Finished {position}]"
