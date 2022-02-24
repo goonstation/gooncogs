@@ -107,10 +107,10 @@ class GoonHub(commands.Cog):
             await output_msg.edit(content=text)
         for i, query in enumerate(queue):
             await update_msg(i + 1, False)
-            data = await self.query_user_search(query)
+            data = await self.query_user_search(query, exact=True)
             for info in data:
-                if query in info['ckey'] and query != info['ckey']: # inexact match, ew
-                    continue
+                if query not in info.values():
+                    await ctx.send(f"WARNING: Query `{query}` resulted in `{info}` which doesn't contain the query.")
                 ip_node = "ip_" + info['ip'].replace('.', '_')
                 cid_node = "cid_" + info['compid']
                 ckey_node = "ckey_" + info['ckey']
