@@ -244,18 +244,21 @@ class BetterReports(commands.Cog):
             and isinstance(ctx.channel, discord.abc.GuildChannel)
             and ctx.channel.guild == guild
         ):
-            async for message in ctx.channel.history(
-                limit=1, before=msg.created_at if msg_obj else None
-            ):
-                report_url = message.jump_url
+            try:
+                async for message in ctx.channel.history(
+                    limit=1, before=msg.created_at if msg_obj else None
+                ):
+                    report_url = message.jump_url
+            except discord.errors.Forbidden:
+                pass
         if await self.bot.embed_requested(channel, author):
-            if report_url:
-                desc += f"\n[link]({report_url})"
             embed_colour = await (
                 ctx.embed_colour()
                 if hasattr(ctx, "embed_colour")
                 else self.bot.get_embed_colour(ctx.channel)
             )
+            if report_url:
+                desc += f"\n[report made here]({report_url})"
             em = discord.Embed(description=desc, colour=embed_colour)
             em.set_author(
                 name=title,
