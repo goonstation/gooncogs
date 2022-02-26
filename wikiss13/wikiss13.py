@@ -59,7 +59,7 @@ class Wikiss13(commands.Cog):
         text = text.replace(" ", "_")
 
         def char_replace(c):
-            if c.isalnum() or c == "_":
+            if c.isalnum() or c in "_-":
                 return c
             else:
                 return "." + hex(ord(c))[2:].upper()
