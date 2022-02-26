@@ -81,3 +81,21 @@ class ByondCom(commands.Cog):
         await ctx.send(
             f"Account `{ckey}` does not have the medal `{orig_medal.title()}`"
         )
+
+    @checks.admin()
+    @commands.command()
+    async def otherserversplayed(self, ctx: commands.Context, ckey):
+        url = "https://crawler.station13.ru/api/?ckey=" + ckey
+        output = []
+        async with self.session.get(url) as res:
+            data = await res.json(content_type='text/plain')
+            for serverinfo in data:
+                if 'bypass' in serverinfo:
+                    if serverinfo['bypass'] != 0:
+                        output.append(f"'Bypass' is {serverinfo['bypass']} but no idea what that means")
+                elif 'servername' in serverinfo and 'count' in serverinfo:
+                    output.append(f"`{serverinfo['servername']}`: {serverinfo['count']}")
+        if not output:
+            await ctx.send("Ckey not found")
+            return
+        await ctx.send("\n".join(output))
