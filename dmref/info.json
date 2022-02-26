@@ -1,0 +1,13 @@
+{
+    "name": "DMRef",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "TODO",
+    "description": "TODO",
+    "requirements": [
+			"aiohttp",
+    ],
+    "tags": [
+    ]
+}
