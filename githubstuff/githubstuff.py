@@ -6,6 +6,8 @@ from typing import *
 from github import Github
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import requests
+import random
+import math
 
 
 class GithubStuff(commands.Cog):
@@ -229,6 +231,22 @@ class GithubStuff(commands.Cog):
             desc = "\n".join(f"[`{name}`]({url})" for name, url in results)
             em = discord.Embed(description=desc, colour=embed_colour)
             await ctx.send(embed=em)
+
+    @github.command(rest_is_raw=True)
+    async def randomissue(self, ctx: commands.Context, *, query: str = ""):
+        """Picks a random open issue."""
+        query = query.strip()
+        query += " is:issue is:open repo:" + await self.config.repo()
+        async with ctx.typing():
+            results = self.gh.search_issues(query, sort="updated", order="desc")
+        if not results.totalCount:
+            await ctx.send("No issues found.")
+            return
+        count = min(1000, results.totalCount)
+        page_count = math.ceil(count / 30)
+        page = results.get_page(random.randint(0, page_count - 1))
+        issue = random.choice(page)
+        await ctx.send(f"{issue.html_url}\n**#{issue.number}** {issue.title}")
 
     async def issue_search_menu(
         self, ctx: commands.Context, query, empty_message="No results", title=""
