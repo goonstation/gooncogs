@@ -27,7 +27,7 @@ class ByondCom(commands.Cog):
     async def byondsnoop(self, ctx: commands.Context, ckey: str):
         url = f"{BASE_URL}/members/{ckey}?tab=medals&all=1"
         async with self.session.get(url) as res:
-            bs = BeautifulSoup(await res.text(), "html")
+            bs = BeautifulSoup(await res.text(), features="html.parser")
             joined = None
             try:
                 joined = bs.find(id="joined").find(class_="info_text").text
