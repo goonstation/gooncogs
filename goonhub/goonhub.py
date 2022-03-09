@@ -61,7 +61,7 @@ class GoonHub(commands.Cog):
         queue = [self.ckeyify(target_ckey)]
         graph_edges = set()
         graph_nodes = set()
-        output_msg = await ctx.send("Alts of {target_ckey}:\n[Initializing]")
+        output_msg = await ctx.send(f"Alts of {target_ckey}:\n[Initializing]")
         ckeys = []
         last_edit = time.time()
         async def update_msg(position, finished=False):
