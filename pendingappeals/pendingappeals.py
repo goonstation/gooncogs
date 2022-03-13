@@ -10,6 +10,7 @@ import datetime
 from bs4 import BeautifulSoup
 import itertools
 from redbot.core.utils.chat_formatting import pagify
+import re
 
 BASE_URL = "https://forum.ss13.co/"
 
@@ -23,6 +24,29 @@ class PendingAppeals(commands.Cog):
     def cog_unload(self):
         asyncio.create_task(self.session.cancel())
 
+    def parse_post_key(self, text):
+        return re.search(r'var my_post_key = "([0-9a-f]*)";', text).groups()[0]
+
+    async def get_post_key(self):
+        tokens = (await self.bot.get_shared_api_tokens("mybb"))
+        async with self.session.get(tokens.get('url')) as res:
+            return self.parse_post_key(await res.text())
+
+    async def login(self):
+        tokens = (await self.bot.get_shared_api_tokens("mybb"))
+        login_data = {
+            "action": "do_login",
+            "url": tokens.get('url') + "member.php",
+            "quick_login": "1",
+            "my_post_key": await self.get_post_key(),
+            "quick_username": tokens.get('username'),
+            "quick_password": tokens.get('password'),
+            "quick_remember": "yes",
+            "submit": "Login"
+        }
+        async with self.session.post(login_data['url'], data=login_data) as res:
+            return res.status == 200
+
     async def test_thread(self, elem, labels_only=True):
         try:
             if "forumdisplay_sticky" in elem.find_parent("td").get_attribute_list(
@@ -35,7 +59,10 @@ class PendingAppeals(commands.Cog):
                 return None
         except:
             pass
-        url = BASE_URL + elem.a.get_attribute_list("href")[0]
+        tokens = await self.bot.get_shared_api_tokens("mybb")
+        if elem.a is None:
+            return None
+        url = tokens.get('url') + elem.a.get_attribute_list("href")[0]
         if not labels_only:
             async with self.session.get(url) as res:
                 bs = BeautifulSoup(await res.text(), "html")
@@ -50,11 +77,12 @@ class PendingAppeals(commands.Cog):
 
     async def scrape_page(self, page, forum_id, labels_only=True):
         result = []
+        tokens = await self.bot.get_shared_api_tokens("mybb")
         async with self.session.get(
-            BASE_URL + f"forumdisplay.php?fid={forum_id}&page={page}"
+            tokens.get('url') + f"forumdisplay.php?fid={forum_id}&page={page}"
         ) as res:
             bs = BeautifulSoup(await res.text())
-            elems = bs.find_all(class_="subject_new")
+            elems = bs.find_all(class_="subject_new") + bs.find_all(class_="subject_old")
             result = await asyncio.gather(
                 *[self.test_thread(elem, labels_only) for elem in elems]
             )
@@ -66,9 +94,14 @@ class PendingAppeals(commands.Cog):
         self, ctx: commands.Context, pages: int = 4, check_only_labels: bool = True
     ):
         """Scrapes the Goonstation forum for unresponded to appeals."""
+        await self.login()
         results = await asyncio.gather(
             *(
                 [
+                    self.scrape_page(page, forum_id=54, labels_only=check_only_labels)
+                    for page in range(1, pages + 1)
+                ]
+                + [
                     self.scrape_page(page, forum_id=4, labels_only=check_only_labels)
                     for page in range(1, pages + 1)
                 ]
@@ -79,6 +112,7 @@ class PendingAppeals(commands.Cog):
             )
         )
         result = itertools.chain(*results)
+        result = list(dict.fromkeys(result)) # remove duplicates caused by not enough pages
         if not result:
             await ctx.send("No pending appeals found")
         else:
