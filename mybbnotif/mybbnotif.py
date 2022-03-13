@@ -25,8 +25,6 @@ class MybbNotif(commands.Cog):
         self.session = aiohttp.ClientSession()
         self.main_loop_task = None
 
-        self.debug_data = {}
-
     def cog_unload(self):
         self.running = False
         self.main_loop_task.cancel()
@@ -71,7 +69,6 @@ class MybbNotif(commands.Cog):
             "submit": "Login"
         }
         async with self.session.post(login_data['url'], data=login_data) as res:
-            self.debug_data['login'] = await res.text()
             return res.status == 200
 
     async def check_subforum(
@@ -83,7 +80,6 @@ class MybbNotif(commands.Cog):
     ):
         async with self.session.get(url) as res:
             data = await res.json(content_type=None)
-            self.debug_data[url] = data
             if last_timestamp is not None:
                 for item in data.get("items", []):
                     timestamp = datetime.datetime.fromisoformat(
