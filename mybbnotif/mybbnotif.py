@@ -7,6 +7,8 @@ from redbot.core.bot import Red
 from typing import *
 import logging
 import datetime
+import re
+from redbot.core.utils.chat_formatting import pagify, box, quote
 
 log = logging.getLogger("red.goon.mybbnotif")
 
@@ -22,6 +24,8 @@ class MybbNotif(commands.Cog):
         self.config.register_global(forum_url=None, period=180)
         self.session = aiohttp.ClientSession()
         self.main_loop_task = None
+
+        self.debug_data = {}
 
     def cog_unload(self):
         self.running = False
@@ -46,6 +50,30 @@ class MybbNotif(commands.Cog):
             except asyncio.CancelledError:
                 break
 
+    def parse_post_key(self, text):
+        return re.search(r'var my_post_key = "([0-9a-f]*)";', text).groups()[0]
+
+    async def get_post_key(self):
+        tokens = (await self.bot.get_shared_api_tokens("mybb"))
+        async with self.session.get(tokens.get('url')) as res:
+            return self.parse_post_key(await res.text())
+
+    async def login(self):
+        tokens = (await self.bot.get_shared_api_tokens("mybb"))
+        login_data = {
+            "action": "do_login",
+            "url": tokens.get('url') + "member.php",
+            "quick_login": "1",
+            "my_post_key": await self.get_post_key(),
+            "quick_username": tokens.get('username'),
+            "quick_password": tokens.get('password'),
+            "quick_remember": "yes",
+            "submit": "Login"
+        }
+        async with self.session.post(login_data['url'], data=login_data) as res:
+            self.debug_data['login'] = await res.text()
+            return res.status == 200
+
     async def check_subforum(
         self,
         url: str,
@@ -55,6 +83,7 @@ class MybbNotif(commands.Cog):
     ):
         async with self.session.get(url) as res:
             data = await res.json(content_type=None)
+            self.debug_data[url] = data
             if last_timestamp is not None:
                 for item in data.get("items", []):
                     timestamp = datetime.datetime.fromisoformat(
@@ -62,7 +91,8 @@ class MybbNotif(commands.Cog):
                     ).timestamp()
                     if timestamp <= last_timestamp:
                         break
-                    message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n{item['url']}"
+                    message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n<{item['url']}>\n"
+                    message += quote(item['content_html'][:1500])
                     for channel in channels:
                         await channel.send(message)
             if not data.get("items"):
@@ -88,7 +118,9 @@ class MybbNotif(commands.Cog):
 
     async def check_forum(self):
         tasks = []
-        forum_url = await self.config.forum_url()
+        await self.login()
+        tokens = await self.bot.get_shared_api_tokens("mybb")
+        forum_url = tokens.get('url') + "syndication.php"
         for forum_id, data in (await self.config.custom("subforums").all()).items():
             tasks.append(self.check_subforum_raw(forum_url, forum_id, data))
         await asyncio.gather(*tasks)
@@ -119,16 +151,6 @@ class MybbNotif(commands.Cog):
             )
         else:
             await ctx.send(f"Currently checking the forum every {old} seconds.")
-
-    @mybbnotif.command()
-    async def url(self, ctx: commands.Context, url: Optional[str]):
-        """Gets or sets the forum url."""
-        old = await self.config.forum_url()
-        if url is not None:
-            await self.config.forum_url.set(url)
-            await ctx.send(f"Previous url: `{old}`. New url: `{url}`.")
-        else:
-            await ctx.send(f"Current url: `{old}`.")
 
     @mybbnotif.command()
     async def setprefix(self, ctx: commands.Context, forum_id: int, prefix: str):
