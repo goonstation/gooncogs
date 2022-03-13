@@ -9,6 +9,7 @@ import logging
 import datetime
 import re
 from redbot.core.utils.chat_formatting import pagify, box, quote
+import markdownify
 
 log = logging.getLogger("red.goon.mybbnotif")
 
@@ -24,6 +25,8 @@ class MybbNotif(commands.Cog):
         self.config.register_global(forum_url=None, period=180)
         self.session = aiohttp.ClientSession()
         self.main_loop_task = None
+
+        self.debug_data = {}
 
     def cog_unload(self):
         self.running = False
@@ -69,6 +72,7 @@ class MybbNotif(commands.Cog):
             "submit": "Login"
         }
         async with self.session.post(login_data['url'], data=login_data) as res:
+            self.debug_data['login'] = await res.text()
             return res.status == 200
 
     async def check_subforum(
@@ -80,6 +84,7 @@ class MybbNotif(commands.Cog):
     ):
         async with self.session.get(url) as res:
             data = await res.json(content_type=None)
+            self.debug_data[url] = data
             if last_timestamp is not None:
                 for item in data.get("items", []):
                     timestamp = datetime.datetime.fromisoformat(
@@ -88,7 +93,8 @@ class MybbNotif(commands.Cog):
                     if timestamp <= last_timestamp:
                         break
                     message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n<{item['url']}>\n"
-                    message += quote(item['content_html'][:1500])
+                    message += quote(markdownify.markdownify(item['content_html']).replace('\n\n', '\n'))
+                    message = list(pagify(message))[0]
                     for channel in channels:
                         await channel.send(message)
             if not data.get("items"):

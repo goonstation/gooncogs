@@ -6,6 +6,8 @@
     "short": "TODO",
     "description": "TODO",
     "requirements": [
+    	"aiohttp",
+    	"markdownify"
     ],
     "tags": [
 	"forum"
