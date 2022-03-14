@@ -13,6 +13,7 @@ class PinOrder(commands.Cog):
         self.config = Config.get_conf(self, 56317515632557985)
         self.config.register_channel(pins={})
         self.refreshes = set()
+        self.refreshed_messages = set()
 
     async def refresh_pins(self, channel: discord.TextChannel):
         if channel in self.refreshes:
@@ -41,6 +42,7 @@ class PinOrder(commands.Cog):
                     async with self.config.channel(channel).pins() as pins:
                         del pins[position]
                     continue
+                self.refreshed_messages.add(message.id)
                 await message.unpin(reason="Reordering pins to move them to top.")
                 await message.pin(reason="Reordering pins to move them to top.")
         finally:
@@ -114,3 +116,9 @@ class PinOrder(commands.Cog):
             else:
                 return await ctx.send(f"This message does not have a pin position set.")
         await message.unpin(reason="Unpinned via the PinOrder cog.")
+
+    @commands.Cog.listener()
+    async def on_message_without_command(self, message: discord.Message):
+        if message.is_system() and message.author == self.bot.user and message.type == discord.MessageType.pins_add and message.reference.message_id in self.refreshed_messages:
+            self.refreshed_messages.remove(message.reference.message_id)
+            await message.delete()
