@@ -94,7 +94,7 @@ class MybbNotif(commands.Cog):
                         break
                     message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n<{item['url']}>\n"
                     message += quote(markdownify.markdownify(item['content_html']).replace('\n\n', '\n'))
-                    message = list(pagify(message))[0]
+                    message = list(pagify(message, page_length=500))[0]
                     for channel in channels:
                         await channel.send(message)
             if not data.get("items"):
