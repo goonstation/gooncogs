@@ -6,7 +6,7 @@
     "short": "TODO",
     "description": "TODO",
     "requirements": [
-			"aiohttp",
+			"aiohttp"
     ],
     "tags": [
     ]
