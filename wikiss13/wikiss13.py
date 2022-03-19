@@ -226,6 +226,7 @@ class Wikiss13(commands.Cog):
             text = re.sub(r"<i.*?>(.*?)</i>", r"*\1*", text)
             text = re.sub(r"<b.*?>(.*?)</b>", r"**\1**", text)
             text = re.sub(r"<h[12345].*?>(.*?)</h[12345]>", r"**\1**", text)
+            text = re.sub(r"<div class=\"tabs-label\" tabindex=\"-1\">(?:.*?)ecret(?:.*?)</div><menu class=\"tabs-content\" style=\"\">(.*?)</menu></div>", r"||\1||", text)
             text = re.sub(
                 r'<a[^>]*?href="(/.*?)"[^>]*?>(.*?)</a>',
                 r"[\2](https://wiki.ss13.co\1)",
