@@ -213,7 +213,10 @@ class SpacebeeCommands(commands.Cog):
             return
         out = response['laws']
         if isinstance(out, str):
-            await ctx.send(out)
+            if out:
+                await ctx.send(out)
+            else:
+                await ctx.send("No law racks with connected silicons.")
         else:
             await ctx.send("Law data recieved in wrong format.")
 
