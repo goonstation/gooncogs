@@ -211,17 +211,11 @@ class SpacebeeCommands(commands.Cog):
         if response == 0.0:
             await ctx.send("Round hasn't started yet.")
             return
-        out = []
-        for key, value in sorted(response.items()):
-            try:
-                key = int(key)
-            except ValueError:
-                continue
-            out.append(f"{key}: {value}")
-        if out:
-            await ctx.send("\n".join(out))
+        out = response['laws']
+        if isinstance(out, str):
+            await ctx.send(out)
         else:
-            await ctx.send("No AI laws.")
+            await ctx.send("Law data recieved in wrong format.")
 
     @commands.command(aliases=["hcheck"])
     @checks.admin()
