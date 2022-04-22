@@ -21,7 +21,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
 import youtube_dl
-
+import base64
+from PIL import Image
 
 class SpacebeeCommands(commands.Cog):
     FILE_SIZE_LIMIT = 15 * 1024 * 1024
@@ -211,17 +212,14 @@ class SpacebeeCommands(commands.Cog):
         if response == 0.0:
             await ctx.send("Round hasn't started yet.")
             return
-        out = []
-        for key, value in sorted(response.items()):
-            try:
-                key = int(key)
-            except ValueError:
-                continue
-            out.append(f"{key}: {value}")
-        if out:
-            await ctx.send("\n".join(out))
+        out = response['laws']
+        if isinstance(out, str):
+            if out:
+                await ctx.send(out)
+            else:
+                await ctx.send("No law racks with connected silicons.")
         else:
-            await ctx.send("No AI laws.")
+            await ctx.send("Law data recieved in wrong format.")
 
     @commands.command(aliases=["hcheck"])
     @checks.admin()
@@ -762,3 +760,22 @@ RTT: {elapsed * 1000:.2f}ms"""
         # dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         # prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
         # await ctx.send(file=prof_file)
+
+    @commands.command()
+    @checks.admin()
+    async def canvas(self, ctx: commands.Context, server_id: str):
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "persistent_canvases",
+            },
+            ctx,
+            to_dict=False,
+        )
+        if response is None:
+            return
+        data = base64.b64decode(json.loads(response)['centcom'])
+        img_file = discord.File(io.BytesIO(data), filename="canvas.png")
+        await ctx.send(file=img_file)
+
