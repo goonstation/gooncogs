@@ -763,19 +763,39 @@ RTT: {elapsed * 1000:.2f}ms"""
 
     @commands.command()
     @checks.admin()
-    async def canvas(self, ctx: commands.Context, server_id: str):
+    async def canvas(self, ctx: commands.Context, server_id: str, *, canvas_name: str = 'centcom'):
+        goonservers = self.bot.get_cog("GoonServers")
+        request = {"type": "persistent_canvases"}
+        if canvas_name != 'centcom':
+            request = {"type": "lazy_canvas_get", "id": canvas_name}
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            request,
+            ctx,
+            to_dict=False,
+        )
+        if response is None:
+            return
+        data = base64.b64decode(json.loads(response)[canvas_name])
+        img_file = discord.File(io.BytesIO(data), filename="canvas.png")
+        await ctx.send(file=img_file)
+
+    @commands.command()
+    @checks.admin()
+    async def canvaslist(self, ctx: commands.Context, server_id: str):
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
             server_id,
             {
-                "type": "persistent_canvases",
+                "type": "lazy_canvas_list",
             },
             ctx,
             to_dict=False,
         )
         if response is None:
             return
-        data = base64.b64decode(json.loads(response)['centcom'])
-        img_file = discord.File(io.BytesIO(data), filename="canvas.png")
-        await ctx.send(file=img_file)
-
+        canvases = json.loads(response)
+        if len(canvases):
+            await ctx.send(", ".join(canvases))
+        else:
+            await ctx.send("No canvases")
