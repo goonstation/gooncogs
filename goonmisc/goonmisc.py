@@ -20,6 +20,7 @@ import aiohttp
 import colorsys
 import cairosvg
 import json
+from .moonymath import moony
 
 
 class GoonMisc(commands.Cog):
@@ -706,3 +707,15 @@ class GoonMisc(commands.Cog):
             await ctx.send("https://ko-fi.com/cogwerks")
         else:
             await ctx.send("No idea who that is!")
+
+    @commands.command(aliases=["moony"])
+    async def moonymath(self, ctx: commands.Context, num: int):
+        """Shows Goonstation donation information."""
+        if num > 3000:
+            return await ctx.send("Number too large.")
+        result = moony(num)
+        if result is None:
+            await ctx.send("No Moony-representation found")
+        else:
+            await ctx.send(result)
+
