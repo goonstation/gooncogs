@@ -724,6 +724,6 @@ class GoonMisc(commands.Cog):
         """Finds the closest name for a hex colour."""
         rgb = color_parse_hex(color_hex)
         lab = rgb2lab(rgb)
-        min_dist, name = min((euclidean_dist(lab, rgb2lab(color_parse_hex(col))), name) for name, col in self.color_names.items())
-        await ctx.send(f"Closest color name to {color_hex} is `{name}` with distance {min_dist}.")
+        min_dist, name, col = min((euclidean_dist(lab, rgb2lab(color_parse_hex(col))), name, col) for name, col in self.color_names.items())
+        await ctx.send(f"Closest color name to {color_hex} is `{name}` (`{col}`) with distance {min_dist:.2f}.")
 
