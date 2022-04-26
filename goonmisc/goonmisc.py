@@ -21,7 +21,7 @@ import colorsys
 import cairosvg
 import json
 from .moonymath import moony
-
+from .colorstuff import *
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -718,4 +718,12 @@ class GoonMisc(commands.Cog):
             await ctx.send("No Moony-representation found")
         else:
             await ctx.send(result)
+
+    @commands.command(aliases=["colourname"])
+    async def colorname(self, ctx: commands.Context, color_hex: str):
+        """Finds the closest name for a hex colour."""
+        rgb = color_parse_hex(color_hex)
+        lab = rgb2lab(rgb)
+        min_dist, name = min((euclidean_dist(lab, rgb2lab(color_parse_hex(col))), name) for name, col in self.color_names.items())
+        await ctx.send(f"Closest color name to {color_hex} is `{name}` with distance {min_dist}.")
 
