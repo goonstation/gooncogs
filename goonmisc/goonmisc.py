@@ -705,6 +705,8 @@ class GoonMisc(commands.Cog):
             await ctx.send("https://ko-fi.com/pali6")
         elif who in ["cogwerks", "cog", "cogs"]:
             await ctx.send("https://ko-fi.com/cogwerks")
+        elif who in ["emily", "urs"]:
+            await ctx.send("https://www.patreon.com/emilyclairedev")
         else:
             await ctx.send("No idea who that is!")
 
