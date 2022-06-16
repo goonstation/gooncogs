@@ -408,7 +408,7 @@ class SpacebeeCentcom(commands.Cog):
         ckey = self.ckeyify(ckey)
         user_id = await self.config.custom("ckey", ckey).discord_id()
         if user_id:
-            await self.config.user(user_id).linked_ckey.set(None)
+            await self.config.user_from_id(user_id).linked_ckey.set(None)
             await self.config.custom("ckey", ckey).discord_id.set(None)
             await ctx.send(f"Unlinked ckey `{ckey}` from {self.userid_mention(user_id)}")
         else:
