@@ -48,6 +48,13 @@ class SpacebeeCentcom(commands.Cog):
             self.status_code = status_code
             self.error_code = error_code
 
+    def userid_mention(self, user_id):
+        user = self.bot.get_user(user_id)
+        if user:
+            return user.mention
+        else:
+            return f"deleted-user ({user_id})"
+
     def make_message_embed(
         self,
         colour,
@@ -392,7 +399,20 @@ class SpacebeeCentcom(commands.Cog):
             await self.config.custom("ckey", current_ckey).discord_id.set(None)
             await ctx.send(f"Unlinked ckey `{current_ckey}` from {target.mention}")
         else:
-            await ctx.send("They had no linked ckey")
+            await ctx.send("They have no linked ckey")
+
+    @commands.command()
+    @checks.admin()
+    async def unlinkotherckey(self, ctx: commands.Context, ckey: str):
+        """Unlinks a ckey from their Discord account."""
+        ckey = self.ckeyify(ckey)
+        user_id = await self.config.custom("ckey", ckey).discord_id()
+        if user_id:
+            await self.config.user(user_id).linked_ckey.set(None)
+            await self.config.custom("ckey", ckey).discord_id.set(None)
+            await ctx.send(f"Unlinked ckey `{ckey}` from {self.userid_mention(user_id)}")
+        else:
+            await ctx.send("They have no linked Discord account")
 
     @commands.command()
     @checks.admin()
@@ -438,7 +458,7 @@ class SpacebeeCentcom(commands.Cog):
             user_id = await self.config.custom("ckey", ckey).discord_id()
             if user_id:
                 await ctx.send(
-                    f"`{ckey}`'s Discord account is {self.bot.get_user(user_id).mention}"
+                    f"`{ckey}`'s Discord account is {self.userid_mention(user_id)}"
                 )
             else:
                 await ctx.send(f"Ckey `{ckey}` has not lonked their Discord account")
