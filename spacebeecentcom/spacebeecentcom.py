@@ -603,6 +603,9 @@ class SpacebeeCentcom(commands.Cog):
         reference = message.reference
         if reference is None:
             return
+        prefixes = await self.bot.get_valid_prefixes()
+        if message.content[0] in (prefixes + ";"):
+            return
         replied_to_msg = reference.resolved
         if not isinstance(replied_to_msg, discord.Message):
             return
