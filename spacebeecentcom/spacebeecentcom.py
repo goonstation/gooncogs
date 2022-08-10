@@ -603,8 +603,6 @@ class SpacebeeCentcom(commands.Cog):
         reference = message.reference
         if reference is None:
             return
-        if message.content[0] == ';':
-            return
         replied_to_msg = reference.resolved
         if not isinstance(replied_to_msg, discord.Message):
             return
@@ -677,8 +675,8 @@ class SpacebeeCentcom(commands.Cog):
             return
 
         try:
-            await self.process_semicolon_asay(message)
-            await self.process_discord_replies(message)
+            if not await self.process_semicolon_asay(message):
+                await self.process_discord_replies(message)
         except:
             import traceback
 
