@@ -52,9 +52,6 @@ class GithubEndpoint(commands.Cog):
             embed.title = f"`{data.branch}`: {data.name} failed"
             embed.colour = discord.Colour.from_rgb(225, 60, 45)
             embed.timestamp = datetime.datetime.utcnow()
-            embed.set_image(
-                url=f"https://opengraph.githubassets.com/1/{data.repo}/commit/{data.commit}"
-            )
             embed.url = data.url
             embed.add_field(
                 name="commit",
