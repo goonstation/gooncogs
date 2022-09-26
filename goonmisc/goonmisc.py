@@ -470,7 +470,7 @@ class GoonMisc(commands.Cog):
             scale_factor = max(scale_factors)
             if scale_factor != 1.0:
                 image = image.resize(
-                    (int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC
+                    (int(s * scale_factor) for s in image.size), PIL.Image.Resampling.BICUBIC
                 )
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
@@ -612,7 +612,7 @@ class GoonMisc(commands.Cog):
             scale_factor = max(scale_factors)
             if scale_factor != 1.0:
                 image = image.resize(
-                    (int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC
+                    (int(s * scale_factor) for s in image.size), PIL.Image.Resampling.BICUBIC
                 )
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
