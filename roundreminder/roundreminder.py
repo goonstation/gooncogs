@@ -146,6 +146,9 @@ class RoundReminder(commands.Cog):
         fulltext = self.normalize(fulltext)
 
         for user_id, data in (await self.config.all_users()).items():
+            user = self.bot.get_user(user_id)
+            if user is None:
+                continue
             match_strings = data["match_strings"]
             for match_string in match_strings:
                 match = False
@@ -156,7 +159,6 @@ class RoundReminder(commands.Cog):
                 elif server in goonservers.resolve_server_or_category(match_string):
                     match = True
                 if match:
-                    user = self.bot.get_user(user_id)
                     await self.notify(user, embed, match_string)
                     if len(match_strings) == 1:
                         await self.config.user(user).match_strings.clear()
