@@ -206,7 +206,7 @@ class EmojiEverywhere(commands.Cog):
             ]
 
             message_to_edit = None
-            if len(emoji_strings) > 0:
+            if False and len(emoji_strings) > 0:
                 random.shuffle(emoji_strings)
                 for emoji_string, url in emoji_strings:
                     if message_to_edit is not None:
