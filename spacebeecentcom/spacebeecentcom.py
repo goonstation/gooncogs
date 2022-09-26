@@ -675,8 +675,8 @@ class SpacebeeCentcom(commands.Cog):
             return
 
         try:
-            await self.process_semicolon_asay(message)
-            await self.process_discord_replies(message)
+            if not await self.process_semicolon_asay(message):
+                await self.process_discord_replies(message)
         except:
             import traceback
 
