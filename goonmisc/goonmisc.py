@@ -213,7 +213,7 @@ class GoonMisc(commands.Cog):
 
     @commands.command()
     async def blastfromthepast(self, ctx: commands.Context):
-        channel = ctx.bot.get_channel(383743035894267905)  # TODO: unhardcode
+        channel = ctx.bot.get_channel(890223070999101480)  # TODO: unhardcode
         time = datetime.datetime.now()
         time -= datetime.timedelta(days=365)
         async for message in channel.history(limit=1, before=time):
