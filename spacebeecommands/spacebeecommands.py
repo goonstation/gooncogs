@@ -576,7 +576,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                     await ctx.message.reply("That user has no BYOND account linked")
                     return
         response = await goonservers.send_to_server_safe(
-            "2", {"type": "getPlayerStats", "ckey": ckey}, ctx.message
+            "1", {"type": "getPlayerStats", "ckey": ckey}, ctx.message
         )
         if response is None:
             return
