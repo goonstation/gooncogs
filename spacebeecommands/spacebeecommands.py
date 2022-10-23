@@ -234,6 +234,8 @@ class SpacebeeCommands(commands.Cog):
             ctx,
             to_dict=True,
         )
+        if response is None:
+            return
         start_time = time.time()
         await goonservers.send_to_server_safe(server_id, "status", ctx)
         elapsed = time.time() - start_time
