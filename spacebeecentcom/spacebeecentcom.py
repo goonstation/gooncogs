@@ -246,8 +246,9 @@ class SpacebeeCentcom(commands.Cog):
         ):
             embed = discord.Embed()
             embed.title = f"{akey} jobbanned {key} from {rank}"
+            applicable_server |= "all"
             embed.description = f"server `{applicable_server}`"
-            embed.colour = discord.Colour.from_rgb(220, 130, 130)
+            embed.colour = discord.Colour.from_rgb(200, 100, 100)
             embed.set_footer(text=f"{server.full_name} JOBBAN")
             for channel_id in server.subtype.channels["ban"]:
                 await self.bot.get_channel(channel_id).send(embed=embed)
@@ -263,8 +264,9 @@ class SpacebeeCentcom(commands.Cog):
         ):
             embed = discord.Embed()
             embed.title = f"{akey} jobUNbanned {key} from {rank}"
+            applicable_server |= "all"
             embed.description = f"server `{applicable_server}`"
-            embed.colour = discord.Colour.from_rgb(220, 130, 130)
+            embed.colour = discord.Colour.from_rgb(200, 100, 100)
             embed.set_footer(text=f"{server.full_name} JOBUNBAN")
             for channel_id in server.subtype.channels["ban"]:
                 await self.bot.get_channel(channel_id).send(embed=embed)
