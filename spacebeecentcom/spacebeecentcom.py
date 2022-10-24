@@ -236,6 +236,40 @@ class SpacebeeCentcom(commands.Cog):
                 await self.bot.get_channel(channel_id).send(embed=embed)
             return self.SUCCESS_REPLY
 
+        @app.get("/job_ban")
+        async def job_ban(
+            key: str,
+            rank: str,
+            akey: str,
+            applicable_server: int,
+            server=Depends(self.server_dep),
+        ):
+            embed = discord.Embed()
+            embed.title = f"{akey} jobbanned {key} from {rank}"
+            embed.description = "server {applicable_server}"
+            embed.colour = discord.Colour.from_str("#eecccc")
+            embed.set_footer(text=f"{server.full_name} JOBBAN")
+            for channel_id in server.subtype.channels["ban"]:
+                await self.bot.get_channel(channel_id).send(embed=embed)
+            return self.SUCCESS_REPLY
+
+        @app.get("/job_ubban")
+        async def job_unban(
+            key: str,
+            rank: str,
+            akey: str,
+            applicable_server: int,
+            server=Depends(self.server_dep),
+        ):
+            embed = discord.Embed()
+            embed.title = f"{akey} jobUNbanned {key} from {rank}"
+            embed.description = "server {applicable_server}"
+            embed.colour = discord.Colour.from_str("#eecccc")
+            embed.set_footer(text=f"{server.full_name} JOBUNBAN")
+            for channel_id in server.subtype.channels["ban"]:
+                await self.bot.get_channel(channel_id).send(embed=embed)
+            return self.SUCCESS_REPLY
+
         @app.get("/help")
         async def adminhelp(
             key: str,
