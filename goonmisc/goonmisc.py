@@ -367,7 +367,7 @@ class GoonMisc(commands.Cog):
             if random.randint(1, 100) == 1:
                 msg = "never"
             elif random.randint(1, 100) == 1:
-                msg = f"when {random.choose('pali', 'zewaka', 'mbc', 'flourish', 'yass', 'sov')} codes it"
+                msg = f"when {random.choice(['pali', 'zewaka', 'mbc', 'flourish', 'yass', 'sov'])} codes it"
             await self.word_react(message, msg)
 
         if random.randint(1, 20) == 1 and re.match(
