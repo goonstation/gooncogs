@@ -3,7 +3,7 @@ import discord
 from redbot.core import commands, Config, checks
 import discord.errors
 from redbot.core.bot import Red
-
+import datetime
 
 class RoleStuff(commands.Cog):
 
@@ -51,6 +51,14 @@ class RoleStuff(commands.Cog):
 
     async def remove_lets_chat_role_after_time(self, time: int, member: discord.Member):
         await asyncio.sleep(time)
+        while True:
+            last_msg = self.lets_chat_channel.last_message
+            if last_msg is None:
+                break
+            sleep_time = time - (datetime.datetime.now() - last_msg.created_at).total_seconds()
+            if sleep_time <= 0:
+                break
+            await asyncio.sleep(sleep_time)
         if self.lets_chat_role in member.roles:
             try:
                 await member.remove_roles(self.lets_chat_role, reason="timeout")
@@ -114,6 +122,7 @@ class RoleStuff(commands.Cog):
             and self.lets_chat_role in before.roles
         ):
             if self.lets_talk_timeout_task:
+                await asyncio.sleep(1)
                 self.lets_talk_timeout_task.cancel()
                 self.lets_talk_timeout_task = None
             await after.add_roles(self.player_role, reason=f"leaving Let's Chat")
