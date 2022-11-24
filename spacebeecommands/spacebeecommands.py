@@ -421,7 +421,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "You need to attach a sound file to your message or provide a link."
             )
             return
-        if link is not None and "youtube.com" in link:
+        if link is not None and ("youtube.com" in link or "youtu.be" in link):
             response = None
             with ctx.typing():
                 try:
