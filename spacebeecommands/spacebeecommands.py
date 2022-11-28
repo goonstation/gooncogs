@@ -560,7 +560,20 @@ RTT: {elapsed * 1000:.2f}ms"""
     async def stats(
         self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]
     ):
-        """Shows playtime stats of a given ckey."""
+        """Shows playtime stats of a given ckey (or yours if no ckey given)."""
+        await self._stats(ctx=ctx, ckey=ckey, admin=False)
+
+    @checks.admin()
+    @commands.command()
+    async def statsadmin(
+        self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]
+    ):
+        """Shows all kinds of stats of a given ckey (or yours if no ckey given)."""
+        await self._stats(ctx=ctx, ckey=ckey, admin=True)
+
+    async def _stats(
+        self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]], admin=False
+    ):
         goonservers = self.bot.get_cog("GoonServers")
         if ckey is None:
             ckey = ctx.author
@@ -595,14 +608,24 @@ RTT: {elapsed * 1000:.2f}ms"""
             timestamp=ctx.message.created_at,
             color=embed_colour,
         )
-        embed.add_field(name="rounds (total)", value=data["seen"])
-        embed.add_field(name="rounds (rp)", value=data["seen_rp"])
-        embed.add_field(name="rounds joined (total)", value=data["participated"])
-        embed.add_field(name="rounds joined (rp)", value=data["participated_rp"])
+        embed.add_field(name="rounds (total)", value=data.pop("seen"))
+        embed.add_field(name="rounds (rp)", value=data.pop("seen_rp"))
+        embed.add_field(name="rounds joined (total)", value=data.pop("participated"))
+        embed.add_field(name="rounds joined (rp)", value=data.pop("participated_rp"))
         if "playtime" in data:
             playtime_seconds = int(json.loads(data["playtime"])[0]["time_played"])
+            data.pop("playtime")
             time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
             embed.add_field(name="time played", value=time_played)
+        if admin:
+            last_seen = datetime.datetime.fromisoformat(data.pop("last_seen"))
+            timestamp = int(last_seen.timestamp())
+            last_seen_str = f"<t:{timestamp}:F> (<t:{timestamp}:R>)"
+            embed.add_field(name="last seen", value=last_seen_str)
+            for key, value in data.items():
+                if key == "cloudsaves":
+                    value = ", ".join(value.keys())
+                embed.add_field(name=key, value=str(value))
         await ctx.send(embed=embed)
 
     @commands.group(name="profiler")
