@@ -624,7 +624,11 @@ RTT: {elapsed * 1000:.2f}ms"""
             embed.add_field(name="last seen", value=last_seen_str)
             for key, value in data.items():
                 if key == "cloudsaves":
-                    value = ", ".join(value.keys())
+                    if isinstance(value, dict):
+                        value = value.keys()
+                    value = ", ".join(value)
+                if not value:
+                    continue
                 embed.add_field(name=key, value=str(value))
         await ctx.send(embed=embed)
 
