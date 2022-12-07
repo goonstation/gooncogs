@@ -183,7 +183,7 @@ add_points_type(
 add_points_type(
     GivePoints,
     "what",
-    "<:what:1049822497144586331>",
+    "<:what:875269167383740436>",
     points_give_command="givewhat",
     cannot_give_message="You can't give people whats, you don't work at the what factory.",
     allow_give_command="hirewhatfactoryworker",
