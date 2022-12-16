@@ -491,7 +491,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "data": json.dumps(
                     {
                         "key": ctx.message.author.name + " (Discord)",
-                        "file": f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/speech/{file_name}",
+                        "file": f"http://medass.pali.link/static/speech/{file_name}",
                         "duration": "?",
                         "title": text,
                     }
