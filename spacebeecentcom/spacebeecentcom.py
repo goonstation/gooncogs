@@ -246,7 +246,7 @@ class SpacebeeCentcom(commands.Cog):
         ):
             embed = discord.Embed()
             embed.title = f"{akey} jobbanned {key} from {rank}"
-            applicable_server |= "all"
+            applicable_server = applicable_server or "all"
             embed.description = f"server `{applicable_server}`"
             embed.colour = discord.Colour.from_rgb(200, 100, 100)
             embed.set_footer(text=f"{server.full_name} JOBBAN")
@@ -264,7 +264,7 @@ class SpacebeeCentcom(commands.Cog):
         ):
             embed = discord.Embed()
             embed.title = f"{akey} jobUNbanned {key} from {rank}"
-            applicable_server |= "all"
+            applicable_server = applicable_server or "all"
             embed.description = f"server `{applicable_server}`"
             embed.colour = discord.Colour.from_rgb(200, 100, 100)
             embed.set_footer(text=f"{server.full_name} JOBUNBAN")
@@ -370,9 +370,9 @@ class SpacebeeCentcom(commands.Cog):
             ckeys_linked_account = await self.config.custom("ckey", ckey).discord_id()
             if ckeys_linked_account:
                 try:
-                    await ctx.send(
+                    return {"status": "error", "message": 
                         f"Ckey `{ckey}` is already linked to {'your' if user_id == ckeys_linked_account else 'another'} account."
-                    )
+                    }
                 except:
                     pass
                 return
