@@ -421,3 +421,61 @@ class WireCiEndpoint(commands.Cog):
             await ctx.send(
                 "\n".join(self.bot.get_channel(int(ch)).mention for ch in channel_ids)
             )
+
+    @wireciendpoint.command()
+    async def branch(self, ctx: commands.Context, server_name: str, new_branch: Optional[str]):
+        """Gets or sets the branch for a given server or group of servers."""
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        get_url = tokens.get("cd_path") + "/branch/"
+        set_url = tokens.get("cd_path") + "/switch-branch"
+        api_key = tokens.get("outgoing_api_key")
+        goonservers = self.bot.get_cog("GoonServers")
+        servers = goonservers.resolve_server_or_category(server_name)
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        msgs_per_server = DefaultDict(list)
+        for server in servers:
+            server_id = server.tgs
+            old_branch = "unknown?"
+            async with self.session.get(
+                get_url + server_id,
+                headers={
+                    "Api-Key": api_key,
+                },
+            ) as res:
+                if res.status != 200:
+                    msgs_per_server[server].append(f"error code {res.status}: `{await res.text()}`")
+                    continue
+                data = await res.json(content_type=None)
+                old_branch = data.get('branch', "unknown?")
+            if new_branch:
+                async with self.session.post(
+                    set_url,
+                    headers={
+                        "Api-Key": api_key,
+                    },
+                    json={
+                        "server": server_id,
+                        "branch": new_branch
+                    }
+                ) as res:
+                    if res.status == 500:
+                        data = await res.json(content_type=None)
+                        msgs_per_server[server].append(data['error'])
+                        continue
+                    elif res.status != 200:
+                        msgs_per_server[server].append(f"error code {res.status}: `{await res.text()}`")
+                        continue
+                    data = await res.json(content_type=None)
+                    msgs_per_server[server].append(f"branch changed from `{old_branch}` to `{new_branch}`")
+            else:
+                msgs_per_server[server].append(f"branch is `{old_branch}`")
+        output = []
+        for server, msgs in msgs_per_server.items():
+            for msg in msgs:
+                output.append(f"{server.short_name}: {msg}")
+        if new_branch:
+            output.append("Note that this does not retrigger a build. Consider using `]ci build`.")
+        for page in pagify('\n'.join(output)):
+            await ctx.send(page)
