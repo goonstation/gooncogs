@@ -296,8 +296,9 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
+            await ctx.message.delete()
             await ctx.send(
-                "Please use this command in DMs with the bot (or use the /report version)."
+                f"{ctx.author.mention} Please use this command in DMs with the bot (or use the /report version)."
             )
             return
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
