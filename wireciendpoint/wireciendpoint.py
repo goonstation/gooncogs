@@ -5,6 +5,7 @@ import struct
 import discord
 from redbot.core import commands, Config, checks
 from redbot.core.data_manager import cog_data_path, bundled_data_path
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
@@ -182,7 +183,9 @@ class WireCiEndpoint(commands.Cog):
                     embed.description = f"```\n{data.last_compile}\n```"
                     if not success:
                         error_message = data.error
-                        if error_message.lower() == "true":
+                        if not error_message:
+                            embed.description += "\nUnknown error"
+                        elif error_message.lower() == "true":
                             pass
                         elif "\n" in error_message.strip():
                             embed.description += f"\nError:\n```{error_message}```"
@@ -479,3 +482,233 @@ class WireCiEndpoint(commands.Cog):
             output.append("Note that this does not retrigger a build. Consider using `]ci build`.")
         for page in pagify('\n'.join(output)):
             await ctx.send(page)
+
+    @wireciendpoint.group(name="testmerge", aliases=["tm"])
+    @checks.admin()
+    async def testmerge(self, ctx: commands.Context):
+        """Manage testmerges."""
+        pass
+
+    @testmerge.command()
+    async def list(self, ctx: commands.Context, server_name: Optional[str]):
+        """List active testmerges on a given server or globally."""
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        api_key = tokens.get("outgoing_api_key")
+        goonservers = self.bot.get_cog("GoonServers")
+        server_id = ""
+        server = None
+        repo = await self.config.repo()
+        if server_name:
+            server = goonservers.resolve_server(server_name)
+            if not server:
+                await ctx.send("Unknown server.")
+                return
+            server_id = server.tgs
+        url = tokens.get("ci_path") + f"/test-merges/{server_id}"
+        async with self.session.get(
+            url,
+            headers={
+                "api-key": api_key,
+            },
+        ) as res:
+            if res.status != 200:
+                for page in pagify(
+                    f"Server responded with an error code {res.status}: `{await res.text()}`"
+                ):
+                    await ctx.send(page)
+            data = await res.json(content_type=None)
+            embed_colour = await ctx.embed_colour()
+            if not data:
+                if server:
+                    await ctx.send(f"No testmerges active on {server.short_name}")
+                else:
+                    await ctx.send("No testmerges active")
+                return
+            mod_data = []
+            for pr_info in data:
+                if pr_info['created_at']:
+                    pr_info['created_at'] = datetime.datetime.fromisoformat(pr_info['created_at'])
+                if pr_info['updated_at']:
+                    pr_info['updated_at'] = datetime.datetime.fromisoformat(pr_info['updated_at'])
+                def similar(a, b):
+                    if isinstance(a, datetime.date) and isinstance(b, datetime.date):
+                        return abs((a - b).total_seconds()) <= 30
+                    else:
+                        return a == b
+                if mod_data and all(similar(mod_data[-1][key], pr_info[key]) for key in pr_info if key != 'server'):
+                    mod_data[-1]['servers'].append(pr_info['server'])
+                else:
+                    mod_data.append(pr_info)
+                    mod_data[-1]['servers'] = [pr_info['server']]
+            data = mod_data
+            current_embed = None
+            current_embed_size = 0
+            pages = []
+            for pr_info in data:
+                text_to_add = ""
+                text_to_add += f"[{pr_info['PR']}](https://github.com/{repo}/pull/{pr_info['PR']})"
+                if pr_info['server']:
+                    text_to_add += " on " + ", ".join(pr_info['servers'])
+                else:
+                    text_to_add += " on all servers"
+                if pr_info['requester']:
+                    text_to_add += f" by <{pr_info['requester']}>"
+                if pr_info['created_at']:
+                    text_to_add += f" on <t:{int(pr_info['created_at'].timestamp())}:f>"
+                if pr_info['commit']:
+                    text_to_add += f" [{pr_info['commit'][:7]}](https://github.com/{repo}/pull/{pr_info['PR']}/commits/{pr_info['commit']})"
+                text_to_add += "\n"
+                if pr_info['updater'] or pr_info['updated_at']:
+                    text_to_add += "\N{No-Break Space}" * 5
+                    text_to_add += "updated"
+                    if pr_info['updater']:
+                        text_to_add += f" by <{pr_info['updater']}>"
+                    if pr_info['updated_at']:
+                        text_to_add += f" on <t:{int(pr_info['updated_at'].timestamp())}:f>"
+                    text_to_add += "\n"
+                if current_embed_size + len(text_to_add) >= 5000:
+                    pages.append(current_embed)
+                    current_embed_size = 0
+                    current_embed = None
+                if current_embed is None:
+                    current_embed = discord.Embed(
+                            title = f"Testmerges of {server.short_name}" if server else "Testmerges",
+                            color = embed_colour,
+                            description = "",
+                        )
+                    current_embed_size += len(current_embed.title)
+                current_embed.description += text_to_add
+            if current_embed:
+                pages.append(current_embed)
+            for i, page in enumerate(pages):
+                page.set_footer(text=f"{i+1}/{len(pages)}")
+            if not pages:
+                await ctx.send("Something went wrong")
+                return
+            if len(pages) > 1:
+                await menu(ctx, pages, DEFAULT_CONTROLS, timeout=60.0)
+            else:
+                await ctx.send(embed=pages[0])
+
+    @testmerge.command()
+    async def merge(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        api_key = tokens.get("outgoing_api_key")
+        goonservers = self.bot.get_cog("GoonServers")
+        if server_name is None:
+            server_name = "standard"
+        servers = goonservers.resolve_server_or_category(server_name)
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        for server in servers: 
+            server_id = server.tgs
+            url = tokens.get("ci_path") + f"/test-merges"
+            send_data = {
+                'pr': pr,
+                'server': server_id,
+                'requester': f"@{ctx.author.id}",
+            }
+            if commit:
+                if len(commit) != 40:
+                    await ctx.send("Error: That is not a full commit hash.")
+                    return
+                send_data['commit'] = commit
+            async with self.session.post(
+                url,
+                headers={
+                    "api-key": api_key,
+                },
+                json=send_data,
+            ) as res:
+                if res.status != 200:
+                    for page in pagify(
+                            f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
+                    ):
+                        await ctx.send(page)
+                else:
+                    data = await res.json(content_type=None)
+                    if data.get('success', None):
+                        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                    else:
+                        await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
+
+    @testmerge.command()
+    async def update(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        api_key = tokens.get("outgoing_api_key")
+        goonservers = self.bot.get_cog("GoonServers")
+        if server_name is None:
+            server_name = "standard"
+        servers = goonservers.resolve_server_or_category(server_name)
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        for server in servers: 
+            server_id = server.tgs
+            url = tokens.get("ci_path") + f"/test-merges"
+            send_data = {
+                'pr': pr,
+                'server': server_id,
+                'updater': f"@{ctx.author.id}"
+            }
+            if commit:
+                if len(commit) != 40:
+                    await ctx.send("Error: That is not a full commit hash.")
+                    return
+                send_data['commit'] = commit
+            async with self.session.put(
+                url,
+                headers={
+                    "api-key": api_key,
+                },
+                json=send_data,
+            ) as res:
+                if res.status != 200:
+                    for page in pagify(
+                            f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
+                    ):
+                        await ctx.send(page)
+                else:
+                    data = await res.json(content_type=None)
+                    if data.get('success', None):
+                        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                    else:
+                        await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
+
+    @testmerge.command()
+    async def cancel(self, ctx: commands.Context, pr: int, server_name: Optional[str]):
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        api_key = tokens.get("outgoing_api_key")
+        goonservers = self.bot.get_cog("GoonServers")
+        if server_name is None:
+            server_name = "standard"
+        servers = goonservers.resolve_server_or_category(server_name)
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        for server in servers: 
+            server_id = server.tgs
+            url = tokens.get("ci_path") + f"/test-merges"
+            send_data = {
+                'pr': pr,
+                'server': server_id,
+            }
+            async with self.session.delete(
+                url,
+                headers={
+                    "api-key": api_key,
+                },
+                json=send_data,
+            ) as res:
+                if res.status != 200:
+                    for page in pagify(
+                            f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
+                    ):
+                        await ctx.send(page)
+                else:
+                    data = await res.json(content_type=None)
+                    if data.get('success', None):
+                        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                    else:
+                        await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
