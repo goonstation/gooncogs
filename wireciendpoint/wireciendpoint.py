@@ -117,6 +117,8 @@ class WireCiEndpoint(commands.Cog):
             commit: str
             server: str
             error: Optional[str]
+            mapSwitch: int
+            mergeConflicts: list[dict]
 
         @app.post("/wireci/build_finished")
         async def build_finished(data: BuildFinishedModel):
@@ -129,6 +131,7 @@ class WireCiEndpoint(commands.Cog):
                 ):
                     return
                 success = data.error is None
+                clean_success = success and not data.mergeConflicts
                 channels = await self.config.channels()
                 if not len(channels):
                     return
@@ -143,7 +146,7 @@ class WireCiEndpoint(commands.Cog):
                 embed = None
                 goonservers = self.bot.get_cog("GoonServers")
                 server = goonservers.resolve_server(data.server)
-                if success:
+                if clean_success:
                     commit_message = data.message
                     if "\n" in commit_message:
                         commit_message = commit_message.split("\n")[0]
@@ -201,6 +204,7 @@ class WireCiEndpoint(commands.Cog):
                     )
                     embed.add_field(name="message", value=data.message)
                     embed.add_field(name="author", value=data.author)
+                    embed.add_field(name="merge conflicts", value=f"{data.mergeConflicts}")
                     embed.set_footer(
                         text="Code quality: " + await self.funny_message(data.commit)
                     )
