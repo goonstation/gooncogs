@@ -18,6 +18,7 @@ class GithubStuff(commands.Cog):
             repo=None,
             branch="master",
             changelog_path=None,
+            admin_changelog_path=None,
         )
         self.gh = None
 
@@ -43,6 +44,18 @@ class GithubStuff(commands.Cog):
         else:
             await ctx.send(
                 f"Current changelog path is '{await self.config.changelog_path()}'"
+            )
+
+    @github.command(name="set_admin_changelog")
+    @commands.is_owner()
+    async def _set_admin_changelog(self, ctx: commands.Context, changelog: Optional[str]):
+        """Get or set current admin changelog path."""
+        if changelog:
+            await self.config.admin_changelog_path.set(changelog)
+            await ctx.send(f"Admin changelog path set to '{changelog}'")
+        else:
+            await ctx.send(
+                f"Current changelog path is '{await self.config.admin_changelog_path()}'"
             )
 
     @github.command(name="repo")
@@ -107,9 +120,16 @@ class GithubStuff(commands.Cog):
 
     @github.command()
     async def changelog(self, ctx: commands.Context):
+        await self._changelog(ctx, await self.config.changelog_path())
+
+    @github.command()
+    async def adminchangelog(self, ctx: commands.Context):
+        await self._changelog(ctx, await self.config.admin_changelog_path())
+
+    async def _changelog(self, ctx: commands.Context, path: str):
         """Shows a fancy paginated menu view of the changelog."""
         content = (await self.repo).get_contents(
-            await self.config.changelog_path(), ref=await self.config.branch()
+            path, ref=await self.config.branch()
         )
         content_text = content.decoded_content.decode("utf8")
         content_text = "\n" + content_text.strip()
