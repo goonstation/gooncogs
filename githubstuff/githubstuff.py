@@ -271,6 +271,9 @@ class GithubStuff(commands.Cog):
     async def issue_search_menu(
         self, ctx: commands.Context, query, empty_message="No results", title=""
     ):
+        if not query.strip():
+            await ctx.send("You need to enter a search query")
+            return
         embeds = []
         query += " repo:" + await self.config.repo()
         async with ctx.typing():
