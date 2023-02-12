@@ -412,6 +412,6 @@ class GithubStuff(commands.Cog):
     @github.command()
     @commands.is_owner()
     async def ratelimit(self, ctx: commands.Context):
-        """Dispalys GitHub API rate limit information."""
+        """Displays GitHub API rate limit information."""
         data = self.gh.get_rate_limit()
         await ctx.send("```py\n" + pprint.pformat(data) + "\n```")
