@@ -230,9 +230,14 @@ class GoonHub(commands.Cog):
     async def addnote(self, ctx: commands.Context, ckey: str, *, note: str):
         ckey = self.ckeyify(ckey)
         data = None
+        spacebeecentcomcog = self.bot.get_cog("SpacebeeCentcom")
+        author_ckey = await spacebeecentcomcog.get_ckey(ctx.author)
+        if author_ckey is None:
+            await ctx.reply("Your account needs to be linked to use this")
+            return
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['playernotes_api_key']
-        url = f"{tokens['playernotes_url']}/?auth={api_key}&action=add&format=json&server_id=Discord&server=0&ckey={ckey}&akey={ctx.author.name} (Discord)&note={note}"
+        url = f"{tokens['playernotes_url']}/?auth={api_key}&action=add&format=json&server_id=Discord&server=0&ckey={ckey}&akey={author_ckey}&note={note}"
         with ctx.typing():
             async with self.session.get(url) as res:
                 if res.status != 200:

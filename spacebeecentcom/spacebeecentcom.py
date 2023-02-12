@@ -370,9 +370,9 @@ class SpacebeeCentcom(commands.Cog):
             ckeys_linked_account = await self.config.custom("ckey", ckey).discord_id()
             if ckeys_linked_account:
                 try:
-                    return {"status": "error", "message": 
+                    await ctx.send(
                         f"Ckey `{ckey}` is already linked to {'your' if user_id == ckeys_linked_account else 'another'} account."
-                    }
+                    )
                 except:
                     pass
                 return
@@ -391,6 +391,9 @@ class SpacebeeCentcom(commands.Cog):
 
     def ckeyify(self, text):
         return "".join(c.lower() for c in text if c.isalnum())
+
+    async def get_ckey(self, member: discord.Member):
+        return await self.config.user(member).linked_ckey()
 
     @commands.command()
     async def link(self, ctx: commands.Context):
@@ -564,13 +567,17 @@ class SpacebeeCentcom(commands.Cog):
         """Sends an admin PM to a given Goonstation server to a given ckey.
 
         You can also do this by using Discord replies on incoming adminhelps."""
+        author_ckey = await self.get_ckey(ctx.author)
+        if author_ckey is None:
+            await ctx.reply("Your account needs to be linked to use this")
+            return
         await self.check_and_send_message(
             "ahelp",
             ctx.message,
             server_id,
             {
                 "type": "pm",
-                "nick": ctx.message.author.name,
+                "nick": author_ckey,
                 "msg": message,
                 "target": target,
             },
@@ -581,13 +588,17 @@ class SpacebeeCentcom(commands.Cog):
         """Sends an adminsay message to a given Goonstation server.
 
         You can also do this by using Discord replies on incoming asays."""
+        author_ckey = await self.get_ckey(ctx.author)
+        if author_ckey is None:
+            await ctx.reply("Your account needs to be linked to use this")
+            return
         await self.check_and_send_message(
             "asay",
             ctx.message,
             server_id,
             {
                 "type": "asay",
-                "nick": ctx.message.author.name,
+                "nick": author_ckey,
                 "msg": message,
             },
         )
@@ -599,13 +610,17 @@ class SpacebeeCentcom(commands.Cog):
         """Sends a mentor PM to a given Goonstation server to a given ckey.
 
         You can also do this by using Discord replies on incoming mentorhelps."""
+        author_ckey = await self.get_ckey(ctx.author)
+        if author_ckey is None:
+            await ctx.reply("Your account needs to be linked to use this")
+            return
         await self.check_and_send_message(
             "mhelp",
             ctx.message,
             server_id,
             {
                 "type": "mentorpm",
-                "nick": ctx.message.author.name,
+                "nick": author_ckey,
                 "msg": message,
                 "target": target,
             },
@@ -615,20 +630,24 @@ class SpacebeeCentcom(commands.Cog):
         goonservers = self.bot.get_cog("GoonServers")
         if message.clean_content[0] != ";":
             return False
+        author_ckey = await self.get_ckey(message.author)
+        if author_ckey is None:
+            await message.reply("Your account needs to be linked to use this")
+            return
         msg = message.clean_content[1:].strip()
         asay_servers = goonservers.channel_to_servers(message.channel.id, "asay")
         target_channels = set()
         for server in asay_servers:
             target_channels |= set(server.subtype.channels["asay"])
 
-        data = {"type": "asay", "nick": message.author.name, "msg": msg}
+        data = {"type": "asay", "nick": author_ckey, "msg": msg}
 
         await goonservers.send_to_servers(asay_servers, data)
         await self.discord_broadcast_asay(
             target_channels,
             "Discord",
+            author_ckey,
             message.author.name,
-            "Discord",
             "Discord",
             msg,
             exception=message.channel.id,
@@ -679,13 +698,19 @@ class SpacebeeCentcom(commands.Cog):
 
         if reply_type is None:
             return
+
+        author_ckey = await self.get_ckey(message.author)
+        if author_ckey is None:
+            await message.reply("Your account needs to be linked to use this")
+            return
+
         await self.check_and_send_message(
             channel_type,
             message,
             server_id,
             {
                 "type": reply_type,
-                "nick": message.author.name,
+                "nick": author_ckey,
                 "msg": message.content,
                 "target": target,
             },
