@@ -20,6 +20,7 @@ import aiohttp
 import colorsys
 import cairosvg
 import json
+import contextlib
 from .moonymath import moony
 from .colorstuff import *
 
@@ -37,6 +38,10 @@ class GoonMisc(commands.Cog):
         self.reload_contrib()
         self.is_dad = False
         self.color_names = json.load(open(bundled_data_path(self) / "color-names.json"))
+        self.norm_color_names = {self.normalize_text(name): col for name, col in self.color_names.items()}
+
+    def normalize_text(self, text):
+        return "".join(c.lower() for c in text if c.isalnum())
 
     def reload_contrib(self):
         self.total = 0
@@ -721,11 +726,170 @@ class GoonMisc(commands.Cog):
         else:
             await ctx.send(result)
 
+    def closest_color_name(self, rgb: Tuple[int, int, int]):
+        lab = rgb_to_lab(rgb)
+        min_dist, name, col = min((euclidean_dist(lab, rgb_to_lab(color_parse_hex(col))), name, col) for name, col in self.color_names.items())
+        return (min_dist, name, col)
+
     @commands.command(aliases=["colourname"])
     async def colorname(self, ctx: commands.Context, color_hex: str):
         """Finds the closest name for a hex colour."""
         rgb = color_parse_hex(color_hex)
-        lab = rgb2lab(rgb)
-        min_dist, name, col = min((euclidean_dist(lab, rgb2lab(color_parse_hex(col))), name, col) for name, col in self.color_names.items())
+        min_dist, name, col = self.closest_color_name(rgb)
         await ctx.send(f"Closest color name to {color_hex} is `{name}` (`{col}`) with distance {min_dist:.2f}.")
 
+    def parse_triple(self, text: str) -> Union[Tuple[int, int, int], Tuple[float, float, float]]:
+        text = text.strip()
+        try:
+            if text[0] == "(" and text[-1] == ")":
+                text = text[1: -1]
+        except IndexError:
+            raise ValueError("Invalid format")
+        text = text.strip()
+        parts = text.split(",")
+        if len(parts) != 3:
+            parts = text.split()
+        if len(parts) != 3:
+            raise ValueError(f"Wrong number of parts {len(parts)}")
+        try:
+            return tuple([int(part.strip()) for part in parts])
+        except ValueError:
+            return tuple([float(part.strip()) for part in parts])
+
+    def format_triple(self, triple: Union[Tuple[int, int, int], Tuple[float, float, float]]):
+        if all(isinstance(x, int) for x in triple):
+            return f"{triple[0]} {triple[1]} {triple[2]}"
+        else:
+            return f"{triple[0]:.4f} {triple[1]:.4f} {triple[2]:.4f}"
+
+    @commands.command(aliases=["colour"])
+    async def color(self, ctx: commands.Context, *, color: str):
+        """Shows information about a given color.
+
+        Some of the possible formats:
+        ```
+        color #f00
+        color #ff0000
+        color red
+        color rgb(255, 0, 0)
+        color rgb(1.0, 0.0, 0.0)
+        color 255 0 0
+        color 1.0 0.0 0.0
+        color hsv(360, 1, 1)
+        color hsv 360 1 1
+        color hsv 360 100 100
+        color hsl 360 1 0.5
+        color hsl 360 100 50
+        ```
+        """
+        if not color:
+            await ctx.send("You need to provide some color representation")
+            return
+        color = color.strip()
+        title = color
+        rgb = None
+        try:
+            rgb = color_parse_hex(color)
+        except ValueError:
+            pass
+        if rgb is None:
+            norm_color = self.normalize_text(color)
+            hexstr = self.norm_color_names.get(norm_color, None)
+            if hexstr:
+                rgb = color_parse_hex(hexstr)
+        if rgb is None:
+            if color.lower().startswith("hsl") or color.lower().startswith("hsv"):
+                which = color[:3].upper()
+                modcolor = color[3:]
+                function = hsl_to_rgb if which == "HSL" else hsv_to_rgb
+                try:
+                    triple = self.parse_triple(modcolor)
+                    if triple[1] > 1 or triple[2] > 1:
+                        if triple[1] > 100 or triple[2] > 100:
+                            await ctx.send(f"For 0-100 {which} representation the non-hue arguments need to be in the 0-100 range")
+                            return
+                        triple = (triple[0], triple[1] / 100, triple[2] / 100)
+                    elif triple[1] < 0 or triple[1] > 1 or triple[2] < 0 or triple[2] > 1:
+                        await ctx.send(f"For {which} representation the non-hue arguments need to be in the 0-1 range")
+                        return
+                    rgb = function(triple)
+                except:
+                    pass
+            else:
+                modcolor = color
+                if color.lower().startswith("rgb"):
+                    modcolor = color[3:]
+                try:
+                    rgb = self.parse_triple(modcolor)
+                    if any(isinstance(x, float) for x in rgb):
+                        if any(x < 0 or x > 1 for x in rgb):
+                            await ctx.send("For decimal RGB representation all arguments need to be in the 0-1 range")
+                            return
+                        rgb = tuple(int(c * 255) for c in rgb)
+                    elif any(x < 0 or x > 255 for x in rgb):
+                        await ctx.send("For integer RGB representation all arguments need to be in the 0-255 range")
+                        return
+                except:
+                    pass
+        if rgb is None:
+            await ctx.send("Color representation not recognized")
+            return
+        await ctx.send(embed=self.color_embed(rgb, title))
+
+    def color_embed(self, rgb: Tuple[int, int, int], title=None):
+        embed = discord.Embed()
+        embed.color = discord.Color.from_rgb(*rgb)
+        hexstr = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+        embed.title = title or hexstr
+        min_dist, name, col = self.closest_color_name(rgb)
+        embed.add_field(name="hex", value=hexstr)
+        embed.add_field(name="name", value=name)
+        embed.add_field(name="rgb", value=self.format_triple(rgb))
+        embed.add_field(name="hsv", value=self.format_triple(rgb_to_hsv(rgb)))
+        embed.add_field(name="hsl", value=self.format_triple(rgb_to_hsl(rgb)))
+        embed.set_thumbnail(url=f"https://www.colorhexa.com/{hexstr[1:]}.png")
+        return embed
+
+    @commands.command()
+    async def randomcolor(self, ctx: commands.Context):
+        """Responds with information about a random RGB color."""
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        embed = self.color_embed(color)
+        controls = {
+            "\N{Anticlockwise Downwards and Upwards Open Circle Arrows}": self.reroll_color,
+            "\N{CROSS MARK}": self.close_menu,
+        }
+        await menu(ctx, [embed], controls, timeout=15.0)
+
+    async def reroll_color(
+        self,
+        ctx: commands.Context,
+        pages: list,
+        controls: dict,
+        message: discord.Message,
+        page: int,
+        timeout: float,
+        emoji: str,
+    ):
+        perms = message.channel.permissions_for(ctx.me)
+        if perms.manage_messages:  # Can manage messages, so remove react
+            with contextlib.suppress(discord.NotFound):
+                await message.remove_reaction(emoji, ctx.author)
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        embed = self.color_embed(color)
+        return await menu(
+            ctx, [embed], controls, message=message, page=page, timeout=timeout
+        )
+
+    async def close_menu(
+        self,
+        ctx: commands.Context,
+        pages: list,
+        controls: dict,
+        message: discord.Message,
+        page: int,
+        timeout: float,
+        emoji: str,
+    ):
+        with contextlib.suppress(discord.NotFound):
+            await message.delete()

@@ -1,7 +1,6 @@
 import math
 
-def rgb2lab ( inputColor ) :
-
+def rgb_to_lab (inputColor):
    num = 0
    RGB = [0, 0, 0]
 
@@ -36,8 +35,6 @@ def rgb2lab ( inputColor ) :
        XYZ[num] = value
        num = num + 1
 
-   Lab = [0, 0, 0]
-
    L = ( 116 * XYZ[ 1 ] ) - 16
    a = 500 * ( XYZ[ 0 ] - XYZ[ 1 ] )
    b = 200 * ( XYZ[ 1 ] - XYZ[ 2 ] )
@@ -51,5 +48,84 @@ def euclidean_dist(col1, col2):
 def color_parse_hex(hexcol):
     if hexcol[0] == '#':
         hexcol = hexcol[1:]
-    return (int(hexcol[0:2], 16), int(hexcol[2:4], 16), int(hexcol[4:6], 16))
+    if len(hexcol) == 6:
+        return (int(hexcol[0:2], 16), int(hexcol[2:4], 16), int(hexcol[4:6], 16))
+    elif len(hexcol) == 3:
+        return (int(hexcol[0] * 2, 16), int(hexcol[1] * 2, 16), int(hexcol[2] * 2, 16))
+    else:
+        raise ValueError("Incorrect hex length")
+
+def fmod(a, b):
+    """Floating point remainder / modulo"""
+    return (a - b * int(a / b)) % b if b else a
+
+def rgb_to_hsv(rgb):
+    r, g, b = rgb
+    r, g, b = r / 255.0, g / 255.0, b / 255.0
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    df = mx - mn
+    if mx == mn:
+        h = 0
+    elif mx == r:
+        h = fmod(60 * ((g - b) / df), 360)
+    elif mx == g:
+        h = fmod(60 * ((b - r) / df) + 120, 360)
+    elif mx == b:
+        h = fmod(60 * ((r - g) / df) + 240, 360)
+    else:
+        h = 0
+    if mx == 0:
+        s = 0
+    else:
+        s = df / mx
+    v = mx
+    return h, s, v
+
+def hsv_to_rgb(hsv):
+    h, s, v = hsv
+    h = float(h)
+    h = fmod(h, 360)
+    s = float(s)
+    v = float(v)
+    h60 = h / 60.0
+    h60f = math.floor(h60)
+    hi = int(h60f) % 6
+    f = h60 - h60f
+    p = v * (1 - s)
+    q = v * (1 - f * s)
+    t = v * (1 - (1 - f) * s)
+    r, g, b = 0, 0, 0
+    if hi == 0:
+        r, g, b = v, t, p
+    elif hi == 1:
+        r, g, b = q, v, p
+    elif hi == 2:
+        r, g, b = p, v, t
+    elif hi == 3:
+        r, g, b = p, q, v
+    elif hi == 4:
+        r, g, b = t, p, v
+    elif hi == 5:
+        r, g, b = v, p, q
+    r, g, b = int(r * 255), int(g * 255), int(b * 255)
+    return r, g, b
+
+def hsv_to_hsl(hsv):
+    h, s, v = hsv
+    l = v * (1 - s / 2)
+    new_s = 0 if l == 0 or l == 1 else (v - l) / min(l, 1 - l)
+    return (h, new_s, l)
+
+def hsl_to_hsv(hsl):
+    h, s, l = hsl
+    v = l + s * min(l, 1 - l)
+    new_s = 0 if v == 0 else 2 * (1 - l / v)
+    return (h, new_s, v) 
+
+def rgb_to_hsl(rgb):
+    return hsv_to_hsl(rgb_to_hsv(rgb))
+
+def hsl_to_rgb(hsl):
+    return hsv_to_rgb(hsl_to_hsv(hsl))
 
