@@ -12,6 +12,7 @@ from typing import *
 import requests
 from collections import defaultdict
 import datetime
+import hashlib
 import re
 import bisect
 import PIL
@@ -792,6 +793,12 @@ class GoonMisc(commands.Cog):
             rgb = color_parse_hex(color)
         except ValueError:
             pass
+        if color == "random":
+            rgb = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        if color == "of the day":
+            hsh = hashlib.md5()
+            hsh.update(str(datetime.date.today()).encode())
+            rgb = color_parse_hex(hsh.hexdigest()[:6])
         if rgb is None:
             norm_color = self.normalize_text(color)
             hexstr = self.norm_color_names.get(norm_color, None)
@@ -850,7 +857,7 @@ class GoonMisc(commands.Cog):
         embed.set_thumbnail(url=f"https://www.colorhexa.com/{hexstr[1:]}.png")
         return embed
 
-    @commands.command()
+    @commands.command(aliases=["randomcolour"])
     async def randomcolor(self, ctx: commands.Context):
         """Responds with information about a random RGB color."""
         color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
