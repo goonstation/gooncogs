@@ -904,5 +904,5 @@ class GoonMisc(commands.Cog):
     @commands.command(aliases=["readme"])
     async def readme(self, ctx: commands.Context,):
         ctx.send("Users are reminded that the official code guides and readmes exist for a *reason*, \
-and disregarding such advice as 'use visual studio code' will void any asking for help rights that you may own.")
-        ctx.send(file=discord.File(PIL.Image.open("the_sign.png")))
+and disregarding such advice as 'use visual studio code' will void any asking for help rights that you may own. \
+ https://cdn.discordapp.com/attachments/890313890003566632/1075712022760652850/the_sign.png")
