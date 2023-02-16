@@ -900,3 +900,7 @@ class GoonMisc(commands.Cog):
     ):
         with contextlib.suppress(discord.NotFound):
             await message.delete()
+
+    @commands.command(aliases=["readme"])
+    async def readme(self, ctx: commands.Context,):
+        await ctx.send(file=discord.File(PIL.Image.open("the_sign.png")))
