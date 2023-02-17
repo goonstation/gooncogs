@@ -903,6 +903,7 @@ class GoonMisc(commands.Cog):
 
     @commands.command()
     async def readme(self, ctx: commands.Context):
+        """Shows a passive aggressive message about how users should read the guides."""
         ctx.send("Users are reminded that the official code guides and readmes exist for a *reason*, \
 and disregarding such advice as 'use visual studio code' will void any asking for help rights that you may own. \
  https://cdn.discordapp.com/attachments/890313890003566632/1075712022760652850/the_sign.png")
