@@ -901,7 +901,7 @@ class GoonMisc(commands.Cog):
         with contextlib.suppress(discord.NotFound):
             await message.delete()
 
-    @commands.command(aliases=["readme"])
+    @commands.command()
     async def readme(self, ctx: commands.Context,):
         ctx.send("Users are reminded that the official code guides and readmes exist for a *reason*, \
 and disregarding such advice as 'use visual studio code' will void any asking for help rights that you may own. \
