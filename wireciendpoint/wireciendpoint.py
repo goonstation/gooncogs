@@ -635,6 +635,7 @@ class WireCiEndpoint(commands.Cog):
                     data = await res.json(content_type=None)
                     if data.get('success', None):
                         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
                     else:
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
 
@@ -679,6 +680,7 @@ class WireCiEndpoint(commands.Cog):
                     data = await res.json(content_type=None)
                     if data.get('success', None):
                         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
                     else:
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
 
@@ -717,5 +719,6 @@ class WireCiEndpoint(commands.Cog):
                     data = await res.json(content_type=None)
                     if data.get('success', None):
                         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
                     else:
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
