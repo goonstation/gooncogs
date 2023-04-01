@@ -596,6 +596,7 @@ class WireCiEndpoint(commands.Cog):
 
     @testmerge.command()
     async def merge(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
+        """Testmerges a given PR number at the latest or given GitHub commit to a given server or globally."""
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
         api_key = tokens.get("outgoing_api_key")
         goonservers = self.bot.get_cog("GoonServers")
@@ -634,11 +635,13 @@ class WireCiEndpoint(commands.Cog):
                     data = await res.json(content_type=None)
                     if data.get('success', None):
                         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
                     else:
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
 
     @testmerge.command()
     async def update(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
+        """Updates a given testmerge to the latest or given GitHub commit on a given server or globally."""
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
         api_key = tokens.get("outgoing_api_key")
         goonservers = self.bot.get_cog("GoonServers")
@@ -677,11 +680,13 @@ class WireCiEndpoint(commands.Cog):
                     data = await res.json(content_type=None)
                     if data.get('success', None):
                         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
                     else:
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
 
     @testmerge.command()
     async def cancel(self, ctx: commands.Context, pr: int, server_name: Optional[str]):
+        """Cancels a given testmerge on a given server or globally."""
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
         api_key = tokens.get("outgoing_api_key")
         goonservers = self.bot.get_cog("GoonServers")
@@ -714,5 +719,6 @@ class WireCiEndpoint(commands.Cog):
                     data = await res.json(content_type=None)
                     if data.get('success', None):
                         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
                     else:
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
