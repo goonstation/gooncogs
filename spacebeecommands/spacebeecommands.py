@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
-import youtube_dl
+import yt_dlp
 import base64
 from PIL import Image
 
@@ -355,7 +355,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         else:
             file_name = self.ckeyify(file_name)
         tmp_file_name = file_name + ".webm"
-        play_file_name = file_name + ".mp3"
+        play_file_name = file_name + ".webm.mp3"
         tmp_file_path = file_folder / tmp_file_name
         play_file_path = file_folder / play_file_name
         info = None
@@ -375,12 +375,12 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "postprocessors": postprocessors,
                 "max_filesize": self.FILE_SIZE_LIMIT,
             }
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 filesize = min(
                     fmt["filesize"]
                     for fmt in info["formats"]
-                    if isinstance(fmt["filesize"], int)
+                    if isinstance(fmt.get("filesize"), int)
                 )
                 if filesize > self.FILE_SIZE_LIMIT:
                     return None
@@ -426,7 +426,7 @@ RTT: {elapsed * 1000:.2f}ms"""
             with ctx.typing():
                 try:
                     response = await self.youtube_play(ctx, link, server_id)
-                except youtube_dl.utils.DownloadError as e:
+                except yt_dlp.utils.DownloadError as e:
                     await ctx.send("YoutubeDL error: " + str(e))
                     return
             if response:
