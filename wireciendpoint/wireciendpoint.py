@@ -606,6 +606,10 @@ class WireCiEndpoint(commands.Cog):
         if not servers:
             await ctx.send("Unknown server.")
             return
+        if commit and len(commit) != 40:
+            await ctx.send("Error: That is not a full commit hash.")
+            return
+        all_success = True
         for server in servers: 
             server_id = server.tgs
             url = tokens.get("ci_path") + f"/test-merges"
@@ -615,9 +619,6 @@ class WireCiEndpoint(commands.Cog):
                 'requester': f"@{ctx.author.id}",
             }
             if commit:
-                if len(commit) != 40:
-                    await ctx.send("Error: That is not a full commit hash.")
-                    return
                 send_data['commit'] = commit
             async with self.session.post(
                 url,
@@ -631,13 +632,17 @@ class WireCiEndpoint(commands.Cog):
                             f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
                     ):
                         await ctx.send(page)
+                        all_success = False
                 else:
                     data = await res.json(content_type=None)
                     if data.get('success', None):
-                        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
+                        pass
                     else:
+                        all_success = False
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
+        if all_success:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
 
     @testmerge.command()
     async def update(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
@@ -651,6 +656,10 @@ class WireCiEndpoint(commands.Cog):
         if not servers:
             await ctx.send("Unknown server.")
             return
+        if commit and len(commit) != 40:
+            await ctx.send("Error: That is not a full commit hash.")
+            return
+        all_success = True
         for server in servers: 
             server_id = server.tgs
             url = tokens.get("ci_path") + f"/test-merges"
@@ -660,9 +669,6 @@ class WireCiEndpoint(commands.Cog):
                 'updater': f"@{ctx.author.id}"
             }
             if commit:
-                if len(commit) != 40:
-                    await ctx.send("Error: That is not a full commit hash.")
-                    return
                 send_data['commit'] = commit
             async with self.session.put(
                 url,
@@ -676,13 +682,17 @@ class WireCiEndpoint(commands.Cog):
                             f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
                     ):
                         await ctx.send(page)
+                        all_success = False
                 else:
                     data = await res.json(content_type=None)
                     if data.get('success', None):
-                        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
+                        pass
                     else:
+                        all_success = False
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
+        if all_success:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
 
     @testmerge.command()
     async def cancel(self, ctx: commands.Context, pr: int, server_name: Optional[str]):
@@ -696,6 +706,7 @@ class WireCiEndpoint(commands.Cog):
         if not servers:
             await ctx.send("Unknown server.")
             return
+        all_success = True
         for server in servers: 
             server_id = server.tgs
             url = tokens.get("ci_path") + f"/test-merges"
@@ -715,10 +726,14 @@ class WireCiEndpoint(commands.Cog):
                             f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
                     ):
                         await ctx.send(page)
+                        all_success = False
                 else:
                     data = await res.json(content_type=None)
                     if data.get('success', None):
-                        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-                        await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
+                        pass
                     else:
+                        all_success = False
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
+        if all_success:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
