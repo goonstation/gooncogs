@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from redbot.core import commands, Config, checks
+from redbot.core.utils.chat_formatting import pagify
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
@@ -24,11 +25,18 @@ class Subtype:
             self.channels[name] = cog.channel_trans(channel_ids)
         self.servers = []
 
+    async def send_to_channel(self, channel, content=None, *args, **kwargs):
+        if isinstance(content, str):
+            for page in pagify(content):
+                await channel.send(content=page, *args, **kwargs)
+        else:
+            await channel.send(content=content, *args, **kwargs)
+
     async def channel_broadcast(
         self, bot, channel_type, *args, exception=None, **kwargs
     ):
         tasks = [
-            bot.get_channel(ch).send(*args, **kwargs)
+            self.send_to_channel(bot.get_channel(ch), *args, **kwargs)
             for ch in self.channels[channel_type]
             if ch != exception
         ]
