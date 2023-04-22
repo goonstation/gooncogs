@@ -496,6 +496,14 @@ class WireCiEndpoint(commands.Cog):
     @testmerge.command()
     async def list(self, ctx: commands.Context, server_name: Optional[str]):
         """List active testmerges on a given server or globally."""
+        await self._tm_list(ctx, server_name, verbose=False)
+
+    @testmerge.command()
+    async def listverbose(self, ctx: commands.Context, server_name: Optional[str]):
+        """List active testmerges on a given server or globally but shows the PR embeds too."""
+        await self._tm_list(ctx, server_name, verbose=True)
+
+    async def _tm_list(self, ctx: commands.Context, server_name: Optional[str], verbose: bool):
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
         api_key = tokens.get("outgoing_api_key")
         goonservers = self.bot.get_cog("GoonServers")
@@ -548,9 +556,12 @@ class WireCiEndpoint(commands.Cog):
             current_embed = None
             current_embed_size = 0
             pages = []
+            pr_links = set()
             for pr_info in data:
                 text_to_add = ""
-                text_to_add += f"[{pr_info['PR']}](https://github.com/{repo}/pull/{pr_info['PR']})"
+                pr_link = f"https://github.com/{repo}/pull/{pr_info['PR']}"
+                pr_links.add(pr_link)
+                text_to_add += f"[{pr_info['PR']}]({pr_link})"
                 if pr_info['server']:
                     text_to_add += " on " + ", ".join(pr_info['servers'])
                 else:
@@ -590,9 +601,12 @@ class WireCiEndpoint(commands.Cog):
                 await ctx.send("Something went wrong")
                 return
             if len(pages) > 1:
+                # TODO PR embeds
                 await menu(ctx, pages, DEFAULT_CONTROLS, timeout=60.0)
             else:
                 await ctx.send(embed=pages[0])
+            if verbose:
+                await ctx.send("\n".join(pr_links))
 
     @testmerge.command()
     async def merge(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
