@@ -16,7 +16,7 @@ class EditablePosts(commands.Cog):
         self.config.register_custom("editable_posts", editable=False)
         self.config.register_custom("editable_posts", channel=None)
 
-    @commands.group()
+    @commands.group(aliases=["editableposts"])
     @checks.admin()
     async def editable_posts(self, ctx: commands.Context):
         """Group command for creating posts you can edit later."""
@@ -35,6 +35,9 @@ class EditablePosts(commands.Cog):
         *,
         title: Optional[str]
     ):
+        """Creates a new editable post in a given channel.
+        Use the edit dubcommand to change its text.
+        """
         embed = discord.Embed(
             title=title or "[reserved post]", color=await ctx.embed_color()
         )
@@ -48,6 +51,7 @@ class EditablePosts(commands.Cog):
     async def title(
         self, ctx: commands.Context, message: discord.Message, *, title: str
     ):
+        """Changes the title of an editable post."""
         if not await self.valid_message(message):
             return
         embed = message.embeds[0]
@@ -58,6 +62,7 @@ class EditablePosts(commands.Cog):
     @editable_posts.command()
     @checks.admin()
     async def edit(self, ctx: commands.Context, message: discord.Message, *, text: str):
+        """Edits an editable post with new text."""
         if not await self.valid_message(message):
             return
         embed = message.embeds[0]
@@ -68,6 +73,7 @@ class EditablePosts(commands.Cog):
     @editable_posts.command()
     @checks.admin()
     async def remove(self, ctx: commands.Context, message: discord.Message):
+        """Deletes an editable post."""
         if not await self.valid_message(message):
             return
         await message.delete()
@@ -76,8 +82,10 @@ class EditablePosts(commands.Cog):
     @editable_posts.command()
     @checks.admin()
     async def list(self, ctx: commands.Context):
+        """Lists all editable posts on this server."""
         async with ctx.typing():
             messages = []
+            lines = []
             for msg_id, data in (
                 await self.config.custom("editable_posts").all()
             ).items():
@@ -92,8 +100,10 @@ class EditablePosts(commands.Cog):
                         False
                     )
                     continue
+                except discord.errors.Forbidden:
+                    lines.append(f"***ERROR***: Can't access channel {channel.mention}")
+                    continue
                 messages.append(message)
-            lines = []
             for message in messages:
                 # TODO store this in the config so it isn't terribly slow
                 msg_text = message.embeds[0].title + " " + message.jump_url
