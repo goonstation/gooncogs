@@ -18,7 +18,8 @@ import collections
 import secrets
 
 PLAYER_ROLE_ID = 182284445837950977
-
+PLEASE_LINK_ROLE_ID = 1095026412454424676
+GUILD_ID = 182249960895545344
 
 class SpacebeeCentcom(commands.Cog):
     AHELP_COLOUR = discord.Colour.from_rgb(184, 46, 0)
@@ -370,7 +371,7 @@ class SpacebeeCentcom(commands.Cog):
             ckeys_linked_account = await self.config.custom("ckey", ckey).discord_id()
             if ckeys_linked_account:
                 try:
-                    await ctx.send(
+                    await user.send(
                         f"Ckey `{ckey}` is already linked to {'your' if user_id == ckeys_linked_account else 'another'} account."
                     )
                 except:
@@ -383,10 +384,11 @@ class SpacebeeCentcom(commands.Cog):
                 await user.send(f"Account successfully linked to ckey `{ckey}`.")
             except:
                 pass
-            guild = self.bot.get_guild(182249960895545344)
+            guild = self.bot.get_guild(GUILD_ID)
             member = guild.get_member(user_id)
             if member is not None:
                 await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
+                await member.remove_roles(guild.get_role(PLEASE_LINK_ROLE_ID))
             return self.SUCCESS_REPLY
 
     def ckeyify(self, text):
@@ -415,7 +417,7 @@ class SpacebeeCentcom(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        if member.guild.id != 182249960895545344:
+        if member.guild.id != GUILD_ID:
             return
         current_ckey = await self.config.user(member).linked_ckey()
         if current_ckey:
@@ -426,7 +428,7 @@ class SpacebeeCentcom(commands.Cog):
                 if any(r.id == PLAYER_ROLE_ID for r in roles_added):
                     player_added = True
             if not player_added:
-                await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
+                await member.add_roles(member.guild.get_role(PLAYER_ROLE_ID))
 
     @commands.command()
     @checks.admin()
@@ -437,6 +439,10 @@ class SpacebeeCentcom(commands.Cog):
             await self.config.user(target).linked_ckey.set(None)
             await self.config.custom("ckey", current_ckey).discord_id.set(None)
             await ctx.send(f"Unlinked ckey `{current_ckey}` from {target.mention}")
+            guild = self.bot.get_guild(GUILD_ID)
+            member = guild.get_member(target.id)
+            if member:
+                await member.remove_roles(guild.get_role(PLAYER_ROLE_ID))
         else:
             await ctx.send("They have no linked ckey")
 
@@ -477,6 +483,11 @@ class SpacebeeCentcom(commands.Cog):
         msg = f"Linked ckey `{ckey}` to {target.mention}"
         if current_ckey:
             msg += f" (Their previous ckey was `{current_ckey}`)"
+        guild = self.bot.get_guild(GUILD_ID)
+        member = guild.get_member(target.id)
+        if member:
+            await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
+            await member.remove_roles(guild.get_role(PLEASE_LINK_ROLE_ID))
         await ctx.send(msg)
 
     async def user_to_ckey(self, user):
