@@ -406,7 +406,7 @@ class SpacebeeCentcom(commands.Cog):
             msg = f"Login into one of Goonstation servers and use the Link Discord verb in the Commands tab on the right. Enter code `{full_verif}` when prompted."
             await ctx.author.send(msg)
         except:
-            await ctx.send("You need DMs enabled to link your account.")
+            await ctx.send("Either use the /link command or enable your DMs first.")
 
     @app_commands.command(name="link")
     async def slash_link(self, interaction: discord.Interaction):
