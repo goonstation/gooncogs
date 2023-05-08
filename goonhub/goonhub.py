@@ -171,6 +171,8 @@ class GoonHub(commands.Cog):
                     ip_info = geolite2.lookup(info['ip'])
                 except ValueError:
                     pass
+                except TypeError:
+                    pass
                 recorded_date = datetime.datetime.fromisoformat(info['recorded'])
                 recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
                 message = inspect.cleandoc(f"""
