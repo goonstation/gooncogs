@@ -618,9 +618,12 @@ RTT: {elapsed * 1000:.2f}ms"""
             time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
             embed.add_field(name="time played", value=time_played)
         if admin:
-            last_seen = datetime.datetime.fromisoformat(data.pop("last_seen"))
-            timestamp = int(last_seen.timestamp())
-            last_seen_str = f"<t:{timestamp}:F> (<t:{timestamp}:R>)"
+            last_seen_data = data.pop("last_seen")
+            last_seen_str = "No last seen data, run command again"
+            if isinstance(last_seen_data, str):
+                last_seen = datetime.datetime.fromisoformat(last_seen_data)
+                timestamp = int(last_seen.timestamp())
+                last_seen_str = f"<t:{timestamp}:F> (<t:{timestamp}:R>)"
             embed.add_field(name="last seen", value=last_seen_str)
             for key, value in data.items():
                 if key == "cloudsaves":
