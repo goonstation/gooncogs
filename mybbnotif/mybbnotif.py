@@ -31,7 +31,7 @@ class MybbNotif(commands.Cog):
     def cog_unload(self):
         self.running = False
         self.main_loop_task.cancel()
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     async def run(self):
         self.running = True

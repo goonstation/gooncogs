@@ -22,7 +22,7 @@ class PendingAppeals(commands.Cog):
         self.session = aiohttp.ClientSession()
 
     def cog_unload(self):
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     def parse_post_key(self, text):
         return re.search(r'var my_post_key = "([0-9a-f]*)";', text).groups()[0]

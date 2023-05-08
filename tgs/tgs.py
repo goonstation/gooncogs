@@ -42,7 +42,7 @@ class TGS(commands.Cog):
         self.server_list_cache = None
 
     def cog_unload(self):
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     def _parse_iso_time(self, text):
         # fromisoformat accepts only exactly 0, 3 or 6 decimal places; screw that

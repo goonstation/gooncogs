@@ -20,7 +20,7 @@ class ByondCom(commands.Cog):
         self.session = aiohttp.ClientSession()
 
     def cog_unload(self):
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     @checks.admin()
     @commands.command(aliases=["byondinfo"])

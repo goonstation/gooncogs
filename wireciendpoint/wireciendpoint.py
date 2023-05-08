@@ -105,7 +105,7 @@ class WireCiEndpoint(commands.Cog):
         self.build_finished_lock = asyncio.Lock()
 
     def cog_unload(self):
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     def register_to_general_api(self, app):
         class BuildFinishedModel(BaseModel):

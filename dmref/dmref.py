@@ -186,7 +186,7 @@ class DMRef(commands.Cog):
 		self.entries = parser.processed
 
 	def cog_unload(self):
-		asyncio.create_task(self.session.cancel())
+		asyncio.create_task(self.session.close())
 
 	def ckeyify(self, text):
 		return ''.join(c.lower() for c in text if c.isalnum())
