@@ -1,9 +1,6 @@
 import asyncio
-import urllib
-from collections import OrderedDict
-import struct
 import discord
-from redbot.core import commands, Config, checks
+from redbot.core import commands, Config, checks, app_commands
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
@@ -11,10 +8,6 @@ from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from github import Github
 import re
-import time
-import functools
-import inspect
-import collections
 import secrets
 
 PLAYER_ROLE_ID = 182284445837950977
@@ -399,11 +392,11 @@ class SpacebeeCentcom(commands.Cog):
 
     @commands.command()
     async def link(self, ctx: commands.Context):
-        """Links your Discord account with your BYOND username."""
+        """Links your Discord account with your BYOND username and gives you the Player role."""
         current_ckey = await self.config.user(ctx.author).linked_ckey()
         if current_ckey:
             await ctx.send(
-                f"You are already linked to ckey `{current_ckey}`. If you wish to unlink please contact an administrator (ideally using the ]report command)."
+                f"You are already linked to username `{current_ckey}`. If you wish to unlink please contact an administrator (ideally using the /report command)."
             )
             return
         verif = secrets.token_hex(8)
@@ -414,6 +407,22 @@ class SpacebeeCentcom(commands.Cog):
             await ctx.author.send(msg)
         except:
             await ctx.send("You need DMs enabled to link your account.")
+
+    @app_commands.command(name="link")
+    async def slash_link(self, interaction: discord.Interaction):
+        """Links your Discord account with your BYOND username and gives you the Player role."""
+        current_ckey = await self.config.user(interaction.user).linked_ckey()
+        if current_ckey:
+            await interaction.response.send_message(
+                f"You are already linked to username `{current_ckey}`. If you wish to unlink please contact an administrator (ideally using the /report command).",
+                ephemeral=True
+            )
+            return
+        verif = secrets.token_hex(8)
+        full_verif = f"{interaction.user.id}-{verif}"
+        await self.config.user(interaction.user).link_verification.set(verif)
+        msg = f"Login into one of Goonstation servers and use the Link Discord verb in the Commands tab on the right. Enter code `{full_verif}` when prompted."
+        await interaction.response.send_message(msg, ephemeral=True)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
