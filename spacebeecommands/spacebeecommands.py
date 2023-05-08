@@ -423,7 +423,7 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         if link is not None and ("youtube.com" in link or "youtu.be" in link):
             response = None
-            with ctx.typing():
+            async with ctx.typing():
                 try:
                     response = await self.youtube_play(ctx, link, server_id)
                 except yt_dlp.utils.DownloadError as e:

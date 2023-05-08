@@ -192,7 +192,7 @@ class TGS(commands.Cog):
         """Commands for managing TGS SS13 server instances."""
 
     async def run_request(self, ctx: commands.Context, request):
-        async with ctx.typing():
+        async async with ctx.typing():
             try:
                 response = await request
                 if response is None:

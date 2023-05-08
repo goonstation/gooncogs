@@ -70,7 +70,7 @@ class Wikiss13(commands.Cog):
     @commands.command(aliases=["wiki13", "w13"])
     async def wikiss13(self, ctx: commands.Context, *, query: str):
         """Get information from Goonstation Wiki."""
-        async with ctx.typing():
+        async async with ctx.typing():
             payload = self.generate_payload(query)
             async with aiohttp.ClientSession() as session:
                 async with session.get(

@@ -152,7 +152,7 @@ class GoonHub(commands.Cog):
         if len(target_ckey) and target_ckey[0] == "!":
             exact = True
             target_ckey = target_ckey[1:]
-        with ctx.typing():
+        async with ctx.typing():
             data = await self.query_user_search(target_ckey, exact)
             if not isinstance(data, list):
                 await ctx.send(f"Error code {data.status} occured when querying the API")
@@ -238,7 +238,7 @@ class GoonHub(commands.Cog):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['playernotes_api_key']
         url = f"{tokens['playernotes_url']}/?auth={api_key}&action=add&format=json&server_id=Discord&server=0&ckey={ckey}&akey={author_ckey}&note={note}"
-        with ctx.typing():
+        async with ctx.typing():
             async with self.session.get(url) as res:
                 if res.status != 200:
                     await ctx.message.reply(f"Error code {res.status} occured when querying the API")
@@ -258,7 +258,7 @@ class GoonHub(commands.Cog):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['playernotes_api_key']
         url = f"{tokens['playernotes_url']}/?auth={api_key}&action=get&format=json&ckey={ckey}"
-        with ctx.typing():
+        async with ctx.typing():
             async with self.session.get(url) as res:
                 if res.status != 200:
                     await ctx.message.reply(f"Error code {res.status} occured when querying the API")
