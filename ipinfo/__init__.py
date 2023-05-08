@@ -4,4 +4,4 @@ from .ipinfo import IPInfo
 
 async def setup(bot: Red):
     cog = IPInfo(bot)
-    bot.add_cog(cog)
+    await bot.add_cog(cog)

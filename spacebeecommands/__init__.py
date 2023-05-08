@@ -3,4 +3,4 @@ from .spacebeecommands import SpacebeeCommands
 
 
 async def setup(bot: Red):
-    bot.add_cog(SpacebeeCommands(bot))
+    await bot.add_cog(SpacebeeCommands(bot))

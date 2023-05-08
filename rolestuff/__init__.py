@@ -4,4 +4,4 @@ from .rolestuff import RoleStuff
 
 async def setup(bot: Red):
     cog = RoleStuff(bot)
-    bot.add_cog(cog)
+    await bot.add_cog(cog)

@@ -2,5 +2,5 @@ from redbot.core.bot import Red
 from .githubstuff import GithubStuff
 
 
-def setup(bot: Red):
-    bot.add_cog(GithubStuff(bot))
+async def setup(bot: Red):
+    await bot.add_cog(GithubStuff(bot))
