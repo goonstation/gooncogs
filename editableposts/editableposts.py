@@ -83,7 +83,7 @@ class EditablePosts(commands.Cog):
     @checks.admin()
     async def list(self, ctx: commands.Context):
         """Lists all editable posts on this server."""
-        async async with ctx.typing():
+        async with ctx.typing():
             messages = []
             lines = []
             for msg_id, data in (

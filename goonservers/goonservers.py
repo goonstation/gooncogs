@@ -365,7 +365,7 @@ class GoonServers(commands.Cog):
         futures = [asyncio.Task(self.get_status_info(s, worldtopic)) for s in servers]
         done, pending = [], futures
         message = None
-        async async with ctx.typing():
+        async with ctx.typing():
             while pending:
                 when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
                 done, pending = await asyncio.wait(
@@ -415,7 +415,7 @@ class GoonServers(commands.Cog):
         all_goon = all(server.type == "goon" for server in servers)
         if not all_goon:
             embed.colour = self.COLOR_OTHER
-        async async with ctx.typing():
+        async with ctx.typing():
             while pending:
                 when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
                 done, pending = await asyncio.wait(

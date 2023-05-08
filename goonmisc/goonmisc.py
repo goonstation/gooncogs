@@ -501,7 +501,7 @@ class GoonMisc(commands.Cog):
         if bg_color is not None:
             bg = PIL.Image.open(datapath / "logo_bg_color.png")
             executor = ThreadPoolExecutor(max_workers=1)
-            async async with ctx.typing():
+            async with ctx.typing():
                 await asyncio.get_running_loop().run_in_executor(
                     executor,
                     self._pretty_paint,
