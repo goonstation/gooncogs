@@ -1,12 +1,13 @@
 import asyncio
 import discord
-from redbot.core import commands, Config, checks
+from redbot.core import commands, Config, checks, app_commands
 import discord.errors
 from redbot.core.bot import Red
 import datetime
 
-class RoleStuff(commands.Cog):
+GUILD_SNOWFLAKE = discord.Object(id=182249960895545344)
 
+class RoleStuff(commands.Cog):
     default_user_settings = {"last_roles": {}}
     LETS_TALK_TIMEOUT = 60 * 60
 
@@ -19,25 +20,25 @@ class RoleStuff(commands.Cog):
         self.suppress_next_lets_chat_role_removal_message = False
 
     @property
-    def admin_channel(self):
+    def admin_channel(self) -> discord.TextChannel:
         return self.bot.get_channel(182254222694285312)
 
     @property
-    def debug_channel(self):
+    def debug_channel(self) -> discord.TextChannel:
         return self.bot.get_channel(412381738510319626)
 
     @property
-    def lets_chat_channel(self):
-        return self.bot.get_channel(683769319259111549)
+    def lets_chat_channel(self) -> discord.TextChannel:
+        return self.bot.get_channel(1105780909095002152)
 
     @property
-    def lets_chat_role(self):
+    def lets_chat_role(self) -> discord.Role:
         channel = self.lets_chat_channel
         if channel:
             return channel.guild.get_role(683768446680563725)
 
     @property
-    def player_role(self):
+    def player_role(self) -> discord.Role:
         channel = self.lets_chat_channel
         if channel:
             return channel.guild.get_role(182284445837950977)
@@ -49,7 +50,18 @@ class RoleStuff(commands.Cog):
             user_data[str(member.guild.id)] = [role.id for role in member.roles][1:]
             await self.config.user(member).last_roles.set(user_data)
 
-    async def remove_lets_chat_role_after_time(self, time: int, member: discord.Member):
+    @commands.Cog.listener()
+    async def on_thread_update(self, before: discord.Thread, after: discord.Thread):
+        if before.parent == self.lets_chat_channel and (not before.locked and after.locked or not before.archived and after.archived):
+            for thread_member in after.members:
+                member = after.guild.get_member(thread_member.id)
+                if member is None:
+                    return
+                if self.lets_chat_role in member.roles:
+                    await member.add_roles(self.player_role, reason=f"leaving Let's Chat")
+                    await member.remove_roles(self.lets_chat_role, reason="Let's Chat thread archived")
+
+    async def _unused_remove_lets_chat_role_after_time(self, time: int, member: discord.Member):
         await asyncio.sleep(time)
         while True:
             last_msg = self.lets_chat_channel.last_message
@@ -74,8 +86,7 @@ class RoleStuff(commands.Cog):
 
                 return await self.bot.send_to_owners(traceback.format_exc())
 
-    @commands.Cog.listener()
-    async def on_member_update(self, before: discord.Member, after: discord.Member):
+    async def _unused_on_member_update(self, before: discord.Member, after: discord.Member):
         if (
             self.lets_chat_role in after.roles
             and self.lets_chat_role not in before.roles
@@ -138,17 +149,19 @@ class RoleStuff(commands.Cog):
             # await self.lets_chat_channel.edit(name="lets-talk")
             # await self.debug_channel.send(f"{after.mention} lost the role {self.lets_chat_role.mention}, total number of people with this role: {len(self.lets_chat_role.members)}")
 
-    @commands.command()
     @checks.mod_or_permissions(manage_roles=True)
+    @commands.command()
     async def purgeroles(self, ctx: commands.Context, user: discord.User):
         """Clears saved roles of a given user."""
         await self.config.user(user).last_roles.clear()
         await ctx.send("Roles have been wiped out.")
 
-    @commands.command()
+    @commands.guild_only()
     @checks.mod_or_permissions(manage_roles=True)
+    @commands.command()
     async def lastroles(self, ctx: commands.Context, user: discord.User):
         """Shows a list of roles an user had the last time they left the guild."""
+        assert ctx.guild is not None
         user_data = await self.config.user(user).last_roles()
         guild_id = str(ctx.guild.id)
         if guild_id not in user_data:
@@ -170,7 +183,7 @@ class RoleStuff(commands.Cog):
             reply += f"Number of removed roles they had: {unsuccessful_count}."
         await ctx.send(reply)
 
-    async def restore_roles_internal(self, member: discord.Member, ctx=None):
+    async def restore_roles_internal(self, member: discord.Member, ctx=None) -> tuple[list[discord.Role] | None, int | None]:
         user_data = await self.config.user(member).last_roles()
         guild_id = str(member.guild.id)
         if guild_id not in user_data:
@@ -191,12 +204,12 @@ class RoleStuff(commands.Cog):
         await member.add_roles(*roles_to_add, reason=reason)
         return roles_to_add, unsuccessful_count
 
-    @commands.command()
     @checks.mod_or_permissions(manage_roles=True)
+    @commands.command()
     async def restoreroles(self, ctx: commands.Context, member: discord.Member):
         """Tries to restore a member's roles to what they had the last time they left."""
         roles_to_add, unsuccessful_count = await self.restore_roles_internal(member)
-        if roles_to_add is None:
+        if roles_to_add is None or unsuccessful_count is None:
             return await ctx.send("Never head of them.")
         reply = ""
         if len(roles_to_add) == 0:
@@ -208,3 +221,33 @@ class RoleStuff(commands.Cog):
         if unsuccessful_count > 0:
             reply += f"Failed to restore {unsuccessful_count} roles."
         await ctx.send(reply)
+
+
+@app_commands.guild_only()
+@app_commands.guilds(GUILD_SNOWFLAKE)
+@app_commands.default_permissions(manage_roles=True)
+@app_commands.context_menu(name="Let's Talk")
+async def lets_talk(interaction: discord.Interaction, target: discord.Member):
+    cog = interaction.client.get_cog("RoleStuff")
+    if not isinstance(cog, RoleStuff):
+        await interaction.response.send_message("Something went horribly wrong oh no!", ephemeral=True)
+        return
+    if cog.lets_chat_role in target.roles:
+        await interaction.response.send_message("They are already being chatted to right now! If you wish to end that just close the relevant thread.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    date_string = datetime.datetime.now().strftime("%Y-%m-%d")
+    thread = await cog.lets_chat_channel.create_thread(
+        name = f"{target.nick or target.name} {date_string}",
+        reason = f"Let's Talk triggered by {interaction.user.name}",
+        invitable = False,
+        type = discord.ChannelType.private_thread,
+        auto_archive_duration = 1440,
+    )
+    await target.add_roles(cog.lets_chat_role) 
+    await target.remove_roles(cog.player_role)
+    await thread.add_user(interaction.user)
+    await thread.add_user(target)
+    await thread.send(f"""Hi {target.mention}! An admin would like to talk to you. Please send a message here to know that you've seen this.""")
+    await interaction.followup.send(content=f"Done, head to {thread.mention}.")
+
