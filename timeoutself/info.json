@@ -1,0 +1,14 @@
+{
+    "name": "TimeoutSelf",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Command that lets people timeout themselves.",
+    "requirements": "Command that lets people timeout themselves.",
+    "requirements": [
+    ],
+    "tags": [
+      "timeout",
+      "fun"
+    ]
+}

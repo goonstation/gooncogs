@@ -5,11 +5,6 @@ from redbot.core.utils.chat_formatting import pagify
 from redbot.core.bot import Red
 from typing import *
 from collections import OrderedDict
-from enum import Enum
-
-class Options(Enum):
-    details = 1
-    foo = 2
 
 class ListThreads(commands.Cog):
     def __init__(self, bot: Red):
