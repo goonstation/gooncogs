@@ -238,7 +238,7 @@ async def lets_talk(interaction: discord.Interaction, target: discord.Member):
     await interaction.response.defer(ephemeral=True)
     date_string = datetime.datetime.now().strftime("%Y-%m-%d")
     thread = await cog.lets_chat_channel.create_thread(
-        name = f"{target.nick or target.name} {date_string}",
+        name = f"{target.name} {date_string}",
         reason = f"Let's Talk triggered by {interaction.user.name}",
         invitable = False,
         type = discord.ChannelType.private_thread,
