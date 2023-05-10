@@ -61,6 +61,17 @@ class RoleStuff(commands.Cog):
                     await member.add_roles(self.player_role, reason=f"leaving Let's Chat")
                     await member.remove_roles(self.lets_chat_role, reason="Let's Chat thread archived")
 
+    @commands.Cog.listener()
+    async def on_thread_member_remove(self, thr_member: discord.ThreadMember):
+        thread = thr_member.thread
+        if thread.parent != self.lets_chat_channel or thread.locked or thread.archived or thread.parent is None:
+            return
+        member = thread.parent.guild.get_member(thr_member.id) 
+        if not member:
+            return
+        if self.lets_chat_role in member.roles:
+            await thread.add_user(member)
+
     async def _unused_remove_lets_chat_role_after_time(self, time: int, member: discord.Member):
         await asyncio.sleep(time)
         while True:
