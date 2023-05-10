@@ -478,9 +478,9 @@ class GoonMisc(commands.Cog):
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
-                img_bytes = await arg.avatar_url_as(format="png").read()
+                img_bytes = await arg.avatar.replace(format="png").read()
             elif isinstance(arg, discord.PartialEmoji):
-                img_bytes = await arg.url_as(format="png").read()
+                img_bytes = await arg.read()
             elif ord(arg[0]) > 127:
                 arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format(
                     "-".join(
@@ -618,9 +618,9 @@ class GoonMisc(commands.Cog):
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
-                img_bytes = await arg.avatar_url_as(format="png").read()
+                img_bytes = await arg.avatar.replace(format="png").read()
             elif isinstance(arg, discord.PartialEmoji):
-                img_bytes = await arg.url_as(format="png").read()
+                img_bytes = await arg.read()
             elif ord(arg[0]) > 127:
                 arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format(
                     "-".join(
