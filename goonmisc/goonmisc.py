@@ -217,13 +217,29 @@ class GoonMisc(commands.Cog):
         await guild.edit(icon=icon, reason=f"requested by {ctx.message.author.name}")
         await ctx.send("Done.")
 
+    @commands.guild_only()
     @commands.command()
-    async def blastfromthepast(self, ctx: commands.Context):
-        channel = ctx.bot.get_channel(890223070999101480)  # TODO: unhardcode
+    async def blastfromthepast(self, ctx: commands.Context, channel: discord.TextChannel | None = None):
+        assert isinstance(ctx.author, discord.Member)
+        if channel is None:
+            if not isinstance(ctx.channel, discord.TextChannel):
+                await ctx.send("You aren't in a proper text channel")
+                return
+            channel = ctx.channel
+        if not channel.permissions_for(ctx.author).read_message_history:
+            await ctx.send("You don't have the permission to read that channel's history")
+            return
         time = datetime.datetime.now()
         time -= datetime.timedelta(days=365)
         async for message in channel.history(limit=1, before=time):
-            await ctx.send("> " + "\n> ".join(message.clean_content.split("\n")))
+            if len(message.clean_content) > 0:
+                message_text = "> " + "\n> ".join(message.clean_content.split("\n"))
+            else:
+                message_text = ""
+            embeds = message.embeds
+            await ctx.send(message_text, embeds=embeds)
+            return
+        await ctx.send("No message found!")
 
     async def word_react(self, message: discord.Message, word: str):
         emojis = []
