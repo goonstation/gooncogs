@@ -159,12 +159,13 @@ class MessageCounter(commands.Cog):
         await ctx.message.add_reaction("\N{White Heavy Check Mark}")
 
     @commands.Cog.listener()
-    async def on_message_without_command(self, message: discord.Message):
+    async def on_message(self, message: discord.Message):
         if (
             message.guild is None
             or await self.bot.cog_disabled_in_guild(self, message.guild)
             or not hasattr(message.author, "roles")
             or message.author.bot
+            or message.content.find("messagestats")
         ):
             return
 
