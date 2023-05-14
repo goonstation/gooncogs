@@ -8,7 +8,7 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path
 from concurrent.futures.thread import ThreadPoolExecutor
-import youtube_dl
+import yt_dlp
 
 
 class LoudVideos(commands.Cog):
@@ -19,8 +19,8 @@ class LoudVideos(commands.Cog):
         self.FILE_SIZE_LIMIT = 15 * 1024 * 1024
         self.debug = False
 
-    @commands.command()
     @commands.is_owner()
+    @commands.command()
     async def toggle_loudvideo_debug(self, ctx: commands.Context):
         self.debug = not self.debug
         await ctx.send(f"Debug set to: {self.debug}")
@@ -53,12 +53,12 @@ class LoudVideos(commands.Cog):
                 file_path = str(file_path).split("?")[0][:64]
                 if "youtube" in url:
                     ydl_opts = {"format": "worst", "outtmpl": str(file_path)}
-                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(url, download=False)
                         filesize = min(
                             fmt["filesize"]
                             for fmt in info["formats"]
-                            if isinstance(fmt["filesize"], int)
+                            if isinstance(fmt.get("filesize", None), int)
                         )
                         if filesize > self.FILE_SIZE_LIMIT:
                             if self.debug:
