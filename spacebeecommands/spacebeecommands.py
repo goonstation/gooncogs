@@ -23,6 +23,51 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import yt_dlp
 import base64
 from PIL import Image
+import contextlib
+
+@contextlib.asynccontextmanager
+async def empty_context_manager():
+    yield
+
+class ConfirmView(discord.ui.View):
+    msg: discord.Message | None
+
+    def __init__(self, user: discord.User, callback: Callable):
+        super().__init__()
+        self.user = user
+        self.timeout = 10
+        self.msg = None
+        self.callback = callback
+
+    @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
+    async def button_yes(self, interaction: discord.Interaction, _: discord.ui.Button):
+        if self.msg is None:
+            return
+        if interaction.user != self.user:
+            await interaction.response.send_message("You do not have permissions to press that button!", ephemeral=True)
+            return
+        await self.msg.edit(view=None)
+        self.stop()
+        await self.callback(self.msg, interaction)
+        self.msg = None
+
+    @discord.ui.button(label="No", style=discord.ButtonStyle.red)
+    async def button_no(self, interaction: discord.Interaction, _: discord.ui.Button):
+        if self.msg is None:
+            return
+        if interaction.user != self.user:
+            await interaction.response.send_message("You do not have permissions to press that button!", ephemeral=True)
+            return
+        await self.msg.edit(content=f"~~{self.msg.content}~~", view=None, embed=None)
+        self.msg = None
+        self.stop()
+
+    async def on_timeout(self):
+        if self.msg is None:
+            return
+        await self.msg.edit(content=f"~~{self.msg.content}~~", view=None, embed=None)
+        self.stop()
+
 
 class SpacebeeCommands(commands.Cog):
     FILE_SIZE_LIMIT = 15 * 1024 * 1024
@@ -72,8 +117,8 @@ class SpacebeeCommands(commands.Cog):
     def ckeyify(self, text):
         return "".join(c.lower() for c in text if c.isalnum())
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def locate(self, ctx: commands.Context, *, who: str):
         """Locates a ckey on all servers."""
         who = self.ckeyify(who)
@@ -119,8 +164,8 @@ class SpacebeeCommands(commands.Cog):
         if not message:
             await ctx.send("No one found.")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def whois(self, ctx: commands.Context, server_id: str, *, query: str):
         """Looks for a person on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -160,8 +205,8 @@ class SpacebeeCommands(commands.Cog):
         else:
             await ctx.message.reply("No players.")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def ooc(self, ctx: commands.Context, server_id: str, *, message: str):
         """Sends an OOC message to a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -176,8 +221,8 @@ class SpacebeeCommands(commands.Cog):
             react_success=True,
         )
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def antags(self, ctx: commands.Context, server_id: str):
         """Lists antagonists on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -194,8 +239,8 @@ class SpacebeeCommands(commands.Cog):
         for page in pagify(self.format_whois(response)):
             await ctx.send(page)
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def ailaws(self, ctx: commands.Context, server_id: str):
         """Lists current AI laws on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -221,8 +266,8 @@ class SpacebeeCommands(commands.Cog):
         else:
             await ctx.send("Law data recieved in wrong format.")
 
-    @commands.command(aliases=["hcheck"])
     @checks.admin()
+    @commands.command(aliases=["hcheck"])
     async def scheck(self, ctx: commands.Context, server_id: str):
         """Checks server health of a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -250,8 +295,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             out += f"\n```{response['meminfo']}```"
         await ctx.send(out)
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def rev(self, ctx: commands.Context, server_id: str):
         """Checks code revision of a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -272,8 +317,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             + rev
         )
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def version(self, ctx: commands.Context, server_id: str):
         """Checks BYOND version of a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -291,8 +336,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             f"BYOND {response['major']}.{response['minor']}\nGoonhub: {response['goonhub_api']}"
         )
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def delay(self, ctx: commands.Context, server_id: str):
         """Delays a Goonstation round end."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -327,8 +372,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.send(response["msg"])
 
-    @commands.command()
     @checks.is_owner()
+    @commands.command()
     async def rickroll(self, ctx: commands.Context, server_id: str):
         """Test command to check if playing music works."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -345,7 +390,79 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.message.add_reaction("\N{FROG FACE}")
 
-    async def youtube_play(self, ctx, url, server_id):
+    async def youtube_search(self, query: str) -> Optional[tuple[str, str]]:
+        ydl_opts = {
+            "geo_bypass": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info("ytsearch:" + query, download=False)
+            if len(info.get('entries', [])) == 0:
+                return None
+            entry = info['entries'][0]
+            return (entry['title'], f"https://youtube.com/watch?v={entry['id']}")
+
+    @checks.admin()
+    @commands.command(rest_is_raw=True)
+    async def musicsearch(self, ctx: commands.Context, *, query: str):
+        data = await self.youtube_search(query)
+        if data is None:
+            await ctx.reply("No results found!")
+        else:
+            await ctx.send(data[0] + " - " + data[1])
+
+    @checks.admin()
+    @commands.command(rest_is_raw=True)
+    async def remotemusicsearch(
+            self, ctx: commands.Context, server_id: str, *, query: str
+    ):
+        """Search youtube for the given query and play that on a server. You will get a confirmation prompt."""
+        goonservers = self.bot.get_cog("GoonServers")
+        if not goonservers.resolve_server(server_id):
+            await ctx.reply(f"Server `{server_id}` not found")
+            return
+        query = query.strip()
+        if not query:
+            await ctx.reply("You need to provide a search query")
+            return
+        data = await self.youtube_search(query)
+        if data is None:
+            await ctx.reply("No results found!")
+        else:
+            assert isinstance(ctx.author, discord.User)
+            view = ConfirmView(ctx.author, lambda msg, interaction: self.youtube_play_and_confirm(ctx, data[1], server_id, msg, interaction))
+            msg = await ctx.send(data[0] + " - " + data[1], view=view)
+            view.msg = msg
+
+    async def youtube_play_and_confirm(
+            self, ctx: commands.Context, url: str, server_id: str,
+            additional_msg: Optional[discord.Message] = None,
+            interaction: Optional[discord.Interaction] = None
+        ):
+        if interaction is not None:
+            await interaction.response.defer(thinking=True)
+        async with ctx.typing() if interaction is None else empty_context_manager():
+            try:
+                response = await self.youtube_play(ctx, url, server_id)
+            except yt_dlp.utils.DownloadError as e:
+                if interaction is not None:
+                    await interaction.followup.send("YoutubeDL error: " + str(e))
+                else:
+                    await ctx.reply("YoutubeDL error: " + str(e))
+                return
+        if response:
+            if interaction is not None:
+                await interaction.followup.send("Done")
+            elif additional_msg:
+                await additional_msg.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            else:
+                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            if interaction is not None:
+                await interaction.followup.send("something went wrong")
+            else:
+                await ctx.reply("something went wrong")
+
+    async def youtube_play(self, ctx: commands.Context, url: str, server_id: str):
         generalapi = self.bot.get_cog("GeneralApi")
         file_folder = generalapi.static_path / "youtube"
         file_folder.mkdir(exist_ok=True)
@@ -410,8 +527,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return None
         return True
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def remotemusic(
         self, ctx: commands.Context, server_id: str, link: Optional[str]
     ):
@@ -439,6 +556,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if len(ctx.message.attachments) > 0:
             url = ctx.message.attachments[0].url
             filename = ctx.message.attachments[0].filename
+        assert filename is not None
         if not filename.endswith("mp3") and not filename.endswith("m4a"):
             await ctx.send(
                 "That's not an mp3 nor an m4a file so it'll likely not work. But gonna try anyway."
@@ -464,8 +582,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def medspeech(self, ctx: commands.Context, server_id: str, *, text: str):
         """Speech synthesis on a given Goonstation server."""
         generalapi = self.bot.get_cog("GeneralApi")
@@ -504,8 +622,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def admins(self, ctx: commands.Context, server_id: str):
         """Lists admins in a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -530,8 +648,8 @@ RTT: {elapsed * 1000:.2f}ms"""
         else:
             await ctx.message.reply("No admins.")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def mentors(self, ctx: commands.Context, server_id: str):
         """Lists mentors in a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -635,8 +753,8 @@ RTT: {elapsed * 1000:.2f}ms"""
                 embed.add_field(name=key, value=str(value))
         await ctx.send(embed=embed)
 
-    @commands.group(name="profiler")
     @checks.admin()
+    @commands.group(name="profiler")
     async def profiler(self, ctx: commands.Context):
         """Profile a game server."""
         pass
@@ -793,8 +911,8 @@ RTT: {elapsed * 1000:.2f}ms"""
         # prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
         # await ctx.send(file=prof_file)
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def canvas(self, ctx: commands.Context, server_id: str, *, canvas_name: str = 'centcom'):
         goonservers = self.bot.get_cog("GoonServers")
         request = {"type": "persistent_canvases"}
@@ -816,8 +934,8 @@ RTT: {elapsed * 1000:.2f}ms"""
         img_file = discord.File(io.BytesIO(data), filename="canvas.png")
         await ctx.send(file=img_file)
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def canvaslist(self, ctx: commands.Context, server_id: str):
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
