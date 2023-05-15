@@ -11,6 +11,7 @@ from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from redbot.core.utils.chat_formatting import pagify, box
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+from redbot.core.utils.views import SimpleMenu
 import json
 import re
 import time
@@ -30,45 +31,15 @@ import contextlib
 async def empty_context_manager():
     yield
 
-class ConfirmView(discord.ui.View):
-    msg: discord.Message | None
-
-    def __init__(self, user: discord.User, callback: Callable):
-        super().__init__()
-        self.user = user
-        self.timeout = 10
-        self.msg = None
-        self.callback = callback
-
-    @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
-    async def button_yes(self, interaction: discord.Interaction, _: discord.ui.Button):
-        if self.msg is None:
-            return
-        if interaction.user != self.user:
-            await interaction.response.send_message("You do not have permissions to press that button!", ephemeral=True)
-            return
-        await self.msg.edit(view=None)
-        self.stop()
-        await self.callback(self.msg, interaction)
-        self.msg = None
-
-    @discord.ui.button(label="No", style=discord.ButtonStyle.red)
-    async def button_no(self, interaction: discord.Interaction, _: discord.ui.Button):
-        if self.msg is None:
-            return
-        if interaction.user != self.user:
-            await interaction.response.send_message("You do not have permissions to press that button!", ephemeral=True)
-            return
-        await self.msg.edit(content=f"~~{self.msg.content}~~", view=None, embed=None)
-        self.msg = None
-        self.stop()
-
-    async def on_timeout(self):
-        if self.msg is None:
-            return
-        await self.msg.edit(content=f"~~{self.msg.content}~~", view=None, embed=None)
-        self.stop()
-
+class PlayMenu(SimpleMenu):
+    def __init__(self, play_callback, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.play_button = discord.ui.Button(
+            style = discord.ButtonStyle.green,
+            emoji = "\N{Black Right-Pointing Triangle with Double Vertical Bar}",
+            )
+        self.play_button.callback = play_callback
+        self.add_item(self.play_button)
 
 class SpacebeeCommands(commands.Cog):
     FILE_SIZE_LIMIT = 15 * 1024 * 1024
@@ -391,47 +362,77 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.message.add_reaction("\N{FROG FACE}")
 
-    async def youtube_search(self, query: str) -> Optional[tuple[str, str]]:
+    async def youtube_search(self, query: str, count: int = 1) -> list[tuple[str, str]]:
         ydl_opts = {
             "geo_bypass": True,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info("ytsearch:" + query, download=False)
-            if len(info.get('entries', [])) == 0:
-                return None
-            entry = info['entries'][0]
-            return (entry['title'], f"https://youtube.com/watch?v={entry['id']}")
+            info = await asyncio.get_running_loop().run_in_executor(
+                    self.executor, lambda: ydl.extract_info(f"ytsearch{count}:{query}", download=False)
+                )
+            return [(entry['title'], f"https://youtube.com/watch?v={entry['id']}") for entry in info['entries']]
 
-    @commands.command(rest_is_raw=True, aliases=["musicsearch"])
-    async def youtubesearch(self, ctx: commands.Context, *, query: str):
-        data = await self.youtube_search(query)
-        if data is None:
+    @commands.command(rest_is_raw=True, aliases=["musicsearch", "ytsearch"])
+    async def youtubesearch(self, ctx: commands.Context, *, query: str, count: int = 1):
+        """
+        Searches YouTube for a given phrase and shows results in a menu.
+
+        Examples:
+        `[p]youtubesearch foo bar` - shows one result
+        `[p]youtubesearch foo bar count=10` - shows 10 result in a paginated menu
+        `[p]youtubesearch count=10 foo bar` - does the same thing
+        """
+        await self.ytsearch_menu(ctx, query, count)
+
+    async def ytsearch_menu(self, ctx: commands.Context, query: str, count: int = 1, view_type: Callable[[list[str]], SimpleMenu] = SimpleMenu):
+        query_words = []
+        for word in query.split():
+            if word.startswith("count="):
+                try:
+                    count = int(word[6:])
+                except ValueError:
+                    await ctx.send("Invalid count")
+                    return
+            else:
+                query_words.append(word)
+        if count > 30:
+            await ctx.reply("Maximum count is 30")
+            return
+        elif count <= 0:
+            await ctx.reply("Count needs to be positive")
+            return
+        query = " ".join(query_words).strip()
+        if not query:
+            await ctx.reply("You need to provide a search query")
+            return
+        async with ctx.typing():
+            data = [f"{title} - {url}" for (title, url) in await self.youtube_search(query, count)]
+        if not data:
             await ctx.reply("No results found!")
         else:
-            await ctx.reply(data[0] + " - " + data[1])
+            view = view_type(data)
+            await view.start(ctx)
+            await view.wait()
 
     @checks.admin()
     @commands.command(rest_is_raw=True)
     async def remotemusicsearch(
             self, ctx: commands.Context, server_id: str, *, query: str
     ):
-        """Search youtube for the given query and play that on a server. You will get a confirmation prompt."""
+        """
+        Search youtube for the given query and play that on a server. You will get a confirmation prompt.
+
+        By default only the first result is shown. You can also include `count=10` etc. in the query to show more results in a paginated menu.
+        """
         goonservers = self.bot.get_cog("GoonServers")
         if not goonservers.resolve_server(server_id):
             await ctx.reply(f"Server `{server_id}` not found")
             return
-        query = query.strip()
-        if not query:
-            await ctx.reply("You need to provide a search query")
-            return
-        data = await self.youtube_search(query)
-        if data is None:
-            await ctx.reply("No results found!")
-        else:
-            assert isinstance(ctx.author, discord.User)
-            view = ConfirmView(ctx.author, lambda msg, interaction: self.youtube_play_and_confirm(ctx, data[1], server_id, msg, interaction))
-            msg = await ctx.send(data[0] + " - " + data[1], view=view)
-            view.msg = msg
+        async def callback(interaction: discord.Interaction):
+            await interaction.message.edit(view=None)
+            url = interaction.message.content.split(" - ")[-1]
+            await self.youtube_play_and_confirm(ctx, url, server_id=server_id, additional_msg=interaction.message)
+        await self.ytsearch_menu(ctx, query, view_type = lambda pages: PlayMenu(pages=pages, play_callback=callback))
 
     async def youtube_play_and_confirm(
             self, ctx: commands.Context, url: str, server_id: str,
