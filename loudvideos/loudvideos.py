@@ -124,7 +124,7 @@ class LoudVideos(commands.Cog):
                         f"{url}\nmean volume: {mean_volume} dB\nmax volume: {max_volume} dB"
                     )
         finally:
-            if file_path is not None:
+            if file_path is not None and os.path.exists(file_path):
                 os.remove(file_path)
 
     @commands.Cog.listener()
