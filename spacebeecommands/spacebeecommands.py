@@ -15,6 +15,7 @@ import json
 import re
 import time
 import io
+import os
 import datetime
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -401,14 +402,13 @@ RTT: {elapsed * 1000:.2f}ms"""
             entry = info['entries'][0]
             return (entry['title'], f"https://youtube.com/watch?v={entry['id']}")
 
-    @checks.admin()
-    @commands.command(rest_is_raw=True)
-    async def musicsearch(self, ctx: commands.Context, *, query: str):
+    @commands.command(rest_is_raw=True, aliases=["musicsearch"])
+    async def youtubesearch(self, ctx: commands.Context, *, query: str):
         data = await self.youtube_search(query)
         if data is None:
             await ctx.reply("No results found!")
         else:
-            await ctx.send(data[0] + " - " + data[1])
+            await ctx.reply(data[0] + " - " + data[1])
 
     @checks.admin()
     @commands.command(rest_is_raw=True)
@@ -472,9 +472,10 @@ RTT: {elapsed * 1000:.2f}ms"""
         else:
             file_name = self.ckeyify(file_name)
         tmp_file_name = file_name + ".webm"
-        play_file_name = file_name + ".webm.mp3"
+        play_file_name = file_name + ".mp3"
         tmp_file_path = file_folder / tmp_file_name
         play_file_path = file_folder / play_file_name
+        alt_play_file_path = file_folder / (tmp_file_name + ".mp3")
         info = None
         if not play_file_path.is_file():
             postprocessors = [
@@ -504,6 +505,8 @@ RTT: {elapsed * 1000:.2f}ms"""
                 await asyncio.get_running_loop().run_in_executor(
                     self.executor, ydl.download, [url]
                 )
+        if alt_play_file_path.is_file():
+            os.rename(alt_play_file_path, play_file_path)
         if not play_file_path.is_file():
             return None
         goonservers = self.bot.get_cog("GoonServers")
