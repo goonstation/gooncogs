@@ -868,6 +868,7 @@ class GoonMisc(commands.Cog):
         embed.add_field(name="hex", value=hexstr)
         embed.add_field(name="name", value=name)
         embed.add_field(name="rgb", value=self.format_triple(rgb))
+        embed.add_field(name="0-1 rgb", value=self.format_triple((rgb[0] / 255, rgb[1] / 255, rgb[2] / 255)))
         embed.add_field(name="hsv", value=self.format_triple(rgb_to_hsv(rgb)))
         embed.add_field(name="hsl", value=self.format_triple(rgb_to_hsl(rgb)))
         embed.set_thumbnail(url=f"https://www.colorhexa.com/{hexstr[1:]}.png")
