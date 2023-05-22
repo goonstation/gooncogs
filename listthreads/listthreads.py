@@ -95,9 +95,9 @@ class ListThreads(commands.Cog):
                 threads[channel] = found_threads
         message_lines = []
         for channel, ch_threads in threads.items():
-            message_lines.append(channel.mention)
+            message_lines.append(f"{channel.mention}")
             for thread in ch_threads:
-                thread_line = f" - {thread.name if with_names else ''}{thread.mention}"
+                thread_line = f"- {thread.name if with_names else ''}{thread.mention}"
                 if detailed:
                     if thread.archived: thread_line += "\N{derelict house building}"
                     if thread.locked: thread_line += "\N{lock}"
