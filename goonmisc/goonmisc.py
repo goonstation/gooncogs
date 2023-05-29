@@ -314,7 +314,6 @@ class GoonMisc(commands.Cog):
             for from_repl, to_repl in replacements:
                 if from_repl in part:
                     part = part.replace(from_repl, to_repl, 1)
-                    replacements.remove((from_repl, to_repl))
             for letter in part:
                 added = False
                 if alt_index[letter] == 0:
