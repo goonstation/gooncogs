@@ -355,6 +355,7 @@ class SpacebeeCentcom(commands.Cog):
         async def link(key: str, ckey: str, code: str, server=Depends(self.server_dep)):
             if "-" not in code:
                 return None
+            code = code.strip()
             user_id, verification = code.split("-")
             user_id = int(user_id)
             user = self.bot.get_user(user_id)
