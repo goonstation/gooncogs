@@ -232,7 +232,8 @@ class SpacebeeCommands(commands.Cog):
         out = response['laws']
         if isinstance(out, str):
             if out:
-                await ctx.send(out)
+                for page in pagify(out):
+                    await ctx.send(page)
             else:
                 await ctx.send("No law racks with connected silicons.")
         else:
