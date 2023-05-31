@@ -404,7 +404,7 @@ class GithubStuff(commands.Cog):
         """Displays PRs that have not yet been added to the wiki."""
         await self.issue_search_menu(
             ctx,
-            'type:pr is:merged label:"add to wiki"',
+            'type:pr is:merged label:"E-Add-To-Wiki"',
             "Nothing to add to the wiki, yay!",
             "PRs that are yet to be added to the wiki",
         )
