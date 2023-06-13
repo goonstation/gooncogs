@@ -359,6 +359,8 @@ class SpacebeeCentcom(commands.Cog):
             user_id, verification = code.split("-")
             user_id = int(user_id)
             user = self.bot.get_user(user_id)
+            if user is None:
+                return {"status": "error", "response": "Invalid user id part of the link code", "errormsg": f"Invalid link code user ID format '{code}'"}
             target_verif = await self.config.user(user).link_verification()
             if target_verif != verification:
                 return {"status": "error", "response": "Wrong link verification code", "errormsg": f"Invalid link code verification '{code}'"}
