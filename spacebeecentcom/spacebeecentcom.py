@@ -354,14 +354,14 @@ class SpacebeeCentcom(commands.Cog):
         @app.get("/link")
         async def link(key: str, ckey: str, code: str, server=Depends(self.server_dep)):
             if "-" not in code:
-                return None
+                return {"status": "error", "response": "Invalid format of the link code", "errormsg": f"Invalid link code format '{code}'"}
             code = code.strip()
             user_id, verification = code.split("-")
             user_id = int(user_id)
             user = self.bot.get_user(user_id)
             target_verif = await self.config.user(user).link_verification()
             if target_verif != verification:
-                return None
+                return {"status": "error", "response": "Wrong link verification code", "errormsg": f"Invalid link code verification '{code}'"}
             ckeys_linked_account = await self.config.custom("ckey", ckey).discord_id()
             if ckeys_linked_account:
                 try:
@@ -370,7 +370,7 @@ class SpacebeeCentcom(commands.Cog):
                     )
                 except:
                     pass
-                return
+                return {"status": "error", "response": "Your byond account is already linked to an account", "errormsg": f"User already linked"}
             await self.config.user(user).link_verification.set(None)
             await self.config.user(user).linked_ckey.set(ckey)
             await self.config.custom("ckey", ckey).discord_id.set(user_id)
