@@ -94,7 +94,7 @@ class WireCiEndpoint(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, 1482189223515)
-        self.config.register_global(channels={}, repo=None)
+        self.config.register_global(channels={}, repo=None, testmerge_channels={})
         self.rnd = random.Random()
         self.funny_messages = open(
             bundled_data_path(self) / "code_quality.txt"
@@ -387,6 +387,12 @@ class WireCiEndpoint(commands.Cog):
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @wireciendpoint.command()
+    async def setrepo(self, ctx: commands.Context, repo: str):
+        """Set GitHub repo for commit link purposes."""
+        await self.config.repo.set(repo)
+        await ctx.send(f"Repo set to `{repo}`.")
+
+    @wireciendpoint.command()
     async def addchannel(
         self, ctx: commands.Context, channel: Optional[discord.TextChannel]
     ):
@@ -398,12 +404,6 @@ class WireCiEndpoint(commands.Cog):
         await ctx.send(
             f"Channel {channel.mention} will now receive notifications about builds."
         )
-
-    @wireciendpoint.command()
-    async def setrepo(self, ctx: commands.Context, repo: str):
-        """Set GitHub repo for commit link purposes."""
-        await self.config.repo.set(repo)
-        await ctx.send(f"Repo set to `{repo}`.")
 
     @wireciendpoint.command()
     async def removechannel(
@@ -624,6 +624,7 @@ class WireCiEndpoint(commands.Cog):
             await ctx.send("Error: That is not a full commit hash.")
             return
         all_success = True
+        successful_servers = []
         for server in servers: 
             server_id = server.tgs
             url = tokens.get("ci_path") + f"/test-merges"
@@ -650,13 +651,32 @@ class WireCiEndpoint(commands.Cog):
                 else:
                     data = await res.json(content_type=None)
                     if data.get('success', None):
-                        pass
+                        successful_servers.append(server)
                     else:
                         all_success = False
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
         if all_success:
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
+        await self.testmerge_announce("\N{White Heavy Check Mark} **New** testmerge", pr=pr, servers=successful_servers, commit=commit)
+
+    async def testmerge_announce(self, message: str, pr: int, servers: List[Any], commit: Optional[str] = None):
+        channels = await self.config.testmerge_channels()
+        if not len(channels):
+            return
+        repo = await self.config.repo()
+        msg = message + "\n"
+        msg += f"https://github.com/{repo}/pull/{pr}\n"
+        if commit:
+            msg += f"on commit https://github.com/{repo}/pull/{pr}/commits/{commit}"
+        if len(servers):
+            msg += "on servers "
+            for server in servers:
+                msg += server.short_name + " "
+        for channel_id in channels:
+            channel = self.bot.get_channel(int(channel_id))
+            if channel:
+                await channel.send(msg)
 
     @testmerge.command()
     async def update(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
@@ -674,6 +694,7 @@ class WireCiEndpoint(commands.Cog):
             await ctx.send("Error: That is not a full commit hash.")
             return
         all_success = True
+        successful_servers = []
         for server in servers: 
             server_id = server.tgs
             url = tokens.get("ci_path") + f"/test-merges"
@@ -700,13 +721,14 @@ class WireCiEndpoint(commands.Cog):
                 else:
                     data = await res.json(content_type=None)
                     if data.get('success', None):
-                        pass
+                        successful_servers.append(server)
                     else:
                         all_success = False
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
         if all_success:
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
+        await self.testmerge_announce("\N{CLOCKWISE RIGHTWARDS AND LEFTWARDS OPEN CIRCLE ARROWS} **Updated** testmerge", pr=pr, servers=successful_servers, commit=commit)
 
     @testmerge.command()
     async def cancel(self, ctx: commands.Context, pr: int, server_name: Optional[str]):
@@ -721,6 +743,7 @@ class WireCiEndpoint(commands.Cog):
             await ctx.send("Unknown server.")
             return
         all_success = True
+        successful_servers = []
         for server in servers: 
             server_id = server.tgs
             url = tokens.get("ci_path") + f"/test-merges"
@@ -744,10 +767,48 @@ class WireCiEndpoint(commands.Cog):
                 else:
                     data = await res.json(content_type=None)
                     if data.get('success', None):
-                        pass
+                        successful_servers.append(server)
                     else:
                         all_success = False
                         await ctx.send(f"{server.short_name}: Unknown response: `{data}`")
         if all_success:
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
+        await self.testmerge_announce("\N{CROSS MARK} **Cancelled** testmerge", pr=pr, servers=successful_servers)
+
+    @testmerge.command()
+    async def addchannel(
+        self, ctx: commands.Context, channel: Optional[discord.TextChannel]
+    ):
+        """Subscribe a channel to receive testmerge updates."""
+        if channel is None:
+            channel = ctx.channel
+        async with self.config.testmerge_channels() as channels:
+            channels[str(channel.id)] = None
+        await ctx.send(
+            f"Channel {channel.mention} will now receive notifications about testmerges."
+        )
+
+    @testmerge.command()
+    async def removechannel(
+        self, ctx: commands.Context, channel: Optional[discord.TextChannel]
+    ):
+        """Unsubscribe a channel from testmerge updates."""
+        if channel is None:
+            channel = ctx.channel
+        async with self.config.testmerge_channels() as channels:
+            del channels[str(channel.id)]
+        await ctx.send(
+            f"Channel {channel.mention} will no longer receive notifications about testmerges."
+        )
+
+    @testmerge.command()
+    async def checkchannels(self, ctx: commands.Context):
+        """Check channels subscribed to testmerge updates."""
+        channel_ids = await self.config.testmerge_channels()
+        if not channel_ids:
+            await ctx.send("No channels.")
+        else:
+            await ctx.send(
+                "\n".join(self.bot.get_channel(int(ch)).mention for ch in channel_ids)
+            )
