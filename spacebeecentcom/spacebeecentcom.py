@@ -11,7 +11,6 @@ import re
 import secrets
 
 PLAYER_ROLE_ID = 182284445837950977
-PLEASE_LINK_ROLE_ID = 1095026412454424676
 GUILD_ID = 182249960895545344
 
 class SpacebeeCentcom(commands.Cog):
@@ -384,7 +383,6 @@ class SpacebeeCentcom(commands.Cog):
             member = guild.get_member(user_id)
             if member is not None:
                 await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
-                await member.remove_roles(guild.get_role(PLEASE_LINK_ROLE_ID))
             return self.SUCCESS_REPLY
 
     def ckeyify(self, text):
@@ -499,7 +497,6 @@ class SpacebeeCentcom(commands.Cog):
         member = guild.get_member(target.id)
         if member:
             await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
-            await member.remove_roles(guild.get_role(PLEASE_LINK_ROLE_ID))
         await ctx.send(msg)
 
     async def user_to_ckey(self, user):
