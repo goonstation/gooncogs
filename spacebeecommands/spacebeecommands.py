@@ -494,6 +494,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "outtmpl": str(tmp_file_path),
                 "postprocessors": postprocessors,
                 "max_filesize": self.FILE_SIZE_LIMIT,
+                "noplaylist": True,
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
