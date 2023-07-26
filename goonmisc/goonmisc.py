@@ -164,10 +164,10 @@ class GoonMisc(commands.Cog):
     async def get(self, ctx: commands.Context):
         """Posts current server logo."""
         if ctx.guild.icon:
-            fname = ctx.guild.icon_url._url.split("/")[-1]
+            fname = ctx.guild.icon.url.split("/")[-1]
             if "?" in fname:
                 fname = fname.split("?")[0]
-            data = await ctx.guild.icon_url.read()
+            data = await ctx.guild.icon.read()
             f = discord.File(io.BytesIO(data), fname)
             await ctx.send("Current logo:", file=f)
         else:
@@ -184,10 +184,10 @@ class GoonMisc(commands.Cog):
         guild = ctx.guild
         presets = await self.config.guild(guild).logos()
         if guild.icon:
-            fname = guild.icon_url._url.split("/")[-1]
+            fname = guild.icon.url.split("/")[-1]
             if "?" in fname:
                 fname = fname.split("?")[0]
-            data = await guild.icon_url.read()
+            data = await guild.icon.read()
             f = discord.File(io.BytesIO(data), fname)
             await ctx.send("Previous logo:", file=f)
         icon = None
