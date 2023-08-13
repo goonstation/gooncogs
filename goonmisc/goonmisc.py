@@ -919,7 +919,12 @@ class GoonMisc(commands.Cog):
 
     @commands.command()
     async def consultreadme(self, ctx: commands.Context):
-        """Shows boilerplate text reminding to follow the readme closely and not deviate"""
-        await ctx.send("Users are reminded that the official code guides and readmes exist for a *reason*, \
-and disregarding such advice as 'use visual studio code' will void any asking for help rights that you may own. \
- https://cdn.discordapp.com/attachments/890313890003566632/1075712022760652850/the_sign.png")
+        """Shows boilerplate text reminding to follow the readme closely"""
+        await ctx.send("The code guides and readmes exist for a *reason*, that being it's the easiest way to do things.\
+ Disregarding such advice as 'Use Visual Studio Code' will cause pain and suffering we're not responsible for. \
+ https://github.com/goonstation")
+
+    @commands.command()
+    async def questions(self, ctx: commands.Context):
+        """Links to a page about asking questions in #imcoder"""
+        await ctx.send("https://zewaka.webcam/questions")
