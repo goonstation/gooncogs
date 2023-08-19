@@ -345,23 +345,23 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.send(response["msg"])
 
-    @checks.is_owner()
+    @checks.admin()
     @commands.command()
-    async def rickroll(self, ctx: commands.Context, server_id: str):
-        """Test command to check if playing music works."""
+    async def recordscratch(self, ctx: commands.Context, server_id: str):
+        """Plays the record scratch sound on a given server (interrupts the previously playing sound as a side effect)."""
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
             server_id,
             {
                 "type": "youtube",
-                "data": '{"key":"Pali6","title":"test","duration":4,"file":"https://qoret.com/dl/uploads/2019/07/Rick_Astley_-_Never_Gonna_Give_You_Up_Qoret.com.mp3"}',
+                "data": f'{{"key":"{ctx.author.name}","title":"record scratch","duration":1,"file":"https://pali.link/misc/recordscratch.mp3"}}',
             },
             ctx,
             to_dict=True,
         )
         if response is None:
             return
-        await ctx.message.add_reaction("\N{FROG FACE}")
+        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     async def youtube_search(self, query: str, count: int = 1) -> list[tuple[str, str]]:
         ydl_opts = {
