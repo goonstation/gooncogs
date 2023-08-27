@@ -380,7 +380,7 @@ class SpacebeeCentcom(commands.Cog):
             except:
                 pass
             guild = self.bot.get_guild(GUILD_ID)
-            member = guild.get_member(user_id)
+            member = await guild.fetch_member(user_id)
             if member is not None:
                 await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
             return self.SUCCESS_REPLY
