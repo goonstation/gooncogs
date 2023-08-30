@@ -66,6 +66,7 @@ class TimeoutConfirm(discord.ui.View):
 class TimeoutSelf(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
+        self.max_timeout = datetime.timedelta(days=1):
 
     @commands.command(rest_is_raw=True)
     async def timeoutself(self, ctx: commands.Context, how_long: str):
@@ -93,6 +94,9 @@ class TimeoutSelf(commands.Cog):
         time = parse_simple_time_interval(how_long)
         if time.total_seconds() <= 0:
             await ctx.reply("Incorrect time interval specification. You want something like `3h 5m 2s`.")
+            return
+        if self.max_timeout is not None and time > self.max_timeout:
+            await ctx.reply(f"Maximum timeout length is {self.max_timeout}")
             return
         if time > datetime.timedelta(days=28):
             await ctx.reply("Discord doesn't allow timeouts longer than 28 days.")
