@@ -66,7 +66,7 @@ class TimeoutConfirm(discord.ui.View):
 class TimeoutSelf(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
-        self.max_timeout = datetime.timedelta(days=1):
+        self.max_timeout = datetime.timedelta(days=1)
 
     @commands.command(rest_is_raw=True)
     async def timeoutself(self, ctx: commands.Context, how_long: str):
