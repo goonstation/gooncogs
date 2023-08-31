@@ -7,6 +7,7 @@ from typing import *
 from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from github import Github
+import logging
 import re
 import secrets
 
@@ -383,6 +384,9 @@ class SpacebeeCentcom(commands.Cog):
             member = await guild.fetch_member(user_id)
             if member is not None:
                 await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
+                logging.info(f"Successfully added player role to {member.mention}")
+            else:
+                logging.info(f"Failed to add player role to {member.mention}")
             return self.SUCCESS_REPLY
 
     def ckeyify(self, text):
