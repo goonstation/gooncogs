@@ -149,7 +149,10 @@ class GithubStuff(commands.Cog):
         def flush_entry():
             nonlocal current_entry
             if current_entry is not None:
-                current_embed.add_field(name=current_entry[0], value=current_entry[1])
+                text = current_entry[1]
+                if len(text) > 1024:
+                   text = text[:1021] + "..."
+                current_embed.add_field(name=current_entry[0], value=text)
                 current_entry = None
 
         for line in lines:
