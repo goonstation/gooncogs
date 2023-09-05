@@ -16,7 +16,7 @@ class InlineCommands(commands.Cog):
             return None
         potential_alias = command.split(" ")[0]
         msg = copy(message)
-        msg.content = command
+        msg.content = prefix + command
         # accessing private variables, sue me!
         alias = await alias_cog._aliases.get_alias(message.guild, potential_alias)
         if alias:
