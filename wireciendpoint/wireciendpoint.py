@@ -116,6 +116,7 @@ class WireCiEndpoint(commands.Cog):
             message: str
             commit: str
             server: str
+            cancelled: bool
             error: Optional[str]
             mapSwitch: int
             mergeConflicts: list[dict]
@@ -146,7 +147,12 @@ class WireCiEndpoint(commands.Cog):
                 embed = None
                 goonservers = self.bot.get_cog("GoonServers")
                 server = goonservers.resolve_server(data.server)
-                if clean_success:
+                if data.cancelled:
+                    commit_message = data.message
+                    if "\n" in commit_message:
+                        commit_message = commit_message.split("\n")[0]
+                    message = f"**CANCELLED** __{data.branch}__ on {server.short_name} \N{cross mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
+                elif clean_success:
                     commit_message = data.message
                     if "\n" in commit_message:
                         commit_message = commit_message.split("\n")[0]
@@ -287,14 +293,19 @@ class WireCiEndpoint(commands.Cog):
             goonservers = self.bot.get_cog("GoonServers")
             message = [f"Max compile jobs: {data.get('maxCompileJobs', 'N/A')}"]
             current_jobs = data.get("currentCompileJobs", [])
+            def servname(sid):
+                server = goonservers.resolve_server(sid)
+                if server:
+                    return server.short_name
+                return "Unknown server " + sid
             if not current_jobs:
                 message.append("No jobs currently running")
             else:
                 message.append(
                     f"Currently compiling: "
                     + ", ".join(
-                        goonservers.resolve_server(sid).short_name
-                        for sid in current_jobs
+                        servname(sid)
+                        for sid in current_jobs if sid is not None
                     )
                 )
             queued_jobs = data.get("queuedJobs", [])
@@ -304,8 +315,8 @@ class WireCiEndpoint(commands.Cog):
                 message.append(
                     f"Queued: "
                     + ", ".join(
-                        goonservers.resolve_server(sid).short_name
-                        for sid in queued_jobs
+                        servname(sid)
+                        for sid in queued_jobs if sid is not None
                     )
                 )
             await ctx.send("\n".join(message))
@@ -333,6 +344,49 @@ class WireCiEndpoint(commands.Cog):
                 },
                 json={"server": server_id},
             ) as res:
+                if res.status != 200:
+                    for page in pagify(
+                        f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
+                    ):
+                        await ctx.send(page)
+                    success = False
+                    continue
+                data = await res.json(content_type=None)
+                if not data.get("success"):
+                    await ctx.send(
+                        f"`{server_id}`: Idk what happened: `{await res.text()}`"
+                    )
+                    success = False
+        if success:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+
+    @wireciendpoint.command()
+    async def cancel(self, ctx: commands.Context, *, server_name: str):
+        """Cancel a CI build."""
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        url = tokens.get("ci_path") + "/cancel"
+        api_key = tokens.get("outgoing_api_key")
+        goonservers = self.bot.get_cog("GoonServers")
+        servers = set()
+        for server_name in server_name.split():
+            servers |= set(goonservers.resolve_server_or_category(server_name))
+        if not servers:
+            await ctx.send("Unknown server.")
+            return
+        success = True
+        for server in servers:
+            server_id = server.tgs
+            async with self.session.post(
+                url,
+                headers={
+                    "Api-Key": api_key,
+                },
+                json={"server": server_id},
+            ) as res:
+                if res.status == 404:
+                    await ctx.send(f"`{server_id}`: Build not found")
+                    success = False
+                    continue
                 if res.status != 200:
                     for page in pagify(
                         f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
@@ -730,8 +784,8 @@ class WireCiEndpoint(commands.Cog):
             await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
         await self.testmerge_announce("\N{CLOCKWISE RIGHTWARDS AND LEFTWARDS OPEN CIRCLE ARROWS} **Updated** testmerge", pr=pr, servers=successful_servers, commit=commit)
 
-    @testmerge.command()
-    async def cancel(self, ctx: commands.Context, pr: int, server_name: Optional[str]):
+    @testmerge.command(name="cancel")
+    async def tm_cancel(self, ctx: commands.Context, pr: int, server_name: Optional[str]):
         """Cancels a given testmerge on a given server or globally."""
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
         api_key = tokens.get("outgoing_api_key")
