@@ -293,18 +293,21 @@ class WireCiEndpoint(commands.Cog):
             goonservers = self.bot.get_cog("GoonServers")
             message = [f"Max compile jobs: {data.get('maxCompileJobs', 'N/A')}"]
             current_jobs = data.get("currentCompileJobs", [])
-            def servname(sid):
-                server = goonservers.resolve_server(sid)
+            def servinfo(servdata):
+                server = goonservers.resolve_server(servdata['serverId'])
+                servname = None
                 if server:
-                    return server.short_name
-                return "Unknown server " + sid
+                    servname = server.short_name
+                else:
+                    servname = "Unknown server " + servdata['serverId']
+                return f"__{servname}__ ({servdata['build']['currentBranch']})"
             if not current_jobs:
                 message.append("No jobs currently running")
             else:
                 message.append(
                     f"Currently compiling: "
                     + ", ".join(
-                        servname(sid)
+                        servinfo(sid)
                         for sid in current_jobs if sid is not None
                     )
                 )
@@ -315,7 +318,7 @@ class WireCiEndpoint(commands.Cog):
                 message.append(
                     f"Queued: "
                     + ", ".join(
-                        servname(sid)
+                        servinfo(sid)
                         for sid in queued_jobs if sid is not None
                     )
                 )
