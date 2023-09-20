@@ -152,6 +152,7 @@ class WireCiEndpoint(commands.Cog):
                     if "\n" in commit_message:
                         commit_message = commit_message.split("\n")[0]
                     message = f"**CANCELLED** __{data.branch}__ on {server.short_name} \N{cross mark} `{data.commit[:7]}` by {data.author}: `{commit_message}`"
+                    success = False
                 elif clean_success:
                     commit_message = data.message
                     if "\n" in commit_message:
@@ -166,6 +167,7 @@ class WireCiEndpoint(commands.Cog):
                         msg.channel.last_message_id == msg.id
                         for msg in self.processed_successful_commits[data.commit]
                     ):
+                        new_processed_commits = []
                         for msg in self.processed_successful_commits[data.commit]:
                             first_part, second_part = msg.content.split(
                                 "\N{WHITE HEAVY CHECK MARK}"
@@ -177,7 +179,8 @@ class WireCiEndpoint(commands.Cog):
                                 + " \N{WHITE HEAVY CHECK MARK}"
                                 + second_part
                             )
-                            await msg.edit(content=message)
+                            new_processed_commits.append(await msg.edit(content=message))
+                        self.processed_successful_commits[data.commit] = new_processed_commits
                         return
                 else:
                     embed = discord.Embed()
