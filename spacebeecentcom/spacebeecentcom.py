@@ -7,6 +7,7 @@ from typing import *
 from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from github import Github
+from collections import OrderedDict
 import logging
 import re
 import secrets
@@ -23,6 +24,7 @@ class SpacebeeCentcom(commands.Cog):
         "linked_ckey": None,
         "link_verification": None,
     }
+    MAX_CACHE_LENGTH = 2000
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -32,6 +34,8 @@ class SpacebeeCentcom(commands.Cog):
         self.config.register_user(**self.default_user_settings)
         self.config.register_custom("ckey", discord_id=None)
         self.gh = None
+        self.id_to_messages = OrderedDict()
+        self.message_to_id = OrderedDict()
 
     async def init(self):
         self.gh = Github((await self.bot.get_shared_api_tokens("github")).get("token"))
@@ -73,13 +77,42 @@ class SpacebeeCentcom(commands.Cog):
         embed.set_footer(text=f"{server_name} {embed_tag}")
         return embed
 
-    async def discord_broadcast(self, channels, *args, exception=None, **kwargs):
+    async def discord_broadcast(self,
+            channels,
+            *args,
+            exception=None,
+            reply_message_list=None,
+            reply_message_id=None,
+            msgid=None,
+            **kwargs
+        ):
+        channel_to_reply_message = {}
+        if reply_message_id is not None and reply_message_id in self.id_to_messages:
+            reply_message_list = self.id_to_messages[reply_message_id]
+        if reply_message_list is not None:
+            for message in reply_message_list:
+                channel_to_reply_message[message.channel.id] = message
+        async def task(ch):
+            reply_message = channel_to_reply_message.get(ch, None)
+            return await self.bot.get_channel(ch).send(*args, **kwargs, reference=reply_message)
         tasks = [
-            self.bot.get_channel(ch).send(*args, **kwargs)
+            task(ch)
             for ch in channels
             if ch != exception
         ]
-        await asyncio.gather(*tasks)
+        messages = await asyncio.gather(*tasks)
+        if msgid:
+            self.id_to_messages[msgid] = list(messages)
+            for message in messages:
+                self.message_to_id[message] = msgid
+            if len(self.id_to_messages) > self.MAX_CACHE_LENGTH:
+                new_size = self.MAX_CACHE_LENGTH // 2
+                for _ in range(new_size):
+                    self.id_to_messages.popitem(last=False)
+                new_message_to_id_size = len(self.message_to_id) // 2
+                for _ in range(new_message_to_id_size):
+                    self.message_to_id.popitem(last=False)
+        return messages
 
     async def discord_broadcast_ahelp(
         self,
@@ -92,6 +125,8 @@ class SpacebeeCentcom(commands.Cog):
         to_name=None,
         exception=None,
         url=None,
+        msgid=None,
+        reply_message_id=None,
     ):
         embed_tag = "ADMINPM" if to_key is not None else "ADMINHELP"
         embed = self.make_message_embed(
@@ -107,7 +142,7 @@ class SpacebeeCentcom(commands.Cog):
         )
         if hasattr(channels, "channels"):
             channels = channels.channels["ahelp"]
-        await self.discord_broadcast(channels, embed=embed, exception=exception)
+        await self.discord_broadcast(channels, embed=embed, exception=exception, msgid=msgid, reply_message_id=reply_message_id)
 
     async def discord_broadcast_mhelp(
         self,
@@ -119,6 +154,8 @@ class SpacebeeCentcom(commands.Cog):
         to_key=None,
         to_name=None,
         exception=None,
+        msgid=None,
+        reply_message_id=None,
     ):
         embed_tag = "MENTORPM" if to_key is not None else "MENTORHELP"
         embed = self.make_message_embed(
@@ -133,7 +170,7 @@ class SpacebeeCentcom(commands.Cog):
         )
         if hasattr(channels, "channels"):
             channels = channels.channels["mhelp"]
-        await self.discord_broadcast(channels, embed=embed, exception=exception)
+        await self.discord_broadcast(channels, embed=embed, exception=exception, msgid=msgid, reply_message_id=reply_message_id)
 
     async def discord_broadcast_asay(
         self, channels, server_name, from_key, from_name, source, msg, exception=None
@@ -272,10 +309,12 @@ class SpacebeeCentcom(commands.Cog):
             name: str,
             msg: str,
             log_link: Optional[str] = None,
+            msgid: Optional[str] = None,
+            previous_msgid: Optional[str] = None,
             server=Depends(self.server_dep),
         ):
             await self.discord_broadcast_ahelp(
-                server.subtype, server.full_name, key, name, msg, url=log_link
+                server.subtype, server.full_name, key, name, msg, url=log_link, msgid=msgid, reply_message_id=previous_msgid
             )
             return self.SUCCESS_REPLY
 
@@ -286,19 +325,26 @@ class SpacebeeCentcom(commands.Cog):
             key2: str,
             name2: str,
             msg: str,
+            msgid: Optional[str] = None,
+            previous_msgid: Optional[str] = None,
             server=Depends(self.server_dep),
         ):
             await self.discord_broadcast_ahelp(
-                server.subtype, server.full_name, key, name, msg, key2, name2
+                server.subtype, server.full_name, key, name, msg, key2, name2, msgid=msgid, reply_message_id=previous_msgid
             )
             return self.SUCCESS_REPLY
 
         @app.get("/mentorhelp")
         async def mentorhelp(
-            key: str, name: str, msg: str, server=Depends(self.server_dep)
+            key: str,
+            name: str,
+            msg: str,
+            msgid: Optional[str] = None,
+            previous_msgid: Optional[str] = None,
+            server=Depends(self.server_dep)
         ):
             await self.discord_broadcast_mhelp(
-                server.subtype, server.full_name, key, name, msg
+                server.subtype, server.full_name, key, name, msg, msgid=msgid, reply_message_id=previous_msgid
             )
             return self.SUCCESS_REPLY
 
@@ -309,10 +355,12 @@ class SpacebeeCentcom(commands.Cog):
             key2: str,
             name2: str,
             msg: str,
+            msgid: Optional[str] = None,
+            previous_msgid: Optional[str] = None,
             server=Depends(self.server_dep),
         ):
             await self.discord_broadcast_mhelp(
-                server.subtype, server.full_name, key, name, msg, key2, name2
+                server.subtype, server.full_name, key, name, msg, key2, name2, msgid=msgid, reply_message_id=previous_msgid
             )
             return self.SUCCESS_REPLY
 
@@ -531,7 +579,7 @@ class SpacebeeCentcom(commands.Cog):
         return goonservers_cog.resolve_server(server_id)
 
     async def check_and_send_message(
-        self, type, message: discord.Message, server_id, data
+            self, type, message: discord.Message, server_id, data, replied_to_msg: Optional[discord.Message] = None
     ):
         goonservers = self.bot.get_cog("GoonServers")
         server = goonservers.resolve_server(server_id)
@@ -541,6 +589,10 @@ class SpacebeeCentcom(commands.Cog):
         if message.channel.id not in server.subtype.channels[type]:
             await message.reply("Wrong channel.")
             return False
+        msgid = "Discord " + str(message.id)
+        if type in ["ahelp", "mhelp"]:
+            data["msgid"] = msgid
+        previous_msgid = self.message_to_id.get(replied_to_msg, None)
         response = await goonservers.send_to_server_safe(
             server, data, message, to_dict=True
         )
@@ -559,6 +611,8 @@ class SpacebeeCentcom(commands.Cog):
                     response["key2"],
                     response["name2"],
                     exception=message.channel.id,
+                    msgid=msgid,
+                    reply_message_id=previous_msgid,
                 )
             elif type == "mhelp":
                 await self.discord_broadcast_mhelp(
@@ -570,6 +624,8 @@ class SpacebeeCentcom(commands.Cog):
                     response["key2"],
                     response["name2"],
                     exception=message.channel.id,
+                    msgid=msgid,
+                    reply_message_id=previous_msgid,
                 )
             elif type == "asay":
                 await self.discord_broadcast_asay(
@@ -581,6 +637,9 @@ class SpacebeeCentcom(commands.Cog):
                     response["msg"],
                     exception=message.channel.id,
                 )
+            if type in ["ahelp", "mhelp"]:
+                self.message_to_id[message] = msgid
+                self.id_to_messages[msgid].append(message)
             return True
         return False
 
@@ -738,6 +797,7 @@ class SpacebeeCentcom(commands.Cog):
                 "msg": message.content,
                 "target": target,
             },
+            replied_to_msg=replied_to_msg,
         )
 
     @commands.Cog.listener()
