@@ -284,6 +284,15 @@ class WireCiEndpoint(commands.Cog):
             "map_switch_builds": 0,
             "average_build_duration": 0
         }
+        def fmt_stat(key, value):
+            readable_key = key.replace('_', ' ')
+            readable_value = value
+            if key == "average_build_duration":
+                secs = value / 1000
+                minutes = int(secs // 60)
+                secs = secs % 60
+                readable_value = f"{minutes}:{int(secs)}"
+            return readable_key, readable_value
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
         url = tokens.get("ci_path") + "/stats"
         api_key = tokens.get("outgoing_api_key")
@@ -300,7 +309,11 @@ class WireCiEndpoint(commands.Cog):
                     await ctx.send(page)
                 return
             data = await res.json(content_type=None)
-            await ctx.reply("\n".join(f"{key.replace('_', ' ')}: {value}" for key, value in data.items()))
+            embed = discord.Embed(title="CI Stats", color=await ctx.embed_colour())
+            for key, value in data.items():
+                rkey, rvalue = fmt_stat(key, value)
+                embed.add_field(name=rkey, value=rvalue)
+            await ctx.reply(embed=embed)
 
 
     @wireciendpoint.command(aliases=["check"])
