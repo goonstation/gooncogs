@@ -274,6 +274,35 @@ class WireCiEndpoint(commands.Cog):
         """Manage Wire's CI system."""
         pass
 
+    @wireciendpoint.command()
+    async def stats(self, ctx: commands.Context):
+        """Check stats of CI builds."""
+        {
+            "successful_builds": 0,
+            "cancelled_builds": 0,
+            "failed_builds": 0,
+            "map_switch_builds": 0,
+            "average_build_duration": 0
+        }
+        tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
+        url = tokens.get("ci_path") + "/stats"
+        api_key = tokens.get("outgoing_api_key")
+        async with self.session.get(
+            url,
+            headers={
+                "Api-Key": api_key,
+            },
+        ) as res:
+            if res.status != 200:
+                for page in pagify(
+                    f"Server responded with an error code {res.status}: `{await res.text()}`"
+                ):
+                    await ctx.send(page)
+                return
+            data = await res.json(content_type=None)
+            await ctx.reply("\n".join(f"{key.replace('_', ' ')}: {value}" for key, value in data.items()))
+
+
     @wireciendpoint.command(aliases=["check"])
     async def status(self, ctx: commands.Context):
         """Check status of CI builds."""
@@ -297,13 +326,14 @@ class WireCiEndpoint(commands.Cog):
             message = [f"Max compile jobs: {data.get('maxCompileJobs', 'N/A')}"]
             current_jobs = data.get("currentCompileJobs", [])
             def servinfo(servdata):
-                server = goonservers.resolve_server(servdata['serverId'])
+                servid = servdata if isinstance(servdata, str) else servdata['serverId']
+                server = goonservers.resolve_server(servid)
                 servname = None
                 if server:
                     servname = server.short_name
                 else:
-                    servname = "Unknown server " + servdata['serverId']
-                return f"__{servname}__ ({servdata['build']['currentBranch']})"
+                    servname = "Unknown server " + servid
+                return f"__{servname}__"# ({servdata['build']['currentBranch']})"
             if not current_jobs:
                 message.append("No jobs currently running")
             else:
