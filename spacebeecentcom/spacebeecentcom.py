@@ -1,6 +1,8 @@
 import asyncio
 import discord
+import datetime
 from redbot.core import commands, Config, checks, app_commands
+from redbot.core.utils.chat_formatting import pagify
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
@@ -25,6 +27,7 @@ class SpacebeeCentcom(commands.Cog):
         "link_verification": None,
     }
     MAX_CACHE_LENGTH = 2000
+    REPLIED_TO_EMOJI = "\N{CLOSED MAILBOX WITH LOWERED FLAG}"
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -36,6 +39,7 @@ class SpacebeeCentcom(commands.Cog):
         self.gh = None
         self.id_to_messages = OrderedDict()
         self.message_to_id = OrderedDict()
+        self.initiating_messages = OrderedDict()
 
     async def init(self):
         self.gh = Github((await self.bot.get_shared_api_tokens("github")).get("token"))
@@ -77,6 +81,20 @@ class SpacebeeCentcom(commands.Cog):
         embed.set_footer(text=f"{server_name} {embed_tag}")
         return embed
 
+    async def is_initiating_message(self, message: discord.Message):
+        if len(message.embeds) == 0:
+            return False
+        embed = message.embeds[0]
+        if not isinstance(embed.footer.text, str):
+            return False
+        msg_type = embed.footer.text.split()[-1]
+        return msg_type in ["MENTORHELP", "ADMINHELP"] 
+
+    async def mark_initiating_message_reply(self, message: discord.Message):
+        await message.add_reaction(self.REPLIED_TO_EMOJI)
+        if message.id in self.initiating_messages:
+            del self.initiating_messages[message.id]
+
     async def discord_broadcast(self,
             channels,
             *args,
@@ -94,7 +112,10 @@ class SpacebeeCentcom(commands.Cog):
                 channel_to_reply_message[message.channel.id] = message
         async def task(ch):
             reply_message = channel_to_reply_message.get(ch, None)
-            return await self.bot.get_channel(ch).send(*args, **kwargs, reference=reply_message)
+            result_msg = await self.bot.get_channel(ch).send(*args, **kwargs, reference=reply_message)
+            if reply_message and await self.is_initiating_message(reply_message):
+                await self.mark_initiating_message_reply(reply_message)
+            return result_msg
         tasks = [
             task(ch)
             for ch in channels
@@ -105,6 +126,8 @@ class SpacebeeCentcom(commands.Cog):
             self.id_to_messages[msgid] = list(messages)
             for message in messages:
                 self.message_to_id[message] = msgid
+                if await self.is_initiating_message(message):
+                    self.initiating_messages[message.id] = message
             if len(self.id_to_messages) > self.MAX_CACHE_LENGTH:
                 new_size = self.MAX_CACHE_LENGTH // 2
                 for _ in range(new_size):
@@ -112,6 +135,10 @@ class SpacebeeCentcom(commands.Cog):
                 new_message_to_id_size = len(self.message_to_id) // 2
                 for _ in range(new_message_to_id_size):
                     self.message_to_id.popitem(last=False)
+            if len(self.initiating_messages) > self.MAX_CACHE_LENGTH:
+                new_size = self.MAX_CACHE_LENGTH // 2
+                for _ in range(new_size):
+                    self.initiating_messages.popitem(last=False)
         return messages
 
     async def discord_broadcast_ahelp(
@@ -737,6 +764,41 @@ class SpacebeeCentcom(commands.Cog):
         )
         return True
 
+    @commands.command()
+    async def unanswered(self, ctx: commands.Context):
+        """
+        Lists unanswered messages in this channel in reverse chronological order.
+
+        You can react with \N{CLOSED MAILBOX WITH LOWERED FLAG} manually to a message to mark
+        it as resolved. Only messages from last 24 hours or since last bot restart are displayed.
+        """
+        author_ckey = await self.get_ckey(ctx.author)
+        if author_ckey is None:
+            await ctx.reply("Your account needs to be linked to use this")
+            return
+        goonservers = self.bot.get_cog("GoonServers")
+        if ctx.channel.id not in goonservers.valid_channels:
+            await ctx.reply("Wrong channel.")
+            return False
+        unanswered_list = []
+        for msg in reversed(self.initiating_messages.values()):
+            if (datetime.datetime.now().replace(tzinfo=None) - msg.created_at.replace(tzinfo=None)) > datetime.timedelta(days = 1):
+                break
+            if await self.is_initiating_message(msg) and not any(react.emoji == self.REPLIED_TO_EMOJI for react in msg.reactions):
+                unanswered_list.append(msg)
+        def format_msg(msg):
+            msg_text = ""
+            if len(msg.embeds) > 0:
+                msg_text = msg.embeds[0].description
+                if len(msg_text) > 100:
+                    msg_text = msg_text[:97] + "..."
+            return msg.jump_url + " " + msg_text
+        if len(unanswered_list) == 0:
+            await ctx.reply("No unanswered messages!")
+        else:
+            for page in pagify("\n".join(format_msg(msg) for msg in unanswered_list)):
+                await ctx.reply(page)
+
     async def process_discord_replies(self, message: discord.Message):
         reference = message.reference
         if reference is None:
@@ -787,6 +849,9 @@ class SpacebeeCentcom(commands.Cog):
             await message.reply("Your account needs to be linked to use this")
             return
 
+        if await self.is_initiating_message(replied_to_msg):
+            await self.mark_initiating_message_reply(replied_to_msg)
+
         await self.check_and_send_message(
             channel_type,
             message,
@@ -826,3 +891,8 @@ class SpacebeeCentcom(commands.Cog):
             import traceback
 
             await self.bot.send_to_owners(traceback.format_exc())
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
+        if str(payload.emoji) == self.REPLIED_TO_EMOJI and payload.message_id in self.initiating_messages:
+            del self.initiating_messages[payload.message_id]
