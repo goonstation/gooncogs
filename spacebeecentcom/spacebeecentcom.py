@@ -784,7 +784,9 @@ class SpacebeeCentcom(commands.Cog):
         for msg in reversed(self.initiating_messages.values()):
             if (datetime.datetime.now().replace(tzinfo=None) - msg.created_at.replace(tzinfo=None)) > datetime.timedelta(days = 1):
                 break
-            if await self.is_initiating_message(msg) and not any(react.emoji == self.REPLIED_TO_EMOJI for react in msg.reactions):
+            if await self.is_initiating_message(msg) and \
+                    not any(react.emoji == self.REPLIED_TO_EMOJI for react in msg.reactions) and \
+                    msg.channel == ctx.channel:
                 unanswered_list.append(msg)
         def format_msg(msg):
             msg_text = ""
