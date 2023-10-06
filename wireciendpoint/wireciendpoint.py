@@ -136,17 +136,23 @@ class WireCiEndpoint(commands.Cog):
                 channels = await self.config.channels()
                 if not len(channels):
                     return
+                data.server = data.server.strip()
+                goonservers = self.bot.get_cog("GoonServers")
+                server = goonservers.resolve_server(data.server)
+                if data.message is None:
+                    message = f"**ERROR**: {server.short_name}\n```\n{data.error}\n```"
+                    for channel_id in channels:
+                        channel = self.bot.get_channel(int(channel_id))
+                        msg = await channel.send(message)
+                    return
                 data.last_compile = data.last_compile.strip()
                 data.branch = data.branch.strip()
                 data.author = data.author.strip()
                 data.message = data.message.strip()
                 data.commit = data.commit.strip()
-                data.server = data.server.strip()
                 repo = await self.config.repo()
                 message = ""
                 embed = None
-                goonservers = self.bot.get_cog("GoonServers")
-                server = goonservers.resolve_server(data.server)
                 if data.cancelled:
                     commit_message = data.message
                     if "\n" in commit_message:
