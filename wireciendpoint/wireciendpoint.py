@@ -110,16 +110,16 @@ class WireCiEndpoint(commands.Cog):
     def register_to_general_api(self, app):
         class BuildFinishedModel(BaseModel):
             api_key: str
-            last_compile: str
-            branch: str
-            author: str
-            message: str
-            commit: str
+            last_compile: Optional[str]
+            branch: Optional[str]
+            author: Optional[str]
+            message: Optional[str]
+            commit: Optional[str]
             server: str
-            cancelled: bool
+            cancelled: Optional[bool]
             error: Union[bool,str]
-            mapSwitch: int
-            mergeConflicts: list[dict]
+            mapSwitch: Optional[int]
+            mergeConflicts: Optional[list[dict]]
 
         @app.post("/wireci/build_finished")
         async def build_finished(data: BuildFinishedModel):
