@@ -11,10 +11,13 @@ from typing import *
 import re
 import time
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from uvicorn import Server, Config
 from redbot.core.data_manager import cog_data_path, bundled_data_path
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 
 class GeneralApi(commands.Cog):
@@ -45,6 +48,13 @@ class GeneralApi(commands.Cog):
         self.sf = StaticFiles(directory=str(cog_data_path(self) / "static"))
         self.app.mount("/static", self.sf, name="static")
         self.static_path = static_path
+
+        @self.app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+            exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+            logging.error("422 Unprocessable entitity: " + exc_str)
+            content = {'status_code': 10422, 'message': exc_str, 'data': None}
+            return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     @commands.command()
     @checks.is_owner()
