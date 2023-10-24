@@ -117,7 +117,7 @@ class WireCiEndpoint(commands.Cog):
             commit: str
             server: str
             cancelled: bool
-            error: Optional[str]
+            error: Union[bool,str]
             mapSwitch: int
             mergeConflicts: list[dict]
 
@@ -131,7 +131,7 @@ class WireCiEndpoint(commands.Cog):
                     ]
                 ):
                     return
-                success = data.error is None
+                success = not bool(data.error)
                 clean_success = success and not data.mergeConflicts
                 channels = await self.config.channels()
                 if not len(channels):
@@ -140,7 +140,10 @@ class WireCiEndpoint(commands.Cog):
                 goonservers = self.bot.get_cog("GoonServers")
                 server = goonservers.resolve_server(data.server)
                 if data.message is None:
-                    message = f"**ERROR**: {server.short_name}\n```\n{data.error}\n```"
+                    error_message = data.error
+                    if error_message == True:
+                        error_message = "unknown error"
+                    message = f"**ERROR**: {server.short_name}\n```\n{error_message}\n```"
                     for channel_id in channels:
                         channel = self.bot.get_channel(int(channel_id))
                         msg = await channel.send(message)
@@ -200,15 +203,12 @@ class WireCiEndpoint(commands.Cog):
                     )
                     embed.description = f"```\n{data.last_compile}\n```"
                     if not success:
-                        error_message = data.error
-                        if not error_message:
-                            embed.description += "\nUnknown error"
-                        elif error_message.lower() == "true":
+                        if data.error == True:
                             pass
                         elif "\n" in error_message.strip():
-                            embed.description += f"\nError:\n```{error_message}```"
+                            embed.description += f"\nError:\n```{data.error}```"
                         else:
-                            embed.description += f"\nError: `{error_message.strip()}`"
+                            embed.description += f"\nError: `{data.error.strip()}`"
                     embed.timestamp = datetime.datetime.utcnow()
                     embed.set_image(
                         url=f"https://opengraph.githubassets.com/1/{repo}/commit/{data.commit}"
@@ -219,7 +219,9 @@ class WireCiEndpoint(commands.Cog):
                     )
                     embed.add_field(name="message", value=data.message)
                     embed.add_field(name="author", value=data.author)
-                    embed.add_field(name="merge conflicts", value=f"{data.mergeConflicts}")
+                    if len(data.mergeConflicts) != 0:
+                        merge_conflict_text = "\n".join(f" - [{c['prId']}](https://github.com/{repo}/pull/{c['prId']}): {c['files']}" for c in data.mergeConflicts)
+                        embed.add_field(name="merge conflicts", value=merge_conflict_text)
                     embed.set_footer(
                         text="Code quality: " + await self.funny_message(data.commit)
                     )
