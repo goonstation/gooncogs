@@ -23,6 +23,9 @@ import random
 from bisect import bisect
 from itertools import accumulate
 import aiohttp
+from github import Github
+
+TM_LABEL = "S-Testmerged"
 
 EMOJI_RANGES_UNICODE = {
     6: [
@@ -106,6 +109,18 @@ class WireCiEndpoint(commands.Cog):
 
     def cog_unload(self):
         asyncio.create_task(self.session.close())
+
+    async def run_with_github(self, github_fn, ctx = None):
+        github_keys = await self.bot.get_shared_api_tokens("github")
+        token = None
+        if github_keys.get("token") is None:
+            if ctx: await ctx.send("The GitHub token needs to be set!")
+            return None
+        token = github_keys.get("token")
+        github = Github(token)
+        return await asyncio.get_running_loop().run_in_executor(
+            None, github_fn, github
+        )
 
     def register_to_general_api(self, app):
         class BuildFinishedModel(BaseModel):
@@ -720,6 +735,16 @@ class WireCiEndpoint(commands.Cog):
                 await ctx.send("\n".join(pr_links))
 
     @testmerge.command()
+    async def bingus(self, ctx: commands.Context, pr: int):
+        repo_name = await self.config.repo()
+        def apply_label(github: Github):
+            repo = github.get_repo(repo_name)
+            pr_obj = repo.get_pull(pr)
+            label = repo.get_label(TM_LABEL)
+            pr_obj.add_to_labels(label)
+        await self.run_with_github(apply_label, ctx)
+
+    @testmerge.command()
     async def merge(self, ctx: commands.Context, pr: int, server_name: Optional[str], commit: Optional[str]):
         """Testmerges a given PR number at the latest or given GitHub commit to a given server or globally."""
         tokens = await self.bot.get_shared_api_tokens("wireciendpoint")
@@ -770,6 +795,14 @@ class WireCiEndpoint(commands.Cog):
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
         await self.testmerge_announce("\N{White Heavy Check Mark} **New** testmerge", pr=pr, servers=successful_servers, commit=commit)
+
+        repo_name = await self.config.repo()
+        def apply_label(github: Github):
+            repo = github.get_repo(repo_name)
+            pr_obj = repo.get_pull(pr)
+            label = repo.get_label(TM_LABEL)
+            pr_obj.add_to_labels(label)
+        await self.run_with_github(apply_label, ctx)
 
     async def testmerge_announce(self, message: str, pr: int, servers: List[Any], commit: Optional[str] = None):
         channels = await self.config.testmerge_channels()
@@ -886,6 +919,14 @@ class WireCiEndpoint(commands.Cog):
             await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
             await ctx.send("Success - note that this does not retrigger a build. Consider using `]ci build`.")
         await self.testmerge_announce("\N{CROSS MARK} **Cancelled** testmerge", pr=pr, servers=successful_servers)
+
+        repo_name = await self.config.repo()
+        def remove_label(github: Github):
+            repo = github.get_repo(repo_name)
+            pr_obj = repo.get_pull(pr)
+            label = repo.get_label(TM_LABEL)
+            pr_obj.remove_from_labels(label)
+        await self.run_with_github(remove_label, ctx)
 
     @testmerge.command()
     async def addchannel(
