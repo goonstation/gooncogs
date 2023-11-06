@@ -24,6 +24,7 @@ from bisect import bisect
 from itertools import accumulate
 import aiohttp
 from github import Github
+from github.GithubException import GithubException
 
 TM_LABEL = "S-Testmerged"
 
@@ -925,7 +926,11 @@ class WireCiEndpoint(commands.Cog):
             repo = github.get_repo(repo_name)
             pr_obj = repo.get_pull(pr)
             label = repo.get_label(TM_LABEL)
-            pr_obj.remove_from_labels(label)
+            try:
+                pr_obj.remove_from_labels(label)
+            except GithubException as e:
+                if e.data['message'] != "Label does not exist":
+                    raise e
         await self.run_with_github(remove_label, ctx)
 
     @testmerge.command()
