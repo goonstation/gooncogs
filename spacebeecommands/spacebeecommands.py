@@ -26,6 +26,7 @@ import yt_dlp
 import base64
 from PIL import Image
 import contextlib
+import xattr
 
 @contextlib.asynccontextmanager
 async def empty_context_manager():
@@ -465,6 +466,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                 await ctx.reply("something went wrong")
 
     async def youtube_play(self, ctx: commands.Context, url: str, server_id: str):
+        url = url.lstrip("<").rstrip(">")
         generalapi = self.bot.get_cog("GeneralApi")
         file_folder = generalapi.static_path / "youtube"
         file_folder.mkdir(exist_ok=True)
@@ -486,6 +488,9 @@ RTT: {elapsed * 1000:.2f}ms"""
                     "preferredcodec": "mp3",
                     "preferredquality": "8",
                     "nopostoverwrites": False,
+                },
+                {
+                    "key": "XAttrMetadata",
                 }
             ]
             ydl_opts = {
@@ -512,6 +517,12 @@ RTT: {elapsed * 1000:.2f}ms"""
             os.rename(alt_play_file_path, play_file_path)
         if not play_file_path.is_file():
             return None
+        title = info["title"] if info else None
+        if title is None:
+            try:
+                title = xattr.getxattr(str(play_file_path), "user.dublincore.title").decode("utf8")
+            except:
+                title = file_name
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
             server_id,
@@ -522,7 +533,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                         "key": ctx.message.author.name + " (Discord)",
                         "file": f"https://medass.pali.link/static/youtube/{play_file_name}",
                         "duration": "?",
-                        "title": info["title"] if info else file_name,
+                        "title": title,
                     }
                 ),
             },
