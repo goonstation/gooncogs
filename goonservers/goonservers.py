@@ -11,6 +11,7 @@ import datetime
 import random
 from collections import OrderedDict
 import functools
+import json
 
 
 class UnknownServerError(Exception):
@@ -277,8 +278,14 @@ class GoonServers(commands.Cog):
             result["error"] = "Invalid server response."
             return result
         status = worldtopic.params_to_dict(response)
+        if len(response) < 20 or ("players" in status and len(status["players"]) > 5):
+            response = await worldtopic.send((server.host, server.port), "status&format=json")
+            status = json.loads(response)
         result["station_name"] = status.get("station_name")
-        result["players"] = int(status["players"]) if "players" in status else None
+        try:
+            result["players"] = int(status["players"]) if "players" in status else None
+        except ValueError:
+            result["players"] = None
         result["map"] = status.get("map_name")
         result["mode"] = status.get("mode")
         result["time"] = self.status_format_elapsed(status)
