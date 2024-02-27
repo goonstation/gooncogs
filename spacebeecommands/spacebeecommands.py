@@ -748,9 +748,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         embed.add_field(name="rounds joined (total)", value=data.pop("participated"))
         embed.add_field(name="rounds joined (rp)", value=data.pop("participated_rp"))
         if "playtime" in data:
-            playtime_seconds = int(json.loads(data["playtime"])[0]["time_played"])
-            data.pop("playtime")
-            time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
+            time_played = goonservers.seconds_to_hhmmss(data.pop("playtime"))
             embed.add_field(name="time played", value=time_played)
         if admin:
             last_seen_data = data.pop("last_seen")
