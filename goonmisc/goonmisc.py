@@ -235,9 +235,13 @@ class GoonMisc(commands.Cog):
             if len(message.clean_content) > 0:
                 message_text = "> " + "\n> ".join(message.clean_content.split("\n"))
             else:
-                message_text = ""
+                message_text = "[no text]"
             embeds = message.embeds
-            await ctx.send(message_text, embeds=embeds)
+            attachments = message.attachments
+            files = []
+            for attachment in attachments:
+                files.append(await attachment.to_file())
+            await ctx.send(message_text, embeds=embeds, files=files)
             return
         await ctx.send("No message found!")
 
