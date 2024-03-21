@@ -27,12 +27,19 @@ class InlineCommands(commands.Cog):
         if message.author.bot:
             return
         tasks = []
+        prefixes = await self.bot.get_prefix(message)
+        prefix = None
+        if isinstance(prefix, list):
+            prefix = prefixes[0]
+        else:
+            prefix = prefixes
+            prefixes = [prefix]
+        for prefix in prefixes:
+            if message.content.startswitch(prefix):
+                return
         for command in re.findall(r"\[(.*?)\]", message.content):
             if not command:
                 continue
-            prefix = await self.bot.get_prefix(message)
-            if isinstance(prefix, list):
-                prefix = prefix[0]
             msg = copy(message)
             msg.content = prefix + command
             new_ctx = await self.bot.get_context(msg)
