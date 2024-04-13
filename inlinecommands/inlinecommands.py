@@ -29,7 +29,7 @@ class InlineCommands(commands.Cog):
         tasks = []
         prefixes = await self.bot.get_prefix(message)
         prefix = None
-        if isinstance(prefix, list):
+        if isinstance(prefixes, list):
             prefix = prefixes[0]
         else:
             prefix = prefixes
