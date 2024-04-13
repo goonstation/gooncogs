@@ -12,6 +12,7 @@ import random
 from collections import OrderedDict
 import functools
 import json
+import aiohttp
 
 
 class UnknownServerError(Exception):
@@ -454,7 +455,19 @@ class GoonServers(commands.Cog):
     async def _check_gimmick_goonstation(self, ctx: commands.Context):
         return f"Goonstation: dead, sorry, go home."
 
+    async def _check_gimmick_goonhub(self, ctx: commands.Context):
+        URL = "https://goonhub.com"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.head(URL) as response:
+                    if response.status < 400:
+                        return "https://goonhub.com is online, yay"
+        except aiohttp.ClientError:
+            pass
+        return "https://goonhub.com is offline, oh no"
+
     CHECK_GIMMICKS = {
         "oven": _check_gimmick_oven,
         "goonstation": _check_gimmick_goonstation,
+        "goonhub": _check_gimmick_goonhub,
     }
