@@ -35,7 +35,7 @@ class InlineCommands(commands.Cog):
             prefix = prefixes
             prefixes = [prefix]
         for prefix in prefixes:
-            if message.content.startswitch(prefix):
+            if message.content.startswith(prefix):
                 return
         for command in re.findall(r"\[(.*?)\]", message.content):
             if not command:
