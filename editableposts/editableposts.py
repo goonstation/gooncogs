@@ -90,7 +90,7 @@ class EditablePosts(commands.Cog):
                 await self.config.custom("editable_posts").all()
             ).items():
                 channel = self.bot.get_channel(data["channel"])
-                if channel.guild != ctx.guild or not data["editable"]:
+                if channel is None or channel.guild != ctx.guild or not data["editable"]:
                     continue
                 message = None
                 try:
