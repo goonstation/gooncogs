@@ -307,7 +307,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if response is None:
             return
         await ctx.send(
-            f"BYOND {response['major']}.{response['minor']}\nGoonhub: {response['goonhub_api']}"
+            f"BYOND {response.get('major', 'N/A')}.{response.get('minor', 'N/A')}\nGoonhub: {response.get('goonhub_api', 'N/A')}"
         )
 
     @checks.admin()
