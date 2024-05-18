@@ -943,7 +943,7 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         data = json.loads(response)
         if not isinstance(data, dict) or canvas_name not in data:
-            await ctx.send(f"Canvas not found. Run `]canvas_list {server_id}` to see existing canvases.")
+            await ctx.send(f"Canvas not found. Run `]canvaslist {server_id}` to see existing canvases.")
             return
         data = base64.b64decode(data[canvas_name])
         img_file = discord.File(io.BytesIO(data), filename="canvas.png")
