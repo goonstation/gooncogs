@@ -20,7 +20,9 @@ class NightshadeWhitelist(commands.Cog):
         self.cached_whitelist_txt = None
         self.config = Config.get_conf(self, identifier=32578896542315)
         self.config.register_global(fixed_ckeys=[])
+        self.config.init_custom("ckey", 1)
         self.config.register_user(ckey=None)
+        self.config.register_custom("ckey", discord_id=None)
 
     async def get_whitelist_txt(self):
         if self.cached_whitelist_txt is not None:
@@ -47,6 +49,14 @@ class NightshadeWhitelist(commands.Cog):
         subtype = goonservers.subtypes["nightshade"]
         return await goonservers.send_to_servers(subtype.servers, data)
 
+    @checks.is_owner()
+    @commands.command()
+    async def nightshaderebuildinversedb(self, ctx: commands.Context):
+        for user_id, data in (await self.config.all_users()).items():
+            if data.get("ckey"):
+                await self.config.custom("ckey", data.get("ckey")).discord_id.set(int(user_id))
+        await ctx.reply("done")
+
     @commands.command()
     async def ss13link(self, ctx: commands.Context, *, ckey: str):
         """Links your account to a BYOND username to whitelist you on the Nightshade SS13 servers."""
@@ -58,6 +68,7 @@ class NightshadeWhitelist(commands.Cog):
             return
         ckey = "".join(c.lower() for c in ckey if c.isalnum())
         await self.config.user(ctx.author).ckey.set(ckey)
+        await self.config.custom("ckey", ckey).discord_id.set(int(ctx.author.id))
         self.invalidate_whitelist_cache()
         await ctx.send(f"You are now whitelisted as ckey '{ckey}'.")
         await self.send_to_nightshade(
@@ -75,6 +86,7 @@ class NightshadeWhitelist(commands.Cog):
         if current_ckey is None:
             await ctx.send(f"You don't have a ckey bound to your account.")
             return
+        await self.config.custom("ckey", current_ckey).discord_id.set(None)
         await self.config.user(ctx.author).ckey.set(None)
         self.invalidate_whitelist_cache()
         await ctx.send(
