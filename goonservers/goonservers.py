@@ -467,15 +467,15 @@ class GoonServers(commands.Cog):
         return "https://goonhub.com is offline, oh no"
 
     async def _check_gimmick_byond(self, ctx: commands.Context):
-        URL = "https://byond.com"
+        URL = "http://www.byond.com/download/build"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.head(URL) as response:
                     if response.status < 400:
-                        return "https://byond.com is online, yay"
+                        return "http://www.byond.com is online, yay"
         except aiohttp.ClientError:
             pass
-        return "https://byond.com is offline, oh no"
+        return "http://www.byond.com is offline, oh no"
 
     CHECK_GIMMICKS = {
         "oven": _check_gimmick_oven,
