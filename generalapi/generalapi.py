@@ -40,11 +40,8 @@ class GeneralApi(commands.Cog):
             allow_headers=["*"],
         )
 
-
         static_path = cog_data_path(self) / "static"
         static_path.mkdir(parents=True, exist_ok=True)
-        self.sf = StaticFiles(directory=str(cog_data_path(self) / "static"))
-        self.app.mount("/static", self.sf, name="static")
         self.static_path = static_path
 
         self.rebuild_api_paths()
@@ -61,6 +58,8 @@ class GeneralApi(commands.Cog):
         for cog in self.bot.cogs.values():
             if hasattr(cog, "register_to_general_api"):
                 cog.register_to_general_api(self.app)
+        self.sf = StaticFiles(directory=str(self.static_path))
+        self.app.mount("/static", self.sf, name="static")
 
     @commands.command()
     @checks.is_owner()
