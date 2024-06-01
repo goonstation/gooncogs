@@ -790,7 +790,7 @@ class SpacebeeCentcom(commands.Cog):
                 unanswered_list.append(msg)
         def format_msg(msg):
             msg_text = ""
-            if len(msg.embeds) > 0:
+            if len(msg.embeds) > 0 and msg.embeds[0].description:
                 msg_text = msg.embeds[0].description
                 if len(msg_text) > 100:
                     msg_text = msg_text[:97] + "..."
