@@ -328,7 +328,7 @@ class WireCiEndpoint(commands.Cog):
         ) as res:
             if res.status != 200:
                 for page in pagify(
-                    f"Server responded with an error code {res.status}: `{await res.text()}`"
+                    f"Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                 ):
                     await ctx.send(page)
                 return
@@ -354,7 +354,7 @@ class WireCiEndpoint(commands.Cog):
         ) as res:
             if res.status != 200:
                 for page in pagify(
-                    f"Server responded with an error code {res.status}: `{await res.text()}`"
+                    f"Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                 ):
                     await ctx.send(page)
                 return
@@ -419,7 +419,7 @@ class WireCiEndpoint(commands.Cog):
             ) as res:
                 if res.status != 200:
                     for page in pagify(
-                        f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
+                        f"`{server_id}`: Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                     ):
                         await ctx.send(page)
                     success = False
@@ -427,7 +427,7 @@ class WireCiEndpoint(commands.Cog):
                 data = await res.json(content_type=None)
                 if not data.get("success"):
                     await ctx.send(
-                        f"`{server_id}`: Idk what happened: `{await res.text()}`"
+                        f"`{server_id}`: Idk what happened: `{(await res.text())[:100]}`"
                     )
                     success = False
         if success:
@@ -462,7 +462,7 @@ class WireCiEndpoint(commands.Cog):
                     continue
                 if res.status != 200:
                     for page in pagify(
-                        f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
+                        f"`{server_id}`: Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                     ):
                         await ctx.send(page)
                     success = False
@@ -470,7 +470,7 @@ class WireCiEndpoint(commands.Cog):
                 data = await res.json(content_type=None)
                 if not data.get("success"):
                     await ctx.send(
-                        f"`{server_id}`: Idk what happened: `{await res.text()}`"
+                        f"`{server_id}`: Idk what happened: `{(await res.text())[:100]}`"
                     )
                     success = False
         if success:
@@ -499,7 +499,7 @@ class WireCiEndpoint(commands.Cog):
             ) as res:
                 if res.status != 200:
                     for page in pagify(
-                        f"`{server_id}`: Server responded with an error code {res.status}: `{await res.text()}`"
+                        f"`{server_id}`: Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                     ):
                         await ctx.send(page)
                     success = False
@@ -507,7 +507,7 @@ class WireCiEndpoint(commands.Cog):
                 data = await res.json(content_type=None)
                 if not data.get("success"):
                     await ctx.send(
-                        f"`{server_id}`: Idk what happened: `{await res.text()}`"
+                        f"`{server_id}`: Idk what happened: `{(await res.text())[:100]}`"
                     )
                     success = False
         if success:
@@ -579,7 +579,7 @@ class WireCiEndpoint(commands.Cog):
                 },
             ) as res:
                 if res.status != 200:
-                    msgs_per_server[server].append(f"error code {res.status}: `{await res.text()}`")
+                    msgs_per_server[server].append(f"error code {res.status}: `{(await res.text())[:100]}`")
                     continue
                 data = await res.json(content_type=None)
                 old_branch = data.get('branch', "unknown?")
@@ -599,7 +599,7 @@ class WireCiEndpoint(commands.Cog):
                         msgs_per_server[server].append(data['error'])
                         continue
                     elif res.status != 200:
-                        msgs_per_server[server].append(f"error code {res.status}: `{await res.text()}`")
+                        msgs_per_server[server].append(f"error code {res.status}: `{(await res.text())[:100]}`")
                         continue
                     data = await res.json(content_type=None)
                     msgs_per_server[server].append(f"branch changed from `{old_branch}` to `{new_branch}`")
@@ -652,7 +652,7 @@ class WireCiEndpoint(commands.Cog):
         ) as res:
             if res.status != 200:
                 for page in pagify(
-                    f"Server responded with an error code {res.status}: `{await res.text()}`"
+                    f"Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                 ):
                     await ctx.send(page)
             data = await res.json(content_type=None)
@@ -782,7 +782,7 @@ class WireCiEndpoint(commands.Cog):
             ) as res:
                 if res.status != 200:
                     for page in pagify(
-                            f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
+                            f"{server.short_name}: Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                     ):
                         await ctx.send(page)
                         all_success = False
@@ -860,7 +860,7 @@ class WireCiEndpoint(commands.Cog):
             ) as res:
                 if res.status != 200:
                     for page in pagify(
-                            f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
+                            f"{server.short_name}: Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                     ):
                         await ctx.send(page)
                         all_success = False
@@ -906,7 +906,7 @@ class WireCiEndpoint(commands.Cog):
             ) as res:
                 if res.status != 200:
                     for page in pagify(
-                            f"{server.short_name}: Server responded with an error code {res.status}: `{await res.text()}`"
+                            f"{server.short_name}: Server responded with an error code {res.status}: `{(await res.text())[:100]}`"
                     ):
                         await ctx.send(page)
                         all_success = False
