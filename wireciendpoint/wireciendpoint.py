@@ -671,7 +671,7 @@ class WireCiEndpoint(commands.Cog):
                     pr_info['updated_at'] = datetime.datetime.fromisoformat(pr_info['updated_at'])
                 def similar(a, b):
                     if isinstance(a, datetime.date) and isinstance(b, datetime.date):
-                        return abs((a - b).total_seconds()) <= 30
+                        return abs((a - b).total_seconds()) <= 60 * 30
                     else:
                         return a == b
                 if mod_data and all(similar(mod_data[-1][key], pr_info[key]) for key in pr_info if key != 'server'):
@@ -708,7 +708,7 @@ class WireCiEndpoint(commands.Cog):
                     if pr_info['updated_at']:
                         text_to_add += f" on <t:{int(pr_info['updated_at'].timestamp())}:f>"
                     text_to_add += "\n"
-                if current_embed_size + len(text_to_add) >= 5000:
+                if current_embed_size + len(text_to_add) >= 4000:
                     pages.append(current_embed)
                     current_embed_size = 0
                     current_embed = None
@@ -719,6 +719,7 @@ class WireCiEndpoint(commands.Cog):
                             description = "",
                         )
                     current_embed_size += len(current_embed.title)
+                current_embed_size += len(text_to_add)
                 current_embed.description += text_to_add
             if current_embed:
                 pages.append(current_embed)
