@@ -8,9 +8,12 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import requests
 import random
 import math
+import pprint
 
 
 class GithubStuff(commands.Cog):
+    gh: Github
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=825749154751274)
@@ -18,6 +21,7 @@ class GithubStuff(commands.Cog):
             repo=None,
             branch="master",
             changelog_path=None,
+            admin_changelog_path=None,
         )
         self.gh = None
 
@@ -43,6 +47,18 @@ class GithubStuff(commands.Cog):
         else:
             await ctx.send(
                 f"Current changelog path is '{await self.config.changelog_path()}'"
+            )
+
+    @github.command(name="set_admin_changelog")
+    @commands.is_owner()
+    async def _set_admin_changelog(self, ctx: commands.Context, changelog: Optional[str]):
+        """Get or set current admin changelog path."""
+        if changelog:
+            await self.config.admin_changelog_path.set(changelog)
+            await ctx.send(f"Admin changelog path set to '{changelog}'")
+        else:
+            await ctx.send(
+                f"Current changelog path is '{await self.config.admin_changelog_path()}'"
             )
 
     @github.command(name="repo")
@@ -107,9 +123,16 @@ class GithubStuff(commands.Cog):
 
     @github.command()
     async def changelog(self, ctx: commands.Context):
+        await self._changelog(ctx, await self.config.changelog_path())
+
+    @github.command()
+    async def adminchangelog(self, ctx: commands.Context):
+        await self._changelog(ctx, await self.config.admin_changelog_path())
+
+    async def _changelog(self, ctx: commands.Context, path: str):
         """Shows a fancy paginated menu view of the changelog."""
         content = (await self.repo).get_contents(
-            await self.config.changelog_path(), ref=await self.config.branch()
+            path, ref=await self.config.branch()
         )
         content_text = content.decoded_content.decode("utf8")
         content_text = "\n" + content_text.strip()
@@ -126,7 +149,10 @@ class GithubStuff(commands.Cog):
         def flush_entry():
             nonlocal current_entry
             if current_entry is not None:
-                current_embed.add_field(name=current_entry[0], value=current_entry[1])
+                text = current_entry[1]
+                if len(text) > 1024:
+                   text = text[:1021] + "..."
+                current_embed.add_field(name=current_entry[0], value=text)
                 current_entry = None
 
         for line in lines:
@@ -249,7 +275,7 @@ class GithubStuff(commands.Cog):
         await ctx.send(f"{issue.html_url}\n**#{issue.number}** {issue.title}")
 
     async def issue_search_menu(
-        self, ctx: commands.Context, query, empty_message="No results", title=""
+            self, ctx: commands.Context, query: str, empty_message="No results", title="", max_results=100
     ):
         embeds = []
         query += " repo:" + await self.config.repo()
@@ -262,8 +288,10 @@ class GithubStuff(commands.Cog):
             )
             descs = []
             current_desc = ""
-            for pull in results:
+            for i, pull in enumerate(results):
                 line = f"[**#{pull.number}** {pull.title}]({pull.html_url})"
+                if i >= max_results:
+                    line += "\n[further results omitted, make your query more specific]"
                 if len(line) > 4000:
                     line = line[:4000] + "..."
                 if len(line) + len(current_desc) > 4000:
@@ -271,6 +299,8 @@ class GithubStuff(commands.Cog):
                     current_desc = line
                 else:
                     current_desc += "\n" + line
+                if i >= max_results:
+                    break
             if current_desc:
                 descs.append(current_desc)
             if not descs:
@@ -293,6 +323,9 @@ class GithubStuff(commands.Cog):
     async def prs(self, ctx: commands.Context, *, query: str):
         """Searches PRs."""
         query = query.strip()
+        if not query.strip():
+            await ctx.send("You need to enter a search query")
+            return
         await self.issue_search_menu(
             ctx, query + " is:pr", title=f"PRs matching '{query}'"
         )
@@ -301,6 +334,9 @@ class GithubStuff(commands.Cog):
     async def issues(self, ctx: commands.Context, *, query: str):
         """Searches issues."""
         query = query.strip()
+        if not query.strip():
+            await ctx.send("You need to enter a search query")
+            return
         await self.issue_search_menu(
             ctx, query + " is:issue", title=f"Issues matching '{query}'"
         )
@@ -309,8 +345,11 @@ class GithubStuff(commands.Cog):
     async def commits(self, ctx: commands.Context, *, query: str):
         """Searches commits."""
         query = query.strip()
+        if not query.strip():
+            await ctx.send("You need to enter a search query")
+            return
         embeds = []
-        MAX_PAGES = 10
+        MAX_PAGES = 4
         query += " repo:" + await self.config.repo()
         async with ctx.typing():
             results = self.gh.search_commits(query, sort="author-date", order="desc")
@@ -368,7 +407,14 @@ class GithubStuff(commands.Cog):
         """Displays PRs that have not yet been added to the wiki."""
         await self.issue_search_menu(
             ctx,
-            'type:pr is:merged label:"add to wiki"',
+            'type:pr is:merged label:"E-Add-To-Wiki"',
             "Nothing to add to the wiki, yay!",
             "PRs that are yet to be added to the wiki",
         )
+
+    @github.command()
+    @commands.is_owner()
+    async def ratelimit(self, ctx: commands.Context):
+        """Displays GitHub API rate limit information."""
+        data = self.gh.get_rate_limit()
+        await ctx.send("```py\n" + pprint.pformat(data) + "\n```")

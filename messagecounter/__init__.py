@@ -1,5 +1,5 @@
 from redbot.core.bot import Red
 from .messagecounter import MessageCounter
 
-def setup(bot: Red):
-    bot.add_cog(MessageCounter(bot))
+async def setup(bot: Red):
+    await bot.add_cog(MessageCounter(bot))

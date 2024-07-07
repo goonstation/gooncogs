@@ -22,7 +22,7 @@ class GoonHub(commands.Cog):
         self.session = aiohttp.ClientSession()
 
     def cog_unload(self):
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     def country_to_emoji(self, country):
         if country and len(country) == 2:
@@ -152,7 +152,7 @@ class GoonHub(commands.Cog):
         if len(target_ckey) and target_ckey[0] == "!":
             exact = True
             target_ckey = target_ckey[1:]
-        with ctx.typing():
+        async with ctx.typing():
             data = await self.query_user_search(target_ckey, exact)
             if not isinstance(data, list):
                 await ctx.send(f"Error code {data.status} occured when querying the API")
@@ -170,6 +170,8 @@ class GoonHub(commands.Cog):
                 try:
                     ip_info = geolite2.lookup(info['ip'])
                 except ValueError:
+                    pass
+                except TypeError:
                     pass
                 recorded_date = datetime.datetime.fromisoformat(info['recorded'])
                 recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
@@ -230,10 +232,15 @@ class GoonHub(commands.Cog):
     async def addnote(self, ctx: commands.Context, ckey: str, *, note: str):
         ckey = self.ckeyify(ckey)
         data = None
+        spacebeecentcomcog = self.bot.get_cog("SpacebeeCentcom")
+        author_ckey = await spacebeecentcomcog.get_ckey(ctx.author)
+        if author_ckey is None:
+            await ctx.reply("Your account needs to be linked to use this")
+            return
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['playernotes_api_key']
-        url = f"{tokens['playernotes_url']}/?auth={api_key}&action=add&format=json&server_id=Discord&server=0&ckey={ckey}&akey={ctx.author.name} (Discord)&note={note}"
-        with ctx.typing():
+        url = f"{tokens['playernotes_url']}/?auth={api_key}&action=add&format=json&server_id=Discord&server=0&ckey={ckey}&akey={author_ckey}&note={note}"
+        async with ctx.typing():
             async with self.session.get(url) as res:
                 if res.status != 200:
                     await ctx.message.reply(f"Error code {res.status} occured when querying the API")
@@ -253,7 +260,7 @@ class GoonHub(commands.Cog):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['playernotes_api_key']
         url = f"{tokens['playernotes_url']}/?auth={api_key}&action=get&format=json&ckey={ckey}"
-        with ctx.typing():
+        async with ctx.typing():
             async with self.session.get(url) as res:
                 if res.status != 200:
                     await ctx.message.reply(f"Error code {res.status} occured when querying the API")

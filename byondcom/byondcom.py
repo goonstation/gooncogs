@@ -20,7 +20,7 @@ class ByondCom(commands.Cog):
         self.session = aiohttp.ClientSession()
 
     def cog_unload(self):
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     @checks.admin()
     @commands.command(aliases=["byondinfo"])
@@ -85,6 +85,10 @@ class ByondCom(commands.Cog):
     @checks.admin()
     @commands.command()
     async def otherserversplayed(self, ctx: commands.Context, ckey):
+        await ctx.reply(f"You need to check this manually here: https://crawler.station13.ru/?ckey={ckey}")
+
+    # disabled due to Cloudflare blocking bot access
+    async def otherserversplayed_disabled(self, ctx: commands.Context, ckey):
         url = "https://crawler.station13.ru/api/?ckey=" + ckey
         output = []
         async with self.session.get(url) as res:

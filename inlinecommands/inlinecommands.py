@@ -16,7 +16,7 @@ class InlineCommands(commands.Cog):
             return None
         potential_alias = command.split(" ")[0]
         msg = copy(message)
-        msg.content = command
+        msg.content = prefix + command
         # accessing private variables, sue me!
         alias = await alias_cog._aliases.get_alias(message.guild, potential_alias)
         if alias:
@@ -27,12 +27,19 @@ class InlineCommands(commands.Cog):
         if message.author.bot:
             return
         tasks = []
+        prefixes = await self.bot.get_prefix(message)
+        prefix = None
+        if isinstance(prefixes, list):
+            prefix = prefixes[0]
+        else:
+            prefix = prefixes
+            prefixes = [prefix]
+        for prefix in prefixes:
+            if message.content.startswith(prefix):
+                return
         for command in re.findall(r"\[(.*?)\]", message.content):
             if not command:
                 continue
-            prefix = await self.bot.get_prefix(message)
-            if isinstance(prefix, list):
-                prefix = prefix[0]
             msg = copy(message)
             msg.content = prefix + command
             new_ctx = await self.bot.get_context(msg)

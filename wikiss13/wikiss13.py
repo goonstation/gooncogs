@@ -303,7 +303,7 @@ class Wikiss13(commands.Cog):
             description=description,
             color=discord.Colour.from_rgb(223, 191, 49),
             url=url,
-            timestamp=timestamp or discord.Embed.Empty,
+            timestamp=timestamp or None,
         )
         if image:
             embed.set_image(url=image)

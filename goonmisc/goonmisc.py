@@ -12,6 +12,7 @@ from typing import *
 import requests
 from collections import defaultdict
 import datetime
+import hashlib
 import re
 import bisect
 import PIL
@@ -20,7 +21,9 @@ import aiohttp
 import colorsys
 import cairosvg
 import json
-
+import contextlib
+from .moonymath import moony
+from .colorstuff import *
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -36,6 +39,10 @@ class GoonMisc(commands.Cog):
         self.reload_contrib()
         self.is_dad = False
         self.color_names = json.load(open(bundled_data_path(self) / "color-names.json"))
+        self.norm_color_names = {self.normalize_text(name): col for name, col in self.color_names.items()}
+
+    def normalize_text(self, text):
+        return "".join(c.lower() for c in text if c.isalnum())
 
     def reload_contrib(self):
         self.total = 0
@@ -157,10 +164,10 @@ class GoonMisc(commands.Cog):
     async def get(self, ctx: commands.Context):
         """Posts current server logo."""
         if ctx.guild.icon:
-            fname = ctx.guild.icon_url._url.split("/")[-1]
+            fname = ctx.guild.icon.url.split("/")[-1]
             if "?" in fname:
                 fname = fname.split("?")[0]
-            data = await ctx.guild.icon_url.read()
+            data = await ctx.guild.icon.read()
             f = discord.File(io.BytesIO(data), fname)
             await ctx.send("Current logo:", file=f)
         else:
@@ -177,10 +184,10 @@ class GoonMisc(commands.Cog):
         guild = ctx.guild
         presets = await self.config.guild(guild).logos()
         if guild.icon:
-            fname = guild.icon_url._url.split("/")[-1]
+            fname = guild.icon.url.split("/")[-1]
             if "?" in fname:
                 fname = fname.split("?")[0]
-            data = await guild.icon_url.read()
+            data = await guild.icon.read()
             f = discord.File(io.BytesIO(data), fname)
             await ctx.send("Previous logo:", file=f)
         icon = None
@@ -210,13 +217,33 @@ class GoonMisc(commands.Cog):
         await guild.edit(icon=icon, reason=f"requested by {ctx.message.author.name}")
         await ctx.send("Done.")
 
+    @commands.guild_only()
     @commands.command()
-    async def blastfromthepast(self, ctx: commands.Context):
-        channel = ctx.bot.get_channel(383743035894267905)  # TODO: unhardcode
+    async def blastfromthepast(self, ctx: commands.Context, channel: discord.TextChannel | None = None):
+        assert isinstance(ctx.author, discord.Member)
+        if channel is None:
+            if not isinstance(ctx.channel, discord.TextChannel):
+                await ctx.send("You aren't in a proper text channel")
+                return
+            channel = ctx.channel
+        if not channel.permissions_for(ctx.author).read_message_history:
+            await ctx.send("You don't have the permission to read that channel's history")
+            return
         time = datetime.datetime.now()
         time -= datetime.timedelta(days=365)
         async for message in channel.history(limit=1, before=time):
-            await ctx.send("> " + "\n> ".join(message.clean_content.split("\n")))
+            if len(message.clean_content) > 0:
+                message_text = "> " + "\n> ".join(message.clean_content.split("\n"))
+            else:
+                message_text = "[no text]"
+            embeds = message.embeds
+            attachments = message.attachments
+            files = []
+            for attachment in attachments:
+                files.append(await attachment.to_file())
+            await ctx.send(message_text, embeds=embeds, files=files)
+            return
+        await ctx.send("No message found!")
 
     async def word_react(self, message: discord.Message, word: str):
         emojis = []
@@ -291,7 +318,6 @@ class GoonMisc(commands.Cog):
             for from_repl, to_repl in replacements:
                 if from_repl in part:
                     part = part.replace(from_repl, to_repl, 1)
-                    replacements.remove((from_repl, to_repl))
             for letter in part:
                 added = False
                 if alt_index[letter] == 0:
@@ -366,7 +392,7 @@ class GoonMisc(commands.Cog):
             if random.randint(1, 100) == 1:
                 msg = "never"
             elif random.randint(1, 100) == 1:
-                msg = f"when {random.choose('pali', 'zewaka', 'mbc', 'flourish', 'yass', 'sov')} codes it"
+                msg = f"when {random.choice(['pali', 'zewaka', 'mbc', 'flourish', 'yass', 'sov'])} codes it"
             await self.word_react(message, msg)
 
         if random.randint(1, 20) == 1 and re.match(
@@ -439,9 +465,9 @@ class GoonMisc(commands.Cog):
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
-                img_bytes = await arg.avatar_url_as(format="png").read()
+                img_bytes = await arg.avatar.replace(format="png").read()
             elif isinstance(arg, discord.PartialEmoji):
-                img_bytes = await arg.url_as(format="png").read()
+                img_bytes = await arg.read()
             elif ord(arg[0]) > 127:
                 arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format(
                     "-".join(
@@ -469,7 +495,7 @@ class GoonMisc(commands.Cog):
             scale_factor = max(scale_factors)
             if scale_factor != 1.0:
                 image = image.resize(
-                    (int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC
+                    (int(s * scale_factor) for s in image.size), PIL.Image.Resampling.BICUBIC
                 )
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
@@ -579,9 +605,9 @@ class GoonMisc(commands.Cog):
             if arg is None:
                 return None
             elif isinstance(arg, discord.Member):
-                img_bytes = await arg.avatar_url_as(format="png").read()
+                img_bytes = await arg.avatar.replace(format="png").read()
             elif isinstance(arg, discord.PartialEmoji):
-                img_bytes = await arg.url_as(format="png").read()
+                img_bytes = await arg.read()
             elif ord(arg[0]) > 127:
                 arg = "https://twemoji.maxcdn.com/v/latest/svg/{}.svg".format(
                     "-".join(
@@ -611,7 +637,7 @@ class GoonMisc(commands.Cog):
             scale_factor = max(scale_factors)
             if scale_factor != 1.0:
                 image = image.resize(
-                    (int(s * scale_factor) for s in image.size), PIL.Image.BICUBIC
+                    (int(s * scale_factor) for s in image.size), PIL.Image.Resampling.BICUBIC
                 )
             if image.size[0] != image.size[1]:
                 half_new_size = min(image.size) / 2
@@ -701,8 +727,203 @@ class GoonMisc(commands.Cog):
                 "Donate2day! https://www.patreon.com/goonstation (Patreon, for recurring donations) or https://paypal.me/Wirewraith (Paypal, for one-off donations)"
             )
         elif who == "pali":
-            await ctx.send("https://ko-fi.com/pali6")
+            await ctx.send("https://www.patreon.com/pali6")
         elif who in ["cogwerks", "cog", "cogs"]:
             await ctx.send("https://ko-fi.com/cogwerks")
+        elif who in ["emily", "urs"]:
+            await ctx.send("https://www.patreon.com/emilyclairedev")
         else:
             await ctx.send("No idea who that is!")
+
+    @commands.command(aliases=["moony"])
+    async def moonymath(self, ctx: commands.Context, num: int):
+        """Shows Goonstation donation information."""
+        if num > 3000:
+            return await ctx.send("Number too large.")
+        result = moony(num)
+        if result is None:
+            await ctx.send("No Moony-representation found")
+        else:
+            await ctx.send(result)
+
+    def closest_color_name(self, rgb: Tuple[int, int, int]):
+        lab = rgb_to_lab(rgb)
+        min_dist, name, col = min((euclidean_dist(lab, rgb_to_lab(color_parse_hex(col))), name, col) for name, col in self.color_names.items())
+        return (min_dist, name, col)
+
+    @commands.command(aliases=["colourname"])
+    async def colorname(self, ctx: commands.Context, color_hex: str):
+        """Finds the closest name for a hex colour."""
+        rgb = color_parse_hex(color_hex)
+        min_dist, name, col = self.closest_color_name(rgb)
+        await ctx.send(f"Closest color name to {color_hex} is `{name}` (`{col}`) with distance {min_dist:.2f}.")
+
+    def parse_triple(self, text: str) -> Union[Tuple[int, int, int], Tuple[float, float, float]]:
+        text = text.strip()
+        try:
+            if text[0] == "(" and text[-1] == ")":
+                text = text[1: -1]
+        except IndexError:
+            raise ValueError("Invalid format")
+        text = text.strip()
+        parts = text.split(",")
+        if len(parts) != 3:
+            parts = text.split()
+        if len(parts) != 3:
+            raise ValueError(f"Wrong number of parts {len(parts)}")
+        try:
+            return tuple([int(part.strip()) for part in parts])
+        except ValueError:
+            return tuple([float(part.strip()) for part in parts])
+
+    def format_triple(self, triple: Union[Tuple[int, int, int], Tuple[float, float, float]]):
+        if all(isinstance(x, int) for x in triple):
+            return f"{triple[0]} {triple[1]} {triple[2]}"
+        else:
+            return f"{triple[0]:.4f} {triple[1]:.4f} {triple[2]:.4f}"
+
+    @commands.command(aliases=["colour"])
+    async def color(self, ctx: commands.Context, *, color: str):
+        """Shows information about a given color.
+
+        Some of the possible formats:
+        ```
+        color #f00
+        color #ff0000
+        color red
+        color rgb(255, 0, 0)
+        color rgb(1.0, 0.0, 0.0)
+        color 255 0 0
+        color 1.0 0.0 0.0
+        color hsv(360, 1, 1)
+        color hsv 360 1 1
+        color hsv 360 100 100
+        color hsl 360 1 0.5
+        color hsl 360 100 50
+        ```
+        """
+        if not color:
+            await ctx.send("You need to provide some color representation")
+            return
+        color = color.strip()
+        title = color
+        rgb = None
+        try:
+            rgb = color_parse_hex(color)
+        except ValueError:
+            pass
+        if color == "random":
+            rgb = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        if color == "of the day":
+            hsh = hashlib.md5()
+            hsh.update(str(datetime.date.today()).encode())
+            rgb = color_parse_hex(hsh.hexdigest()[:6])
+        if rgb is None:
+            norm_color = self.normalize_text(color)
+            hexstr = self.norm_color_names.get(norm_color, None)
+            if hexstr:
+                rgb = color_parse_hex(hexstr)
+        if rgb is None:
+            if color.lower().startswith("hsl") or color.lower().startswith("hsv"):
+                which = color[:3].upper()
+                modcolor = color[3:]
+                function = hsl_to_rgb if which == "HSL" else hsv_to_rgb
+                try:
+                    triple = self.parse_triple(modcolor)
+                    if triple[1] > 1 or triple[2] > 1:
+                        if triple[1] > 100 or triple[2] > 100:
+                            await ctx.send(f"For 0-100 {which} representation the non-hue arguments need to be in the 0-100 range")
+                            return
+                        triple = (triple[0], triple[1] / 100, triple[2] / 100)
+                    elif triple[1] < 0 or triple[1] > 1 or triple[2] < 0 or triple[2] > 1:
+                        await ctx.send(f"For {which} representation the non-hue arguments need to be in the 0-1 range")
+                        return
+                    rgb = function(triple)
+                except:
+                    pass
+            else:
+                modcolor = color
+                if color.lower().startswith("rgb"):
+                    modcolor = color[3:]
+                try:
+                    rgb = self.parse_triple(modcolor)
+                    if any(isinstance(x, float) for x in rgb):
+                        if any(x < 0 or x > 1 for x in rgb):
+                            await ctx.send("For decimal RGB representation all arguments need to be in the 0-1 range")
+                            return
+                        rgb = tuple(int(c * 255) for c in rgb)
+                    elif any(x < 0 or x > 255 for x in rgb):
+                        await ctx.send("For integer RGB representation all arguments need to be in the 0-255 range")
+                        return
+                except:
+                    pass
+        if rgb is None:
+            await ctx.send("Color representation not recognized")
+            return
+        await ctx.send(embed=self.color_embed(rgb, title))
+
+    def color_embed(self, rgb: Tuple[int, int, int], title=None):
+        embed = discord.Embed()
+        embed.color = discord.Color.from_rgb(*rgb)
+        hexstr = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+        embed.title = title or hexstr
+        min_dist, name, col = self.closest_color_name(rgb)
+        embed.add_field(name="hex", value=hexstr)
+        embed.add_field(name="name", value=name)
+        embed.add_field(name="rgb", value=self.format_triple(rgb))
+        embed.add_field(name="0-1 rgb", value=self.format_triple((rgb[0] / 255, rgb[1] / 255, rgb[2] / 255)))
+        embed.add_field(name="hsv", value=self.format_triple(rgb_to_hsv(rgb)))
+        embed.add_field(name="hsl", value=self.format_triple(rgb_to_hsl(rgb)))
+        embed.set_thumbnail(url=f"https://www.colorhexa.com/{hexstr[1:]}.png")
+        return embed
+
+    @commands.command(aliases=["randomcolour"])
+    async def randomcolor(self, ctx: commands.Context):
+        """Responds with information about a random RGB color."""
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        embed = self.color_embed(color)
+        controls = {
+            "\N{Anticlockwise Downwards and Upwards Open Circle Arrows}": self.reroll_color,
+            "\N{CROSS MARK}": self.close_menu,
+        }
+        await menu(ctx, [embed], controls, timeout=15.0)
+
+    async def reroll_color(
+        self,
+        ctx: commands.Context,
+        pages: list,
+        controls: dict,
+        message: discord.Message,
+        page: int,
+        timeout: float,
+        emoji: str,
+    ):
+        perms = message.channel.permissions_for(ctx.me)
+        if perms.manage_messages:  # Can manage messages, so remove react
+            with contextlib.suppress(discord.NotFound):
+                await message.remove_reaction(emoji, ctx.author)
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        embed = self.color_embed(color)
+        return await menu(
+            ctx, [embed], controls, message=message, page=page, timeout=timeout
+        )
+
+    async def close_menu(
+        self,
+        ctx: commands.Context,
+        pages: list,
+        controls: dict,
+        message: discord.Message,
+        page: int,
+        timeout: float,
+        emoji: str,
+    ):
+        with contextlib.suppress(discord.NotFound):
+            await message.delete()
+
+    @commands.command()
+    async def readme(self, ctx: commands.Context):
+        """Shows a passive aggressive message about how users should read the guides."""
+        ctx.send("Users are reminded that the official code guides and readmes exist for a *reason*, \
+and disregarding such advice as 'use visual studio code' will void any asking for help rights that you may own. \
+ https://cdn.discordapp.com/attachments/890313890003566632/1075712022760652850/the_sign.png")

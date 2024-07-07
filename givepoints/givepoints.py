@@ -179,3 +179,15 @@ add_points_type(
 add_points_type(
     GivePoints, "bee", "\N{HONEYBEE}", allow_give_command="hirebeefactoryworker"
 )
+
+add_points_type(
+    GivePoints,
+    "what",
+    "<:what:875269167383740436>",
+    points_give_command="givewhat",
+    cannot_give_message="You can't give people whats, you don't work at the what factory.",
+    allow_give_command="hirewhatfactoryworker",
+    allow_cant_message="You can't hire people as what factory workers, you don't work at the what factory.",
+    allow_already_giver_message="{0} already works in the what factory.",
+    allow_successful_message="{0} has been hired as a what factory worker.",
+)

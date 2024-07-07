@@ -116,7 +116,10 @@ class RoundReminder(commands.Cog):
     async def clearnextround(self, ctx: commands.Context):
         """Clears all next round reminders you have scheduled."""
         await self.config.user(ctx.author).match_strings.set([])
-        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        try:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        except discord.Forbidden:
+            await ctx.send("\N{WHITE HEAVY CHECK MARK}")
 
     @commands.command()
     async def nextround(self, ctx: commands.Context, *, search_text: Optional[str]):
@@ -126,7 +129,10 @@ class RoundReminder(commands.Cog):
                 await ctx.send("You have too many reminders set, chill out.")
             else:
                 match_strings.append(self.normalize(search_text))
-                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                try:
+                    await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                except discord.Forbidden:
+                    await ctx.send("\N{WHITE HEAVY CHECK MARK}")
 
     async def notify(self, user: discord.User, embed, match_string: Optional[str]):
         try:
@@ -146,6 +152,9 @@ class RoundReminder(commands.Cog):
         fulltext = self.normalize(fulltext)
 
         for user_id, data in (await self.config.all_users()).items():
+            user = self.bot.get_user(user_id)
+            if user is None:
+                continue
             match_strings = data["match_strings"]
             for match_string in match_strings:
                 match = False
@@ -156,7 +165,6 @@ class RoundReminder(commands.Cog):
                 elif server in goonservers.resolve_server_or_category(match_string):
                     match = True
                 if match:
-                    user = self.bot.get_user(user_id)
                     await self.notify(user, embed, match_string)
                     if len(match_strings) == 1:
                         await self.config.user(user).match_strings.clear()

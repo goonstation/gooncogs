@@ -296,8 +296,9 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
+            await ctx.message.delete()
             await ctx.send(
-                "Please use this command in DMs with the bot (or use the /report version)."
+                f"{ctx.author.mention} Please use this command in DMs with the bot (or use the /report version)."
             )
             return
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
@@ -461,7 +462,7 @@ class BetterReports(commands.Cog):
             await ctx.send("Something broke, sorry!", hidden=True)
             return await ctx.bot.send_to_owners(traceback.format_exc())
 
-    @cog_slash(name="report", description="Report something to the administrators.")
+    @cog_slash(name="report", description="Report something to the administrators. Use in-game adminhelp instead for in-game matters.")
     async def slash_report(self, ctx: SlashContext, report: str):
         await self._report_slash(ctx, report, False)
 

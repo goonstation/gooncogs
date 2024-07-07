@@ -3,4 +3,4 @@ from .githubendpoint import GithubEndpoint
 
 
 async def setup(bot: Red):
-    bot.add_cog(GithubEndpoint(bot))
+    await bot.add_cog(GithubEndpoint(bot))

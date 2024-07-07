@@ -11,17 +11,36 @@ from fastapi import Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from redbot.core.utils.chat_formatting import pagify, box
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+from redbot.core.utils.views import SimpleMenu
 import json
 import re
 import time
 import io
+import os
 import datetime
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
-import youtube_dl
+import yt_dlp
+import base64
+from PIL import Image
+import contextlib
+import xattr
 
+@contextlib.asynccontextmanager
+async def empty_context_manager():
+    yield
+
+class PlayMenu(SimpleMenu):
+    def __init__(self, play_callback, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.play_button = discord.ui.Button(
+            style = discord.ButtonStyle.green,
+            emoji = "\N{Black Right-Pointing Triangle with Double Vertical Bar}",
+            )
+        self.play_button.callback = play_callback
+        self.add_item(self.play_button)
 
 class SpacebeeCommands(commands.Cog):
     FILE_SIZE_LIMIT = 15 * 1024 * 1024
@@ -71,8 +90,8 @@ class SpacebeeCommands(commands.Cog):
     def ckeyify(self, text):
         return "".join(c.lower() for c in text if c.isalnum())
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def locate(self, ctx: commands.Context, *, who: str):
         """Locates a ckey on all servers."""
         who = self.ckeyify(who)
@@ -118,8 +137,8 @@ class SpacebeeCommands(commands.Cog):
         if not message:
             await ctx.send("No one found.")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def whois(self, ctx: commands.Context, server_id: str, *, query: str):
         """Looks for a person on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -159,8 +178,48 @@ class SpacebeeCommands(commands.Cog):
         else:
             await ctx.message.reply("No players.")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
+    async def playermentions(self, ctx: commands.Context, server_id: str):
+        """Lists Discord mentions of players on a given Goonstation server."""
+        goonservers = self.bot.get_cog("GoonServers")
+        spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
+        nightshadewhitelist = self.bot.get_cog("NightshadeWhitelist")
+        response = await goonservers.send_to_server_safe(
+            server_id, "status", ctx.message, to_dict=True
+        )
+        if response is None:
+            return
+        players = []
+        try:
+            for i in range(int(response["players"])):
+                players.append(response[f"player{i}"])
+        except KeyError:
+            await ctx.message.reply("That server is not responding correctly.")
+            return
+        players.sort()
+        if not players:
+            await ctx.message.reply("No players.")
+        output = []
+        for player in players:
+            user_id = await spacebeecentcom.config.custom("ckey", player).discord_id()
+            ns_user_id = await nightshadewhitelist.config.custom("ckey", player).discord_id()
+            if user_id and ns_user_id and ns_user_id == user_id:
+                output.append(f"{player} - <@{user_id}> (NS & G)")
+            elif user_id and ns_user_id and ns_user_id != user_id:
+                output.append(f"{player} - <@{user_id}> NS: <@{ns_user_id}>")
+            elif user_id:
+                output.append(f"{player} - <@{user_id}>")
+            elif ns_user_id:
+                output.append(f"{player} - <@{ns_user_id}> (NS only)")
+            else:
+                output.append(f"{player} - unlinked")
+        response = "\n".join(output)
+        for page in pagify(response):
+            await ctx.message.reply(page, allowed_mentions=discord.AllowedMentions.none())
+
+    @checks.admin()
+    @commands.command()
     async def ooc(self, ctx: commands.Context, server_id: str, *, message: str):
         """Sends an OOC message to a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -175,8 +234,8 @@ class SpacebeeCommands(commands.Cog):
             react_success=True,
         )
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def antags(self, ctx: commands.Context, server_id: str):
         """Lists antagonists on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -193,8 +252,8 @@ class SpacebeeCommands(commands.Cog):
         for page in pagify(self.format_whois(response)):
             await ctx.send(page)
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def ailaws(self, ctx: commands.Context, server_id: str):
         """Lists current AI laws on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -214,14 +273,15 @@ class SpacebeeCommands(commands.Cog):
         out = response['laws']
         if isinstance(out, str):
             if out:
-                await ctx.send(out)
+                for page in pagify(out):
+                    await ctx.send(page)
             else:
                 await ctx.send("No law racks with connected silicons.")
         else:
             await ctx.send("Law data recieved in wrong format.")
 
-    @commands.command(aliases=["hcheck"])
     @checks.admin()
+    @commands.command(aliases=["hcheck"])
     async def scheck(self, ctx: commands.Context, server_id: str):
         """Checks server health of a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -233,6 +293,8 @@ class SpacebeeCommands(commands.Cog):
             ctx,
             to_dict=True,
         )
+        if response is None:
+            return
         start_time = time.time()
         await goonservers.send_to_server_safe(server_id, "status", ctx)
         elapsed = time.time() - start_time
@@ -247,8 +309,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             out += f"\n```{response['meminfo']}```"
         await ctx.send(out)
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def rev(self, ctx: commands.Context, server_id: str):
         """Checks code revision of a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -269,8 +331,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             + rev
         )
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def version(self, ctx: commands.Context, server_id: str):
         """Checks BYOND version of a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -285,11 +347,11 @@ RTT: {elapsed * 1000:.2f}ms"""
         if response is None:
             return
         await ctx.send(
-            f"BYOND {response['major']}.{response['minor']}\nGoonhub: {response['goonhub_api']}"
+            f"BYOND {response.get('major', 'N/A')}.{response.get('minor', 'N/A')}\nGoonhub: {response.get('goonhub_api', 'N/A')}"
         )
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def delay(self, ctx: commands.Context, server_id: str):
         """Delays a Goonstation round end."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -324,25 +386,127 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.send(response["msg"])
 
+    @checks.admin()
     @commands.command()
-    @checks.is_owner()
-    async def rickroll(self, ctx: commands.Context, server_id: str):
-        """Test command to check if playing music works."""
+    async def recordscratch(self, ctx: commands.Context, server_id: str):
+        """Plays the record scratch sound on a given server (interrupts the previously playing sound as a side effect)."""
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
             server_id,
             {
                 "type": "youtube",
-                "data": '{"key":"Pali6","title":"test","duration":4,"file":"https://qoret.com/dl/uploads/2019/07/Rick_Astley_-_Never_Gonna_Give_You_Up_Qoret.com.mp3"}',
+                "data": f'{{"key":"{ctx.author.name}","title":"record scratch","duration":1,"file":"https://pali.link/misc/recordscratch.mp3"}}',
             },
             ctx,
             to_dict=True,
         )
         if response is None:
             return
-        await ctx.message.add_reaction("\N{FROG FACE}")
+        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    async def youtube_play(self, ctx, url, server_id):
+    async def youtube_search(self, query: str, count: int = 1) -> list[tuple[str, str]]:
+        ydl_opts = {
+            "geo_bypass": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = await asyncio.get_running_loop().run_in_executor(
+                    self.executor, lambda: ydl.extract_info(f"ytsearch{count}:{query}", download=False)
+                )
+            return [(entry['title'], f"https://youtube.com/watch?v={entry['id']}") for entry in info['entries']]
+
+    @commands.command(rest_is_raw=True, aliases=["musicsearch", "ytsearch"])
+    async def youtubesearch(self, ctx: commands.Context, *, query: str, count: int = 1):
+        """
+        Searches YouTube for a given phrase and shows results in a menu.
+
+        Examples:
+        `[p]youtubesearch foo bar` - shows one result
+        `[p]youtubesearch foo bar count=10` - shows 10 result in a paginated menu
+        `[p]youtubesearch count=10 foo bar` - does the same thing
+        """
+        await self.ytsearch_menu(ctx, query, count)
+
+    async def ytsearch_menu(self, ctx: commands.Context, query: str, count: int = 1, view_type: Callable[[list[str]], SimpleMenu] = SimpleMenu):
+        query_words = []
+        for word in query.split():
+            if word.startswith("count="):
+                try:
+                    count = int(word[6:])
+                except ValueError:
+                    await ctx.send("Invalid count")
+                    return
+            else:
+                query_words.append(word)
+        if count > 30:
+            await ctx.reply("Maximum count is 30")
+            return
+        elif count <= 0:
+            await ctx.reply("Count needs to be positive")
+            return
+        query = " ".join(query_words).strip()
+        if not query:
+            await ctx.reply("You need to provide a search query")
+            return
+        async with ctx.typing():
+            data = [f"{title} - {url}" for (title, url) in await self.youtube_search(query, count)]
+        if not data:
+            await ctx.reply("No results found!")
+        else:
+            view = view_type(data)
+            await view.start(ctx)
+            await view.wait()
+
+    @checks.admin()
+    @commands.command(rest_is_raw=True)
+    async def remotemusicsearch(
+            self, ctx: commands.Context, server_id: str, *, query: str
+    ):
+        """
+        Search youtube for the given query and play that on a server. You will get a confirmation prompt.
+
+        By default only the first result is shown. You can also include `count=10` etc. in the query to show more results in a paginated menu.
+        """
+        goonservers = self.bot.get_cog("GoonServers")
+        if not goonservers.resolve_server(server_id):
+            await ctx.reply(f"Server `{server_id}` not found")
+            return
+        async def callback(interaction: discord.Interaction):
+            await interaction.message.edit(view=None)
+            url = interaction.message.content.split(" - ")[-1]
+            await self.youtube_play_and_confirm(ctx, url, server_id=server_id, additional_msg=interaction.message)
+        await self.ytsearch_menu(ctx, query, view_type = lambda pages: PlayMenu(pages=pages, play_callback=callback))
+
+    async def youtube_play_and_confirm(
+            self, ctx: commands.Context, url: str, server_id: str,
+            additional_msg: Optional[discord.Message] = None,
+            interaction: Optional[discord.Interaction] = None
+        ):
+        if interaction is not None:
+            await interaction.response.defer(thinking=True)
+        async with ctx.typing() if interaction is None else empty_context_manager():
+            try:
+                response = await self.youtube_play(ctx, url, server_id)
+            except yt_dlp.utils.DownloadError as e:
+                if interaction is not None:
+                    await interaction.followup.send("YoutubeDL error: " + str(e))
+                else:
+                    await ctx.reply("YoutubeDL error: " + str(e))
+                return
+        if response:
+            if interaction is not None:
+                await interaction.followup.send("Done")
+            elif additional_msg:
+                await additional_msg.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            else:
+                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        else:
+            if interaction is not None:
+                await interaction.followup.send("something went wrong")
+            else:
+                await ctx.reply("something went wrong")
+
+    async def youtube_play(self, ctx: commands.Context, url: str, server_id: str):
+        url = url.lstrip("<").rstrip(">")
         generalapi = self.bot.get_cog("GeneralApi")
         file_folder = generalapi.static_path / "youtube"
         file_folder.mkdir(exist_ok=True)
@@ -355,6 +519,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         play_file_name = file_name + ".mp3"
         tmp_file_path = file_folder / tmp_file_name
         play_file_path = file_folder / play_file_name
+        alt_play_file_path = file_folder / (tmp_file_name + ".mp3")
         info = None
         if not play_file_path.is_file():
             postprocessors = [
@@ -363,6 +528,9 @@ RTT: {elapsed * 1000:.2f}ms"""
                     "preferredcodec": "mp3",
                     "preferredquality": "8",
                     "nopostoverwrites": False,
+                },
+                {
+                    "key": "XAttrMetadata",
                 }
             ]
             ydl_opts = {
@@ -371,21 +539,30 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "outtmpl": str(tmp_file_path),
                 "postprocessors": postprocessors,
                 "max_filesize": self.FILE_SIZE_LIMIT,
+                "noplaylist": True,
             }
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 filesize = min(
                     fmt["filesize"]
                     for fmt in info["formats"]
-                    if isinstance(fmt["filesize"], int)
+                    if isinstance(fmt.get("filesize"), int)
                 )
                 if filesize > self.FILE_SIZE_LIMIT:
                     return None
                 await asyncio.get_running_loop().run_in_executor(
                     self.executor, ydl.download, [url]
                 )
+        if alt_play_file_path.is_file():
+            os.rename(alt_play_file_path, play_file_path)
         if not play_file_path.is_file():
             return None
+        title = info["title"] if info else None
+        if title is None:
+            try:
+                title = xattr.getxattr(str(play_file_path), "user.dublincore.title").decode("utf8")
+            except:
+                title = file_name
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
             server_id,
@@ -396,7 +573,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                         "key": ctx.message.author.name + " (Discord)",
                         "file": f"https://medass.pali.link/static/youtube/{play_file_name}",
                         "duration": "?",
-                        "title": info["title"] if info else file_name,
+                        "title": title,
                     }
                 ),
             },
@@ -407,8 +584,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return None
         return True
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def remotemusic(
         self, ctx: commands.Context, server_id: str, link: Optional[str]
     ):
@@ -418,12 +595,12 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "You need to attach a sound file to your message or provide a link."
             )
             return
-        if link is not None and "youtube.com" in link:
+        if link is not None and ("youtube.com" in link or "youtu.be" in link):
             response = None
-            with ctx.typing():
+            async with ctx.typing():
                 try:
                     response = await self.youtube_play(ctx, link, server_id)
-                except youtube_dl.utils.DownloadError as e:
+                except yt_dlp.utils.DownloadError as e:
                     await ctx.send("YoutubeDL error: " + str(e))
                     return
             if response:
@@ -436,6 +613,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if len(ctx.message.attachments) > 0:
             url = ctx.message.attachments[0].url
             filename = ctx.message.attachments[0].filename
+        assert filename is not None
         if not filename.endswith("mp3") and not filename.endswith("m4a"):
             await ctx.send(
                 "That's not an mp3 nor an m4a file so it'll likely not work. But gonna try anyway."
@@ -461,8 +639,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def medspeech(self, ctx: commands.Context, server_id: str, *, text: str):
         """Speech synthesis on a given Goonstation server."""
         generalapi = self.bot.get_cog("GeneralApi")
@@ -488,7 +666,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                 "data": json.dumps(
                     {
                         "key": ctx.message.author.name + " (Discord)",
-                        "file": f"http://{await generalapi.config.host()}:{await generalapi.config.port()}/static/speech/{file_name}",
+                        "file": f"http://medass.pali.link/static/speech/{file_name}",
                         "duration": "?",
                         "title": text,
                     }
@@ -501,8 +679,8 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def admins(self, ctx: commands.Context, server_id: str):
         """Lists admins in a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -527,8 +705,8 @@ RTT: {elapsed * 1000:.2f}ms"""
         else:
             await ctx.message.reply("No admins.")
 
-    @commands.command()
     @checks.admin()
+    @commands.command()
     async def mentors(self, ctx: commands.Context, server_id: str):
         """Lists mentors in a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -557,7 +735,20 @@ RTT: {elapsed * 1000:.2f}ms"""
     async def stats(
         self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]
     ):
-        """Shows playtime stats of a given ckey."""
+        """Shows playtime stats of a given ckey (or yours if no ckey given)."""
+        await self._stats(ctx=ctx, ckey=ckey, admin=False)
+
+    @checks.admin()
+    @commands.command()
+    async def statsadmin(
+        self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]]
+    ):
+        """Shows all kinds of stats of a given ckey (or yours if no ckey given)."""
+        await self._stats(ctx=ctx, ckey=ckey, admin=True)
+
+    async def _stats(
+        self, ctx: commands.Context, *, ckey: Optional[Union[discord.User, str]], admin=False
+    ):
         goonservers = self.bot.get_cog("GoonServers")
         if ckey is None:
             ckey = ctx.author
@@ -575,7 +766,7 @@ RTT: {elapsed * 1000:.2f}ms"""
                     await ctx.message.reply("That user has no BYOND account linked")
                     return
         response = await goonservers.send_to_server_safe(
-            "2", {"type": "getPlayerStats", "ckey": ckey}, ctx.message
+            "1", {"type": "getPlayerStats", "ckey": ckey}, ctx.message
         )
         if response is None:
             return
@@ -592,18 +783,33 @@ RTT: {elapsed * 1000:.2f}ms"""
             timestamp=ctx.message.created_at,
             color=embed_colour,
         )
-        embed.add_field(name="rounds (total)", value=data["seen"])
-        embed.add_field(name="rounds (rp)", value=data["seen_rp"])
-        embed.add_field(name="rounds joined (total)", value=data["participated"])
-        embed.add_field(name="rounds joined (rp)", value=data["participated_rp"])
+        embed.add_field(name="rounds (total)", value=data.pop("seen"))
+        embed.add_field(name="rounds (rp)", value=data.pop("seen_rp"))
+        embed.add_field(name="rounds joined (total)", value=data.pop("participated"))
+        embed.add_field(name="rounds joined (rp)", value=data.pop("participated_rp"))
         if "playtime" in data:
-            playtime_seconds = int(json.loads(data["playtime"])[0]["time_played"])
-            time_played = goonservers.seconds_to_hhmmss(playtime_seconds)
+            time_played = goonservers.seconds_to_hhmmss(data.pop("playtime"))
             embed.add_field(name="time played", value=time_played)
+        if admin:
+            last_seen_data = data.pop("last_seen")
+            last_seen_str = "No last seen data, run command again"
+            if isinstance(last_seen_data, str):
+                last_seen = datetime.datetime.fromisoformat(last_seen_data)
+                timestamp = int(last_seen.timestamp())
+                last_seen_str = f"<t:{timestamp}:F> (<t:{timestamp}:R>)"
+            embed.add_field(name="last seen", value=last_seen_str)
+            for key, value in data.items():
+                if key == "cloudsaves":
+                    if isinstance(value, dict):
+                        value = value.keys()
+                    value = ", ".join(value)
+                if not value:
+                    continue
+                embed.add_field(name=key, value=str(value))
         await ctx.send(embed=embed)
 
-    @commands.group(name="profiler")
     @checks.admin()
+    @commands.group(name="profiler")
     async def profiler(self, ctx: commands.Context):
         """Profile a game server."""
         pass
@@ -759,3 +965,46 @@ RTT: {elapsed * 1000:.2f}ms"""
         # dat_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         # prof_file = discord.File(io.StringIO(response), filename=f"profiling_{server_id}_{dat_string}.json")
         # await ctx.send(file=prof_file)
+
+    @checks.admin()
+    @commands.command()
+    async def canvas(self, ctx: commands.Context, server_id: str, *, canvas_name: str = 'centcom'):
+        goonservers = self.bot.get_cog("GoonServers")
+        request = {"type": "persistent_canvases"}
+        if canvas_name != 'centcom':
+            request = {"type": "lazy_canvas_get", "id": canvas_name}
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            request,
+            ctx,
+            to_dict=False,
+        )
+        if response is None:
+            return
+        data = json.loads(response)
+        if not isinstance(data, dict) or canvas_name not in data:
+            await ctx.send(f"Canvas not found. Run `]canvaslist {server_id}` to see existing canvases.")
+            return
+        data = base64.b64decode(data[canvas_name])
+        img_file = discord.File(io.BytesIO(data), filename="canvas.png")
+        await ctx.send(file=img_file)
+
+    @checks.admin()
+    @commands.command()
+    async def canvaslist(self, ctx: commands.Context, server_id: str):
+        goonservers = self.bot.get_cog("GoonServers")
+        response = await goonservers.send_to_server_safe(
+            server_id,
+            {
+                "type": "lazy_canvas_list",
+            },
+            ctx,
+            to_dict=False,
+        )
+        if response is None:
+            return
+        canvases = json.loads(response)
+        if len(canvases):
+            await ctx.send(", ".join(canvases))
+        else:
+            await ctx.send("No canvases")

@@ -5,11 +5,9 @@ import requests
 import discord
 import contextlib
 import io
-from redbot.core import commands, Config, checks
+from redbot.core import commands, Config, checks, app_commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path
-from discord_slash import SlashCommand, SlashContext
-from discord_slash.cog_ext import cog_slash
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from typing import Optional
 
@@ -135,12 +133,11 @@ class EmojiEverywhere(commands.Cog):
                 count += await self.add_url(emoji.name, str(emoji.url))
         await ctx.send(f"New emoji found: {count}")
 
-    @cog_slash(
-        name="emojitext",
-        description="Replaces emoji text in the given text by actual emoji",
-    )
-    async def emojitext(self, ctx: SlashContext, text: str):
-        is_admin = ctx.author.permissions_in(ctx.channel).manage_messages
+    # @app_commands.command()
+    async def emojitext(self, interaction: discord.Interaction, text: str):
+        """
+        Replaces emoji text in the given text by actual emoji
+        """
         for anim, name, id in re.findall(self.EMOJI_REGEX, text):
             id = int(id)
             url = self.discord_emoji_url(id, anim)
@@ -166,36 +163,32 @@ class EmojiEverywhere(commands.Cog):
                 parts[i] = await emoji_replace(word)
         response = "".join(parts)
         response = response.lstrip(";?.!]")
-        await ctx.send(response, allowed_mentions=discord.AllowedMentions.none())
+        await interaction.response.send_message(response, allowed_mentions=discord.AllowedMentions.none())
 
-    @cog_slash(name="emoji", description="Posts an emoji with a given name.")
-    async def emoji(self, ctx: SlashContext, emoji_name: str):
+    @app_commands.command()
+    async def emoji(self, interaction: discord.Interaction, emoji_name: str):
+        """
+        Posts an emoji with the given name
+        """
         try:
             emoji_guild = await self.emoji_guild()
             if emoji_name[0] == "<":
                 anim, name, id = re.match(self.EMOJI_REGEX, emoji_name).groups()
                 id = int(id)
-                # it turns out that discord grants us access to users'lemoji when in slash command context! lol
-                # for emoji in self.bot.emojis:
-                #    if emoji.available and (emoji.id == id or emoji.name == name):
-                #        return await ctx.send(emoji_name)
                 url = self.discord_emoji_url(id, anim)
-                emoji = self.discord_emoji_from_url(url, name)
-                await ctx.send(emoji)
                 await self.add_url(name, url)
-                return
-                # emoji = await self.steal_emoji(name, url)
-                # if emoji:
-                #    return await ctx.send(str(emoji))
-                # else:
-                #    return
+                emoji = await self.steal_emoji(name, url)
+                if emoji:
+                    return await interaction.response.send_message(str(emoji))
+                else:
+                    return
             emoji_name = emoji_name.strip(":")
             for emoji in self.bot.emojis:
                 if emoji.name == emoji_name:
                     if emoji.guild != emoji_guild:
                         await self.add_url(emoji_name, str(emoji.url))
                     if emoji.available:
-                        return await ctx.send(str(emoji))
+                        return await interaction.response.send_message(str(emoji))
             stealable_urls = await self.config.custom(
                 "stealable_emoji", emoji_name
             ).urls()
@@ -206,7 +199,7 @@ class EmojiEverywhere(commands.Cog):
             ]
 
             message_to_edit = None
-            if len(emoji_strings) > 0:
+            if False and len(emoji_strings) > 0:
                 random.shuffle(emoji_strings)
                 for emoji_string, url in emoji_strings:
                     if message_to_edit is not None:
@@ -230,7 +223,7 @@ class EmojiEverywhere(commands.Cog):
                     if message_to_edit is not None:
                         return await message_to_edit.edit(content=str(emoji))
                     else:
-                        return await ctx.send(str(emoji))
+                        return await interaction.response.send_message(str(emoji))
 
             if self.bttv_enabled:
                 # await ctx.defer()
@@ -250,12 +243,12 @@ class EmojiEverywhere(commands.Cog):
                         emoji_name, random.choice(stealable_urls)[0]
                     )
                     if emoji:
-                        return await ctx.send(str(emoji))
+                        return await interaction.response.send_message(str(emoji))
 
             if message_to_edit is not None:
                 return await message_to_edit.edit(content="No emoji found")
             else:
-                return await ctx.send("No emoji found", hidden=True)
+                return await interaction.response.send_message("No emoji found", ephemeral=True)
         except:
             import traceback
 

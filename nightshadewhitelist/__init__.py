@@ -3,4 +3,4 @@ from .nightshadewhitelist import NightshadeWhitelist
 
 
 async def setup(bot: Red):
-    bot.add_cog(NightshadeWhitelist(bot))
+    await bot.add_cog(NightshadeWhitelist(bot))

@@ -1,0 +1,13 @@
+{
+    "name": "ListThreads",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Commands that let people list threads they have access to",
+    "requirements": "Commands that let people list threads they have access to.",
+    "requirements": [
+    ],
+    "tags": [
+      "threads"
+    ]
+}

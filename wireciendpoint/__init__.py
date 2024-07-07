@@ -3,4 +3,4 @@ from .wireciendpoint import WireCiEndpoint
 
 
 async def setup(bot: Red):
-    bot.add_cog(WireCiEndpoint(bot))
+    await bot.add_cog(WireCiEndpoint(bot))

@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from redbot.core import commands, Config, checks
+from redbot.core.utils.chat_formatting import pagify
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
@@ -10,6 +11,8 @@ import datetime
 import random
 from collections import OrderedDict
 import functools
+import json
+import aiohttp
 
 
 class UnknownServerError(Exception):
@@ -24,11 +27,18 @@ class Subtype:
             self.channels[name] = cog.channel_trans(channel_ids)
         self.servers = []
 
+    async def send_to_channel(self, channel, content=None, *args, **kwargs):
+        if isinstance(content, str):
+            for page in pagify(content):
+                await channel.send(content=page, *args, **kwargs)
+        else:
+            await channel.send(content=content, *args, **kwargs)
+
     async def channel_broadcast(
         self, bot, channel_type, *args, exception=None, **kwargs
     ):
         tasks = [
-            bot.get_channel(ch).send(*args, **kwargs)
+            self.send_to_channel(bot.get_channel(ch), *args, **kwargs)
             for ch in self.channels[channel_type]
             if ch != exception
         ]
@@ -269,8 +279,14 @@ class GoonServers(commands.Cog):
             result["error"] = "Invalid server response."
             return result
         status = worldtopic.params_to_dict(response)
+        if len(response) < 20 or ("players" in status and len(status["players"]) > 5):
+            response = await worldtopic.send((server.host, server.port), "status&format=json")
+            status = json.loads(response)
         result["station_name"] = status.get("station_name")
-        result["players"] = int(status["players"]) if "players" in status else None
+        try:
+            result["players"] = int(status["players"]) if "players" in status else None
+        except ValueError:
+            result["players"] = None
         result["map"] = status.get("map_name")
         result["mode"] = status.get("mode")
         result["time"] = self.status_format_elapsed(status)
@@ -439,7 +455,31 @@ class GoonServers(commands.Cog):
     async def _check_gimmick_goonstation(self, ctx: commands.Context):
         return f"Goonstation: dead, sorry, go home."
 
+    async def _check_gimmick_goonhub(self, ctx: commands.Context):
+        URL = "https://goonhub.com"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.head(URL) as response:
+                    if response.status < 400:
+                        return "https://goonhub.com is online, yay"
+        except aiohttp.ClientError:
+            pass
+        return "https://goonhub.com is offline, oh no"
+
+    async def _check_gimmick_byond(self, ctx: commands.Context):
+        URL = "http://www.byond.com/download/build"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.head(URL) as response:
+                    if response.status < 400:
+                        return "http://www.byond.com is online, yay"
+        except aiohttp.ClientError:
+            pass
+        return "http://www.byond.com is offline, oh no"
+
     CHECK_GIMMICKS = {
         "oven": _check_gimmick_oven,
         "goonstation": _check_gimmick_goonstation,
+        "goonhub": _check_gimmick_goonhub,
+        "byond": _check_gimmick_byond,
     }

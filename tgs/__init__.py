@@ -15,4 +15,4 @@ async def setup(bot: Red):
         message += "You need to set RedBot API keys for your TGS instance like this:\n`]set api tgs user,exampleusername password,examplepassword host,https://tgs.example.com`"
         raise CogLoadError(message)
     cog = TGS(bot)
-    bot.add_cog(cog)
+    await bot.add_cog(cog)

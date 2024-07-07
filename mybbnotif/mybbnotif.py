@@ -31,7 +31,7 @@ class MybbNotif(commands.Cog):
     def cog_unload(self):
         self.running = False
         self.main_loop_task.cancel()
-        asyncio.create_task(self.session.cancel())
+        asyncio.create_task(self.session.close())
 
     async def run(self):
         self.running = True
@@ -93,8 +93,8 @@ class MybbNotif(commands.Cog):
                     if timestamp <= last_timestamp:
                         break
                     message = f"[{prefix}] __{item['title']}__ by {item['author']['name']}\n<{item['url']}>\n"
-                    message += quote(markdownify.markdownify(item['content_html']).replace('\n\n', '\n'))
-                    message = list(pagify(message, page_length=500))[0]
+                    forum_post_text = re.sub("\n+", "\n", markdownify.markdownify(item['content_html']))
+                    message += quote(list(pagify(forum_post_text, page_length=500))[0].strip())
                     for channel in channels:
                         await channel.send(message)
             if not data.get("items"):
