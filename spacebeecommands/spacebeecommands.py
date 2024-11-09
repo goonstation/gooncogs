@@ -182,6 +182,46 @@ class SpacebeeCommands(commands.Cog):
 
     @checks.admin()
     @commands.command()
+    async def playermentions(self, ctx: commands.Context, server_id: str):
+        """Lists Discord mentions of players on a given Goonstation server."""
+        goonservers = self.bot.get_cog("GoonServers")
+        spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
+        nightshadewhitelist = self.bot.get_cog("NightshadeWhitelist")
+        response = await goonservers.send_to_server_safe(
+            server_id, "status", ctx.message, to_dict=True
+        )
+        if response is None:
+            return
+        players = []
+        try:
+            for i in range(int(response["players"])):
+                players.append(response[f"player{i}"])
+        except KeyError:
+            await ctx.message.reply("That server is not responding correctly.")
+            return
+        players.sort()
+        if not players:
+            await ctx.message.reply("No players.")
+        output = []
+        for player in players:
+            user_id = await spacebeecentcom.config.custom("ckey", player).discord_id()
+            ns_user_id = await nightshadewhitelist.config.custom("ckey", player).discord_id()
+            if user_id and ns_user_id and ns_user_id == user_id:
+                output.append(f"{player} - <@{user_id}> (NS & G)")
+            elif user_id and ns_user_id and ns_user_id != user_id:
+                output.append(f"{player} - <@{user_id}> NS: <@{ns_user_id}>")
+            elif user_id:
+                output.append(f"{player} - <@{user_id}>")
+            elif ns_user_id:
+                output.append(f"{player} - <@{ns_user_id}> (NS only)")
+            else:
+                output.append(f"{player} - unlinked")
+        response = "\n".join(output)
+        for page in pagify(response):
+            await ctx.message.reply(page, allowed_mentions=discord.AllowedMentions.none())
+
+    @checks.admin()
+    @commands.command()
     async def ooc(self, ctx: commands.Context, server_id: str, *, message: str):
         """Sends an OOC message to a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
@@ -309,7 +349,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if response is None:
             return
         await ctx.send(
-            f"BYOND {response['major']}.{response['minor']}\nGoonhub: {response['goonhub_api']}"
+            f"BYOND {response.get('major', 'N/A')}.{response.get('minor', 'N/A')}\nGoonhub: {response.get('goonhub_api', 'N/A')}"
         )
 
     @checks.admin()
@@ -947,7 +987,7 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         data = json.loads(response)
         if not isinstance(data, dict) or canvas_name not in data:
-            await ctx.send(f"Canvas not found. Run `]canvas_list {server_id}` to see existing canvases.")
+            await ctx.send(f"Canvas not found. Run `]canvaslist {server_id}` to see existing canvases.")
             return
         data = base64.b64decode(data[canvas_name])
         img_file = discord.File(io.BytesIO(data), filename="canvas.png")

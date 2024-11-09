@@ -29,13 +29,13 @@ class InlineCommands(commands.Cog):
         tasks = []
         prefixes = await self.bot.get_prefix(message)
         prefix = None
-        if isinstance(prefix, list):
+        if isinstance(prefixes, list):
             prefix = prefixes[0]
         else:
             prefix = prefixes
             prefixes = [prefix]
         for prefix in prefixes:
-            if message.content.startswitch(prefix):
+            if message.content.startswith(prefix):
                 return
         for command in re.findall(r"\[(.*?)\]", message.content):
             if not command:

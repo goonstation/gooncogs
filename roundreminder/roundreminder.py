@@ -116,7 +116,10 @@ class RoundReminder(commands.Cog):
     async def clearnextround(self, ctx: commands.Context):
         """Clears all next round reminders you have scheduled."""
         await self.config.user(ctx.author).match_strings.set([])
-        await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        try:
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        except discord.Forbidden:
+            await ctx.send("\N{WHITE HEAVY CHECK MARK}")
 
     @commands.command()
     async def nextround(self, ctx: commands.Context, *, search_text: Optional[str]):
@@ -126,7 +129,10 @@ class RoundReminder(commands.Cog):
                 await ctx.send("You have too many reminders set, chill out.")
             else:
                 match_strings.append(self.normalize(search_text))
-                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                try:
+                    await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+                except discord.Forbidden:
+                    await ctx.send("\N{WHITE HEAVY CHECK MARK}")
 
     async def notify(self, user: discord.User, embed, match_string: Optional[str]):
         try:
