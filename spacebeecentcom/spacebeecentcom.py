@@ -224,6 +224,18 @@ class SpacebeeCentcom(commands.Cog):
         }
         await goonservers.send_to_servers(servers, send_data, exception=exception)
 
+    async def discord_broadcast_alert(
+        self, channels, server_name, from_key, from_name, msg, exception=None
+    ):
+        if hasattr(channels, "channels"):
+            channels = channels.channels["alert"]
+        out_msg = f"\N{RED EXCLAMATION MARK} [{server_name}] {from_name} ({from_key}) {msg}"
+        messages = await server.subtype.channel_broadcast(self.bot, "alert", out_msg)
+        for message in messages:
+            await message.add_reaction("\N{BLUE SQUARE}")
+            await message.add_reaction("\N{YELLOW SQUARE}")
+            await message.add_reaction("\N{RED SQUARE}")
+
     async def server_dep(self, server: str, server_name: str, api_key: str):
         if api_key != (await self.bot.get_shared_api_tokens("spacebee"))["api_key"]:
             raise self.SpacebeeError("Invalid API key.", 403)
@@ -400,6 +412,15 @@ class SpacebeeCentcom(commands.Cog):
                 out += f"{name} ({key}) "
             out += msg
             await server.subtype.channel_broadcast(self.bot, "admin_misc", out)
+            return self.SUCCESS_REPLY
+
+        @app.get("/alert")
+        async def alert(
+            msg: str, key: str = "", name: str = "", server=Depends(self.server_dep)
+        ):
+            await self.discord_broadcast_alert(
+                server.subtype, server.full_name, key, name, msg
+            )
             return self.SUCCESS_REPLY
 
         @app.get("/admin_debug")
@@ -898,3 +919,33 @@ class SpacebeeCentcom(commands.Cog):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) == self.REPLIED_TO_EMOJI and payload.message_id in self.initiating_messages:
             del self.initiating_messages[payload.message_id]
+
+    @commands.Cog.listener()
+    async def on_reaction_add(reaction, user):
+        _id = payload.message_id
+        reaction_msg = reaction.message 
+        message
+
+        if reaction_msg.author.id != self.bot.user.id:
+            return
+        if reaction.me is False:
+            return
+
+        if str(reaction.emoji) == "\N{BLUE SQUARE}":
+            message = "notes"
+        elif str(reaction.emoji == "\N{YELLOW SQUARE}"):
+            message = "pm"
+        elif str(reaction.emoji == "\N{RED SQUARE}"):
+            message = "ban"
+            
+        await self.check_and_send_message(
+            channel_type,
+            message,
+            server_id,
+            {
+                "type": reply_type,
+                "nick": message.author.name,
+                "msg": message.content,
+                "target": target,
+            },
+        )
