@@ -26,7 +26,9 @@ import yt_dlp
 import base64
 from PIL import Image
 import contextlib
-import xattr
+import os
+if os.name != 'nt':
+    import xattr
 
 @contextlib.asynccontextmanager
 async def empty_context_manager():
@@ -558,11 +560,13 @@ RTT: {elapsed * 1000:.2f}ms"""
         if not play_file_path.is_file():
             return None
         title = info["title"] if info else None
-        if title is None:
+        if title is None and os.name != 'nt':
             try:
                 title = xattr.getxattr(str(play_file_path), "user.dublincore.title").decode("utf8")
             except:
                 title = file_name
+        else:
+            title = file_name
         goonservers = self.bot.get_cog("GoonServers")
         response = await goonservers.send_to_server_safe(
             server_id,
