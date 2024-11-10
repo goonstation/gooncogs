@@ -13,9 +13,11 @@ from collections import OrderedDict
 import logging
 import re
 import secrets
+import itertools
+import discord.ui as ui
 
 PLAYER_ROLE_ID = 182284445837950977
-GUILD_ID = 182249960895545344
+GUILD_ID = 890719555507347476
 
 class SpacebeeCentcom(commands.Cog):
     AHELP_COLOUR = discord.Colour.from_rgb(184, 46, 0)
@@ -199,6 +201,22 @@ class SpacebeeCentcom(commands.Cog):
             channels = channels.channels["mhelp"]
         await self.discord_broadcast(channels, embed=embed, exception=exception, msgid=msgid, reply_message_id=reply_message_id)
 
+    async def discord_broadcast_uncool(
+            self, channels, server_name, key, name, message, phrase, word, server_key, exception=None, msgid=None, reply_message_id=None
+    ):
+        embed = self.make_message_embed(
+            discord.Colour.from_rgb(255, 255, 0),
+            key,
+            name,
+            f"{message}: {phrase}",
+            "UNCOOL",
+            server_name
+        )
+        view = UncoolHandlerView(self.bot, key, word, phrase, server_key)
+        if hasattr(channels, "channels"):
+            channels = channels.channels["ahelp"]
+        view.messages = await self.discord_broadcast(channels, embed=embed, exception=exception, msgid=msgid, reply_message_id=reply_message_id, view = view)
+
     async def discord_broadcast_asay(
         self, channels, server_name, from_key, from_name, source, msg, exception=None
     ):
@@ -260,6 +278,23 @@ class SpacebeeCentcom(commands.Cog):
                 server.short_name,
                 msg,
                 exception=server,
+            )
+            return self.SUCCESS_REPLY
+
+        @app.get("/uncool")
+        async def adminsay(
+            key: str, name: str, msg: str, phrase: str, pos: int, server_key: str, server=Depends(self.server_dep)
+        ):
+            words = phrase.split()
+            char_positions = list(itertools.accumulate(len(word) + 1 for word in words))
+            word = None
+            for i, pos2 in enumerate(char_positions):
+                if pos < pos2:
+                    word = words[i]
+                    break
+
+            await self.discord_broadcast_uncool(
+                server.subtype, server.full_name, key, name, msg, phrase, word, server_key
             )
             return self.SUCCESS_REPLY
 
@@ -898,3 +933,116 @@ class SpacebeeCentcom(commands.Cog):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         if str(payload.emoji) == self.REPLIED_TO_EMOJI and payload.message_id in self.initiating_messages:
             del self.initiating_messages[payload.message_id]
+
+class UncoolHandlerView(ui.View):
+    def __init__(self, bot, key, word, phrase, server_key):
+        super().__init__(timeout = 300)
+        self.bot = bot
+        self.key = key
+        self.word = word
+        self.phrase = phrase
+        self.server_key = server_key
+        self.messages = None
+
+    @ui.button(label="Ban", style=discord.ButtonStyle.red)
+    async def ban_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(UncoolBanModal(self.bot, self.key, self.word, self.phrase, self.server_key))
+    @ui.button(label="Warn", style=discord.ButtonStyle.blurple)
+    async def warn_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(UncoolWarnModal(self.bot, self.key, self.word, self.phrase, self.server_key))
+
+    @ui.button(label="Notes", style=discord.ButtonStyle.green)
+    async def notes_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        goonservers = self.bot.get_cog("GoonServers")
+        spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
+        name = await spacebeecentcom.get_ckey(interaction.user)
+
+        if name is None:
+            await interaction.response.send_message("Your account needs to be linked to use this button", ephemeral=True)
+            return
+
+        msg = f"notes{self.server_key}"
+        await goonservers.send_to_server(goonservers.resolve_server(self.server_key), f"type=asay&nick={name}&msg=%3B{msg}")
+        await interaction.response.defer(ephemeral=True)
+
+    @ui.button(label="Dismiss", style=discord.ButtonStyle.grey)
+    async def dismiss_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.stop()
+        await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        for message in self.messages:
+            await message.edit(view=None)
+
+    async def on_timeout(self):
+        await super().on_timeout()
+        for message in self.messages:
+            await message.edit(view=None)
+
+class UncoolBanModal(ui.Modal):
+    def __init__(self, bot, key, word, phrase, server_key):
+        super().__init__(title = f"Banning {key[:30]}")
+        self.bot = bot
+        self.key = key
+        self.server_key = server_key
+        self.duration = ui.TextInput(label = "ban duration in minutes", default = "60")
+        self.reason = ui.TextInput(label = "Reason given for ban", default = f"Per rule 4, do not say {word} on our servers")
+
+        self.add_item(ui.TextInput(label = f"{word[:70]}", default = f"{phrase[:4000]}", style=discord.TextStyle.long))
+        self.add_item(self.duration)
+        self.add_item(self.reason)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        goonservers = self.bot.get_cog("GoonServers")
+        spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
+
+        name = await spacebeecentcom.get_ckey(interaction.user)
+
+        if name is None:
+            await interaction.response.send_message("Your account needs to be linked to use this button", ephemeral=True)
+            return
+
+        msg = f"ban{self.server_key} {self.key} {self.duration.value} {self.reason.value}"
+        await goonservers.send_to_server(goonservers.resolve_server(self.server_key), f"type=asay&nick={name}&msg=%3B{msg}")
+        await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        await interaction.response.defer(ephemeral=True)
+
+class UncoolWarnModal(ui.Modal):
+    def __init__(self, bot, key, word, phrase, server_key):
+        super().__init__(title = f"Warning {key[:30]}")
+        self.bot = bot
+        self.key = key
+        self.server_key = server_key
+
+        self.warn = ui.TextInput(label = "Warn message", default = f"Per rule 4, do not say {word} on our servers")
+        self.note = ui.TextInput(label = "Note message", default = f"Warned for {word}\n{phrase[:250]}", style=discord.TextStyle.long)
+
+        self.add_item(ui.TextInput(label = f"{word[:70]}", default = f"{phrase[:4000]}", style=discord.TextStyle.long))
+        self.add_item(self.warn)
+        self.add_item(self.note)
+
+
+    async def on_submit(self, interaction: discord.Interaction):
+        goonservers = self.bot.get_cog("GoonServers")
+        spacebeecentcom: SpacebeeCentcom = self.bot.get_cog("SpacebeeCentcom")
+
+        name = await spacebeecentcom.get_ckey(interaction.user)
+
+        if name is None:
+            await interaction.response.send_message("Your account needs to be linked to use this button", ephemeral=True)
+            return
+
+        msg = f"addnote{self.server_key} {self.key} {self.note.value}"
+        await goonservers.send_to_server(goonservers.resolve_server(self.server_key), f"type=asay&nick={name}&msg=%3B{msg}")
+        #SEND ADMIN PM
+        await spacebeecentcom.check_and_send_message(
+            "ahelp",
+            interaction.message,
+            self.server_key,
+            {
+                "type": "pm",
+                "nick": name,
+                "msg": f"{self.warn.value}",
+                "target": self.key,
+            },
+        )
+        await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        await interaction.response.defer(ephemeral=True)
