@@ -17,7 +17,7 @@ import itertools
 import discord.ui as ui
 
 PLAYER_ROLE_ID = 182284445837950977
-GUILD_ID = 890719555507347476
+GUILD_ID = 182249960895545344
 
 class SpacebeeCentcom(commands.Cog):
     AHELP_COLOUR = discord.Colour.from_rgb(184, 46, 0)
