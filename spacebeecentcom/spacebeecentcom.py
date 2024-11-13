@@ -285,8 +285,8 @@ class SpacebeeCentcom(commands.Cog):
         async def adminsay(
             key: str, name: str, msg: str, phrase: str, pos: int, server_key: str, server=Depends(self.server_dep)
         ):
-            words = phrase.split()
-            char_positions = list(itertools.accumulate(len(word) + 1 for word in words))
+            words = phrase.split('**')
+            char_positions = list(itertools.accumulate(len(word) + 2 for word in words))
             word = None
             for i, pos2 in enumerate(char_positions):
                 if pos < pos2:
@@ -970,7 +970,9 @@ class UncoolHandlerView(ui.View):
         self.stop()
         await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
         for message in self.messages:
-            await message.edit(view=None)
+            embed: discord.Embed = message.embeds[0]
+            embed.title = f"~~{embed.title}~~ (DISMISSED)"
+            await message.edit(view=None, embed = embed)
 
     async def on_timeout(self):
         await super().on_timeout()
@@ -1012,7 +1014,10 @@ class UncoolWarnModal(ui.Modal):
         self.key = key
         self.server_key = server_key
 
-        self.warn = ui.TextInput(label = "Warn message", default = f"Per rule 4, do not say {word} on our servers")
+        if "brutality" in word:
+            self.warn = ui.TextInput(label = "Warn message", default = f"Please don't refer to '{word}' on Goonstation. Players who roll Sec are not police officers and we want to keep a firm line between the game and real world issues.")
+        else:
+            self.warn = ui.TextInput(label = "Warn message", default = f"Per rule 4, do not say \'{word}\' on our servers")
         self.note = ui.TextInput(label = "Note message", default = f"Warned for {word}\n{phrase[:250]}", style=discord.TextStyle.long)
 
         self.add_item(ui.TextInput(label = f"{word[:70]}", default = f"{phrase[:4000]}", style=discord.TextStyle.long))
