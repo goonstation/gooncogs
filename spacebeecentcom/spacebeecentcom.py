@@ -936,7 +936,7 @@ class SpacebeeCentcom(commands.Cog):
 
 class UncoolHandlerView(ui.View):
     def __init__(self, bot, key, word, phrase, server_key):
-        super().__init__(timeout = 300)
+        super().__init__(timeout = 1800)
         self.bot = bot
         self.key = key
         self.word = word
