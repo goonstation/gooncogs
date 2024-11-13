@@ -970,7 +970,7 @@ class UncoolHandlerView(ui.View):
         self.stop()
         await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
         for message in self.messages:
-            embed: discord.Embed = message.embed
+            embed: discord.Embed = message.embeds[0]
             embed.title = f"~~{embed.title}~~ (DISMISSED)"
             await message.edit(view=None, embed = embed)
 
