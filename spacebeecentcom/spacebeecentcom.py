@@ -961,7 +961,7 @@ class UncoolHandlerView(ui.View):
             await interaction.response.send_message("Your account needs to be linked to use this button", ephemeral=True)
             return
 
-        msg = f"notes{self.server_key}"
+        msg = f"notes{self.server_key} {self.key}"
         await goonservers.send_to_server(goonservers.resolve_server(self.server_key), f"type=asay&nick={name}&msg=%3B{msg}")
         await interaction.response.defer(ephemeral=True)
 
