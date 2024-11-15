@@ -1038,9 +1038,10 @@ class UncoolWarnModal(ui.Modal):
         msg = f"addnote{self.server_key} {self.key} {self.note.value}"
         await goonservers.send_to_server(goonservers.resolve_server(self.server_key), f"type=asay&nick={name}&msg=%3B{msg}")
         #SEND ADMIN PM
+        await interaction.response.send_message(f"{self.warn.value}")
         await spacebeecentcom.check_and_send_message(
             "ahelp",
-            interaction.message,
+            await interaction.original_response(),
             self.server_key,
             {
                 "type": "pm",
@@ -1050,4 +1051,3 @@ class UncoolWarnModal(ui.Modal):
             },
         )
         await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-        await interaction.response.defer(ephemeral=True)
