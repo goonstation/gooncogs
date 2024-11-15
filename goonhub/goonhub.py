@@ -303,7 +303,6 @@ class NotesBuilderView(discord.ui.View):
             await interaction.response.defer()
             self.embed_idx += 1
         elif not self.fin:
-            print("building")
             try:
                 await interaction.response.defer(thinking=True)
                 self.embeds.append(await self.build_page())
