@@ -396,7 +396,7 @@ class NotesBuilderView(discord.ui.View):
             'Content-Type': 'application/json',
             'Authorization': f'Authorization: Bearer {api_key}'
         }
-        async with self.session.get(url, headers) as res:
+        async with aiohttp.ClientSession().get(url, headers) as res:
             if res.status != 200:
                 raise APIError("res.status")
             j = await res.json()
