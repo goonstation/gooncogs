@@ -390,7 +390,7 @@ class NotesBuilderView(discord.ui.View):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['API2']
         ckey = ckey.replace('%%', '%%%').replace('\\', '')
-        url = f"{tokens['playernotes_url']}?filters[ckey]={ckey}&filters[exact]=1&per_page=10&page={page}"
+        url = f"{tokens['goonhub_url']}{tokens['playernotes']}/?filters[ckey]={ckey}&filters[exact]=1&per_page=10&page={page}"
         url = urllib.parse.quote(url)
         headers = {
             'Accept': 'application/json',
