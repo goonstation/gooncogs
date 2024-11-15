@@ -333,10 +333,10 @@ class NotesBuilderView(discord.ui.View):
         return embed
 
     async def build_page(self) -> discord.Embed:
-        title = f'notes for {self.ckey}'
+        title = f'Notes for {self.ckey}'
         curr_size = len(title)
 
-        embed = discord.Embed(title=title, color=discord.Color.from_str("#ff2222"))
+        embed = discord.Embed(title=title, color=discord.Color.from_str("#ff2222"), url=f"https://goonhub.com/admin/players/{self.ckey}")
         pagenames = list()
 
         def add_field(field_data):
@@ -367,12 +367,20 @@ class NotesBuilderView(discord.ui.View):
         self.current_page = data["meta"]["current_page"]
         self.cont = ""
         for note in data["data"]:
-            time = note["updated_at"]
+            time = note["created_at"]
 
             try:
-                time = f"<t:{int(datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
+                time = f"<t:{int(datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%fZ').timestamp())}:f>"
             except:
                 pass
+
+            if note["updated_at"] and note["updated_at"] != note["created_at"]:
+                time2 = note["updated_at"]
+                try:
+                    time2 = f"<t:{int(datetime.datetime.strptime(time2, '%Y-%m-%dT%H:%M:%fZ').timestamp())}:f>"
+                except:
+                    pass
+                time += f", updated {time2}"
 
             name = f'[{note["server_id"]}]: {note["game_admin"]["ckey"]} at {time}' #default name
             for i, field_value in enumerate(pagify(note["note"], delims=('\n', ' '), priority=True, page_length=1024)):
