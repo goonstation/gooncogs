@@ -5,7 +5,6 @@ from redbot.core import commands, Config, checks
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
-from geoip import geolite2
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, box, quote
 import datetime
@@ -138,76 +137,6 @@ class GoonHub(commands.Cog):
                 await update_msg("- Cancelled", True)
                 return
         await update_msg(len(queue), True)
-
-    @checks.admin()
-    @commands.command()
-    async def investigate(self, ctx: commands.Context, target_ckey: str):
-        """Investigates a given ckey.
-
-        Prefix the ckey with ! to do an exact search."""
-        embed_colour = await ctx.embed_colour()
-        current_embed = None
-        pages = []
-        exact = False
-        if len(target_ckey) and target_ckey[0] == "!":
-            exact = True
-            target_ckey = target_ckey[1:]
-        async with ctx.typing():
-            data = await self.query_user_search(target_ckey, exact)
-            if not isinstance(data, list):
-                await ctx.send(f"Error code {data.status} occured when querying the API")
-                return
-            for info in data:
-                if current_embed and len(current_embed.fields) >= 12:
-                    pages.append(current_embed)
-                    current_embed = None
-                if current_embed is None:
-                    current_embed = discord.Embed(
-                            title = f"Investigating `{target_ckey or ' '}`",
-                            color = embed_colour,
-                        )
-                ip_info = None
-                try:
-                    ip_info = geolite2.lookup(info['ip'])
-                except ValueError:
-                    pass
-                except TypeError:
-                    pass
-                recorded_date = datetime.datetime.fromisoformat(info['recorded'])
-                recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
-                message = inspect.cleandoc(f"""
-                    IP: {info['ip']}
-                    CID: {info['compid']}
-                    Date: <t:{int(recorded_date.timestamp())}:F>
-                    """).strip()
-                if ip_info:
-                    message += f"\nCountry: {ip_info.country}"
-                    emoji = self.country_to_emoji(ip_info.country)
-                    if emoji:
-                        message += " " + emoji
-                ckey_title = info['ckey']
-                if self.ckeyify(ckey_title) == self.ckeyify(target_ckey):
-                    ckey_title = "\N{Large Green Circle} " + ckey_title
-                else:
-                    ckey_title = "\N{Large Yellow Circle} " + ckey_title
-                current_embed.add_field(
-                        name = f"{ckey_title}",
-                        value = message,
-                        inline = True
-                        )
-        if current_embed:
-            pages.append(current_embed)
-        n_matches = 0
-        for i, page in enumerate(pages):
-            page.set_footer(text=f"{i+1}/{len(pages)} | results {n_matches + 1} to {n_matches + len(page.fields)}")
-            n_matches += len(page.fields)
-        if not pages:
-            await ctx.send("No results found")
-            return
-        if len(pages) > 1:
-            await menu(ctx, pages, DEFAULT_CONTROLS, timeout=60.0)
-        else:
-            await ctx.send(embed=pages[0])
 
     @commands.command()
     @checks.admin()
