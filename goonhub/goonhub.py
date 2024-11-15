@@ -380,7 +380,7 @@ class NotesBuilderView(discord.ui.View):
                     time2 = f"<t:{int(datetime.datetime.strptime(time2, '%Y-%m-%dT%H:%M:%fZ').timestamp())}:f>"
                 except:
                     pass
-                time += f", updated on {time2}"
+                time += f", updated {time2}"
 
             name = f'[{note["server_id"]}]: {note["game_admin"]["ckey"]} at {time}' #default name
             for i, field_value in enumerate(pagify(note["note"], delims=('\n', ' '), priority=True, page_length=1024)):
