@@ -5,7 +5,6 @@ from redbot.core import commands, Config, checks
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
-from geoip import geolite2
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, box, quote
 import datetime
@@ -14,6 +13,7 @@ import inspect
 import urllib.parse
 import uuid
 import time
+import json
 
 class GoonHub(commands.Cog):
     def __init__(self, bot: Red):
@@ -139,76 +139,6 @@ class GoonHub(commands.Cog):
                 return
         await update_msg(len(queue), True)
 
-    @checks.admin()
-    @commands.command()
-    async def investigate(self, ctx: commands.Context, target_ckey: str):
-        """Investigates a given ckey.
-
-        Prefix the ckey with ! to do an exact search."""
-        embed_colour = await ctx.embed_colour()
-        current_embed = None
-        pages = []
-        exact = False
-        if len(target_ckey) and target_ckey[0] == "!":
-            exact = True
-            target_ckey = target_ckey[1:]
-        async with ctx.typing():
-            data = await self.query_user_search(target_ckey, exact)
-            if not isinstance(data, list):
-                await ctx.send(f"Error code {data.status} occured when querying the API")
-                return
-            for info in data:
-                if current_embed and len(current_embed.fields) >= 12:
-                    pages.append(current_embed)
-                    current_embed = None
-                if current_embed is None:
-                    current_embed = discord.Embed(
-                            title = f"Investigating `{target_ckey or ' '}`",
-                            color = embed_colour,
-                        )
-                ip_info = None
-                try:
-                    ip_info = geolite2.lookup(info['ip'])
-                except ValueError:
-                    pass
-                except TypeError:
-                    pass
-                recorded_date = datetime.datetime.fromisoformat(info['recorded'])
-                recorded_date = recorded_date.replace(tzinfo=datetime.timezone.utc)
-                message = inspect.cleandoc(f"""
-                    IP: {info['ip']}
-                    CID: {info['compid']}
-                    Date: <t:{int(recorded_date.timestamp())}:F>
-                    """).strip()
-                if ip_info:
-                    message += f"\nCountry: {ip_info.country}"
-                    emoji = self.country_to_emoji(ip_info.country)
-                    if emoji:
-                        message += " " + emoji
-                ckey_title = info['ckey']
-                if self.ckeyify(ckey_title) == self.ckeyify(target_ckey):
-                    ckey_title = "\N{Large Green Circle} " + ckey_title
-                else:
-                    ckey_title = "\N{Large Yellow Circle} " + ckey_title
-                current_embed.add_field(
-                        name = f"{ckey_title}",
-                        value = message,
-                        inline = True
-                        )
-        if current_embed:
-            pages.append(current_embed)
-        n_matches = 0
-        for i, page in enumerate(pages):
-            page.set_footer(text=f"{i+1}/{len(pages)} | results {n_matches + 1} to {n_matches + len(page.fields)}")
-            n_matches += len(page.fields)
-        if not pages:
-            await ctx.send("No results found")
-            return
-        if len(pages) > 1:
-            await menu(ctx, pages, DEFAULT_CONTROLS, timeout=60.0)
-        else:
-            await ctx.send(embed=pages[0])
-
     @commands.command()
     @checks.admin()
     async def notes(self, ctx: commands.Context, *, ckey: str):
@@ -331,3 +261,143 @@ class GoonHub(commands.Cog):
         else:
             await ctx.send(embed=pages[0])
 
+
+    @commands.command()
+    @checks.admin()
+    async def notes2(self, ctx: commands.Context, ckey):
+        ckey = self.ckeyify(ckey)
+        v = NotesBuilderView(self.bot, ckey)
+        async with ctx.typing():
+            try:
+                embed = await v.fetch_first_page()
+                await ctx.send(embed=embed, view = v)
+            except APIError as e:
+                await ctx.send(f"Error code {e} occured when querying the API")
+
+class APIError(Exception):
+    pass
+
+class NotesBuilderView(discord.ui.View):
+    def __init__(self, bot, ckey):
+        super().__init__(timeout = 30)
+        self.bot = bot
+        self.ckey = ckey
+        self.final_page = 1
+        self.fields = list()
+        self.embeds = list()
+        self.cont = ""
+        self.current_page = 0
+        self.fin = False
+        self.embed_idx = 0
+
+    @discord.ui.button(label="previous", style=discord.ButtonStyle.blurple)
+    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.embed_idx > 0:
+            self.embed_idx -= 1
+        self.update_buttons()
+        await interaction.response.edit_message(embed=self.embeds[self.embed_idx], view=self)
+
+    @discord.ui.button(label="next", style=discord.ButtonStyle.blurple)
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.embed_idx < len(self.embeds) - 1:
+            await interaction.response.defer()
+            self.embed_idx += 1
+        elif not self.fin:
+            try:
+                await interaction.response.defer(thinking=True)
+                self.embeds.append(await self.build_page())
+                followup = await interaction.followup.send("goodbye", wait=True)
+                await followup.delete()
+            except APIError as e:
+                await interaction.followup.send(f"Error code {e} occured when querying the API")
+                self.stop()
+                await interaction.message.edit(view=None)
+                return
+            self.embed_idx += 1
+        self.update_buttons()
+        await interaction.message.edit(embed=self.embeds[self.embed_idx], view=self)
+
+    @discord.ui.button(label="dismiss", style=discord.ButtonStyle.red)
+    async def dismiss_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.stop()
+        await interaction.message.delete()
+
+    def update_buttons(self):
+        self.children[0].disabled = self.embed_idx == 0
+        self.children[1].disabled = self.fin and self.embed_idx == len(self.embeds) - 1
+
+    async def fetch_first_page(self) -> discord.Embed:
+        embed = await self.build_page()
+        self.embeds.append(embed)
+        self.update_buttons()
+        return embed
+
+    async def build_page(self) -> discord.Embed:
+        title = f'notes for {self.ckey}'
+        curr_size = len(title)
+
+        embed = discord.Embed(title=title, color=discord.Color.from_str("#ff2222"))
+        pagenames = list()
+
+        def add_field(field_data):
+            nonlocal embed, curr_size
+            curr_size += field_data[0]
+            embed.add_field(name = field_data[1], value = field_data[2], inline = False)
+
+        while len(embed.fields) < 10: #loop until 10 fields - can also break if charlimit is reached
+            if len(self.fields) == 0: #if we are out of fields to append, fetch another batch
+                if self.current_page == self.final_page: #if we are out of pages to fetch, also break
+                    break
+                else:
+                    self.extract_notes(await self.fetch_notes_page(self.current_page + 1))
+
+            if curr_size + self.fields[0][0] > 5900: #if next field would put us over, finish adding fields
+                break
+            add_field(self.fields.pop(0))
+            pagenames.append(f"{self.current_page}{self.cont}")
+
+        embed.set_footer(text = f"page {pagenames[0]}{f' - {pagenames[-1]}'  if pagenames[0]!=pagenames[-1] else ''} of {self.final_page}")
+        self.cont = " (cont)" #for next embed, mark as continuing previous page
+        if len(self.fields) == 0 and self.current_page == self.final_page:
+            self.fin = 1
+        return embed
+
+    def extract_notes(self, data):
+        self.final_page = data["meta"]["last_page"] #fetching a new page, update our metas and mark as starting a new page
+        self.current_page = data["meta"]["current_page"]
+        self.cont = ""
+        for note in data["data"]:
+            time = note["updated_at"]
+
+            try:
+                time = f"<t:{int(datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
+            except:
+                pass
+
+            name = f'[{note["server_id"]}]: {note["game_admin"]["ckey"]} at {time}' #default name
+            for i, field_value in enumerate(pagify(note["note"], delims=('\n', ' '), priority=True, page_length=1024)):
+                field_name = name
+                if i == 1:
+                    field_name = "..."
+                elif i > 1:
+                    field_name = f"... ({i})"
+                field_size = len(field_name) + len(field_value)
+                self.fields.append((field_size, field_name, field_value))
+        return 1
+
+    async def fetch_notes_page(self, page) -> dict:
+        tokens = await self.bot.get_shared_api_tokens('goonhub')
+        api_key = tokens['API2_key']
+        ckey = ckey.replace('%%', '%%%').replace('\\', '')
+        url = f"{tokens['goonhub_url']}/players/notes/?filters[ckey]={ckey}&filters[exact]=1&per_page=10&page={page}"
+        url = urllib.parse.quote(url)
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': f'Authorization: Bearer {api_key}'
+        }
+        async with self.session.get(url, headers) as res:
+            if res.status != 200:
+                raise APIError("res.status")
+            j = await res.json()
+            return json.load(j)
