@@ -395,8 +395,8 @@ class NotesBuilderView(discord.ui.View):
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {api_key}'
         }
-        self.bot.get_cog("GoonHub").session
-        async with aiohttp.ClientSession().get(url, headers) as res:
+
+        async with self.bot.get_cog("GoonHub").session.get(url, headers) as res:
             if res.status != 200:
                 raise APIError(f"{res.status}")
             return await res.json()
