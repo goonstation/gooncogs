@@ -388,7 +388,7 @@ class NotesBuilderView(discord.ui.View):
     async def fetch_notes_page(self, page) -> dict:
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['API2_key']
-        ckey = ckey.replace('%%', '%%%').replace('\\', '')
+        ckey = self.ckey.replace('%%', '%%%').replace('\\', '')
         url = f"{tokens['goonhub_url']}/players/notes/?filters[ckey]={ckey}&filters[exact]=1&per_page=10&page={page}"
         url = urllib.parse.quote(url)
         headers = {
