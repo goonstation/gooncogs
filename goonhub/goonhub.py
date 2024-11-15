@@ -389,15 +389,14 @@ class NotesBuilderView(discord.ui.View):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         api_key = tokens['API2_key']
         ckey = self.ckey.replace('%%', '%%%').replace('\\', '')
-        url = f"{tokens['goonhub_url']}/players/notes/?filters[ckey]={ckey}&filters[exact]=1&per_page=10&page={page}"
-        url = urllib.parse.quote(url)
+        url = f"{tokens['goonhub_url']}/players/notes/?filters%5bckey%5d={ckey}&filters%5bexact%5d=1&per_page=10&page={page}"
         headers = {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'Authorization': f'Authorization: Bearer {api_key}'
+            'Authorization': f'Bearer {api_key}'
         }
+        self.bot.get_cog(GoonHub).session
         async with aiohttp.ClientSession().get(url, headers) as res:
             if res.status != 200:
-                raise APIError("res.status")
-            j = await res.json()
-            return json.load(j)
+                raise APIError(f"{res.status}")
+            return await res.json()
