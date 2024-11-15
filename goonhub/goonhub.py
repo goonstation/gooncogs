@@ -290,14 +290,14 @@ class NotesBuilderView(discord.ui.View):
         self.fin = False
         self.embed_idx = 0
 
-    @discord.ui.button(label="previous")
+    @discord.ui.button(label="previous", style=discord.ButtonStyle.blurple)
     async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.embed_idx > 0:
             self.embed_idx -= 1
         self.update_buttons()
         await interaction.response.edit_message(embed=self.embeds[self.embed_idx], view=self)
 
-    @discord.ui.button(label="next")
+    @discord.ui.button(label="next", style=discord.ButtonStyle.blurple)
     async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.embed_idx < len(self.embeds) - 1:
             await interaction.response.defer()
