@@ -370,14 +370,14 @@ class NotesBuilderView(discord.ui.View):
             time = note["created_at"]
 
             try:
-                time = f"<t:{int(datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%s.%fZ').timestamp())}:f>"
+                time = f"<t:{int(datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())}:f>"
             except:
                 pass
 
             if note["updated_at"] and note["updated_at"] != note["created_at"]:
                 time2 = note["updated_at"]
                 try:
-                    time2 = f"<t:{int(datetime.datetime.strptime(time2, '%Y-%m-%dT%H:%M:%s.%fZ').timestamp())}:f>"
+                    time2 = f"<t:{int(datetime.datetime.strptime(time2, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())}:f>"
                 except:
                     pass
                 time += f", updated {time2}"
