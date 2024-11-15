@@ -387,7 +387,18 @@ class NotesBuilderView(discord.ui.View):
         return 1
 
     async def fetch_notes_page(self, page) -> dict:
-        with open(f'Documents/goonstation/gooncogs/goonhub/mocks/{self.ckey}/{page-1}.json') as f:
-            d = json.load(f)
-        return d
-
+        tokens = await self.bot.get_shared_api_tokens('goonhub')
+        api_key = tokens['API2']
+        ckey = ckey.replace('%%', '%%%').replace('\\', '')
+        url = f"{tokens['playernotes_url']}?filters[ckey]={ckey}&filters[exact]=1&per_page=10&page={page}"
+        url = urllib.parse.quote(url)
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': f'Authorization: Bearer {api_key}'
+        }
+        async with self.session.get(url, headers) as res:
+            if res.status != 200:
+                raise APIError("res.status")
+            j = await res.json()
+            return json.load(j)
