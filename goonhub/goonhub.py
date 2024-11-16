@@ -266,11 +266,11 @@ class GoonHub(commands.Cog):
     @checks.admin()
     async def notes2(self, ctx: commands.Context, ckey):
         ckey = self.ckeyify(ckey)
-        v = NotesBuilderView(self.bot, ckey)
+        v = NotesBuilderView(self.bot, ckey, ctx.message.author)
         async with ctx.typing():
             try:
                 embed = await v.fetch_first_page()
-                await ctx.send(embed=embed, view = v)
+                v.message = await ctx.send(embed=embed, view = v)
             except APIError as e:
                 await ctx.send(f"Error code {e} occured when querying the API")
 
@@ -278,8 +278,8 @@ class APIError(Exception):
     pass
 
 class NotesBuilderView(discord.ui.View):
-    def __init__(self, bot, ckey):
-        super().__init__(timeout = 30)
+    def __init__(self, bot, ckey, author):
+        super().__init__(timeout = 90)
         self.bot = bot
         self.ckey = ckey
         self.final_page = 1
@@ -289,6 +289,8 @@ class NotesBuilderView(discord.ui.View):
         self.current_page = 0
         self.fin = False
         self.embed_idx = 0
+        self.message = None
+        self.user = author
 
     @discord.ui.button(label="previous", style=discord.ButtonStyle.blurple)
     async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -325,6 +327,12 @@ class NotesBuilderView(discord.ui.View):
     def update_buttons(self):
         self.children[0].disabled = self.embed_idx == 0
         self.children[1].disabled = self.fin and self.embed_idx == len(self.embeds) - 1
+
+    async def on_timeout(self) -> None:
+        await self.message.edit(view=None)
+
+    async def interaction_check(self, interaction: discord.Interaction[discord.Client]) -> bool:
+        return interaction.user == self.user
 
     async def fetch_first_page(self) -> discord.Embed:
         embed = await self.build_page()
