@@ -1051,3 +1051,18 @@ class UncoolWarnModal(ui.Modal):
             },
         )
         await interaction.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+
+@app_commands.context_menu(name="Check Link")
+@app_commands.guilds(discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
+async def check_link(interaction: discord.Interaction, target: discord.Member):
+    cog = interaction.client.get_cog("SpacebeeCentcom")
+    if not isinstance(cog, SpacebeeCentcom):
+        await interaction.response.send_message("Something went horribly wrong oh no!", ephemeral=True)
+        return
+
+    current_ckey = await cog.config.user(target).linked_ckey()
+    if not current_ckey:
+        await interaction.response.send_message(f"{target.mention} has not linked their account", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"{target.mention}'s ckey is [`{current_ckey}`](<https://goonhub.com/admin/players/{current_ckey}>)", ephemeral=True, suppress_embeds=True)
