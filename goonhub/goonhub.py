@@ -391,7 +391,8 @@ class NotesBuilderView(discord.ui.View):
                 time += f", updated {time2}"
 
             name = f'[{note["server_id"]}]: {note["game_admin"]["ckey"]} at {time}' #default name
-            for i, field_value in enumerate(pagify(note["note"], delims=('\n', ' '), priority=True, page_length=1024)):
+            note_text = f"[↑](https://goonhub.com/admin/logs/{note["round_id"]}) {note["note"]}"
+            for i, field_value in enumerate(pagify(note_text, delims=('\n', ' '), priority=True, page_length=1024)):
                 field_name = name
                 if i == 1:
                     field_name = "..."
