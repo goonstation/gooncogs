@@ -274,7 +274,7 @@ class GoonHub(commands.Cog):
             except APIError as e:
                 await ctx.send(f"Error code {e} occured when querying the API")
 
-class APIError(Exception):
+class NoteError(Exception):
     pass
 
 class NotesBuilderView(discord.ui.View):
@@ -310,8 +310,8 @@ class NotesBuilderView(discord.ui.View):
                 self.embeds.append(await self.build_page())
                 followup = await interaction.followup.send("goodbye", wait=True)
                 await followup.delete()
-            except APIError as e:
-                await interaction.followup.send(f"Error code {e} occured when querying the API")
+            except NoteError as e:
+                await interaction.followup.send(f"{e}")
                 self.stop()
                 await interaction.message.edit(view=None)
                 return
@@ -374,6 +374,8 @@ class NotesBuilderView(discord.ui.View):
         self.final_page = data["meta"]["last_page"] #fetching a new page, update our metas and mark as starting a new page
         self.current_page = data["meta"]["current_page"]
         self.cont = ""
+        if int(data["meta"]["total"]) == 0:
+            raise NoteError(f"No notes found for {self.ckey}")
         for note in data["data"]:
             time = note["created_at"]
 
@@ -391,7 +393,7 @@ class NotesBuilderView(discord.ui.View):
                 time += f", updated {time2}"
 
             name = f'[{note["server_id"]}]: {note["game_admin"]["ckey"]} at {time}' #default name
-            note_text = f"[↑](https://goonhub.com/admin/logs/{note["round_id"]}) {note["note"]}"
+            note_text = f'[↑](https://goonhub.com/admin/logs/{note["round_id"]}) {note["note"]}'
             for i, field_value in enumerate(pagify(note_text, delims=('\n', ' '), priority=True, page_length=1024)):
                 field_name = name
                 if i == 1:
@@ -415,5 +417,5 @@ class NotesBuilderView(discord.ui.View):
         goonhub: GoonHub = self.bot.get_cog("GoonHub")
         async with goonhub.session.get(url, headers = headers) as res:
             if res.status != 200:
-                raise APIError(f"{res.status}")
+                raise NoteError(f"Error code {res.status} occured when querying the API")
             return await res.json()
