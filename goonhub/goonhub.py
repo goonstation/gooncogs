@@ -271,8 +271,8 @@ class GoonHub(commands.Cog):
             try:
                 embed = await v.fetch_first_page()
                 v.message = await ctx.send(embed=embed, view = v)
-            except APIError as e:
-                await ctx.send(f"Error code {e} occured when querying the API")
+            except NoteError as e:
+                await ctx.send(f"{e}")
 
 class NoteError(Exception):
     pass
