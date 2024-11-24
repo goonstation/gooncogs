@@ -393,7 +393,8 @@ class NotesBuilderView(discord.ui.View):
                 time += f", updated {time2}"
 
             name = f'[{note["server_id"]}]: {note["game_admin"]["ckey"]} at {time}' #default name
-            note_text = f'[↑](https://goonhub.com/admin/logs/{note["round_id"]}) {note["note"]}'
+            loglink = f'[↑](https://goonhub.com/admin/logs/{note["round_id"]}) ' if note["round_id"] is not None else ''
+            note_text = f'{loglink}{note["note"]}'
             for i, field_value in enumerate(pagify(note_text, delims=('\n', ' '), priority=True, page_length=1024)):
                 field_name = name
                 if i == 1:
