@@ -1013,8 +1013,9 @@ class UncoolWarnModal(ui.Modal):
         self.bot = bot
         self.key = key
         self.server_key = server_key
-
-        if "brutality" in word.lower():
+        if "racis" in word.lower():
+            self.warn = ui.TextInput(label = "Warn message", default = f"Goonstation is not a place to be making jokes about racism or calling others racist. If someone is breaking the rules against bigotry, let us know directly via adminhelp (f1).")
+        elif "brutality" in word.lower():
             self.warn = ui.TextInput(label = "Warn message", default = f"Please don't refer to '{word}' on Goonstation. Players who roll Sec are not police officers and we want to keep a firm line between the game and real world issues.")
         else:
             self.warn = ui.TextInput(label = "Warn message", default = f"Per rule 4, do not say \'{word}\' on our servers")
