@@ -615,6 +615,9 @@ class SpacebeeCentcom(commands.Cog):
 
     async def user_to_ckey(self, user):
         return await self.config.user(user).linked_ckey()
+    
+    async def ckey_to_discord(self, ckey):
+        return await self.config.custom("ckey", ckey).discord_id()
 
     @commands.command()
     @checks.admin()
