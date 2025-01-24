@@ -17,6 +17,10 @@ class Goonhub(commands.Cog):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         return f"{tokens['url']}/{path}"
     
+    async def check_incoming_key(self, key):
+        tokens = await self.bot.get_shared_api_tokens('goonhub')
+        return key == tokens['incoming_api_key']
+    
     @commands.hybrid_group(name="gh", aliases=["goonhub"])
     @checks.admin()
     async def ghgroup(self, ctx: commands.Context):
