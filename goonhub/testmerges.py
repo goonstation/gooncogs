@@ -5,6 +5,7 @@ import datetime
 from typing import *
 from .request import GoonhubRequest
 from .utilities import servers_autocomplete_all, servers_autocomplete
+from .testmerge_hooks import TestmergeHooks
 import logging
 
 class GoonhubTestmerges(commands.Cog):
@@ -12,6 +13,9 @@ class GoonhubTestmerges(commands.Cog):
         self.Goonhub = Goonhub
         self.config = Config.get_conf(self, 1482189223516)
         self.config.register_global(testmerge_channels={})
+        
+    def register_to_general_api(self, app):
+        TestmergeHooks(self.config, self.Goonhub, app)
 
     @commands.hybrid_group(name="tm", aliases=["testmerge"])
     @checks.admin()
@@ -162,9 +166,7 @@ class GoonhubTestmerges(commands.Cog):
             await req.post('game-build-test-merges', data = data)
         except Exception as e:
             return await ctx.reply(f":warning: {e}")
-        
-        await self.testmerge_announce("\N{White Heavy Check Mark} **New** testmerge", pr=pr, servers=servers, commit=commit)
-            
+                    
         if ctx.interaction:
             await ctx.reply(f"\N{WHITE HEAVY CHECK MARK} Success - note that this does not retrigger a build")
         else:
@@ -235,9 +237,7 @@ class GoonhubTestmerges(commands.Cog):
             except Exception as e:
                 errors.append(f"[{testMerge['server_id']}] {e}")
                 continue
-            
-        await self.testmerge_announce("\N{CLOCKWISE RIGHTWARDS AND LEFTWARDS OPEN CIRCLE ARROWS} **Updated** testmerge", pr=pr, servers=updatingServers, commit=commit)
-            
+                        
         if ctx.interaction:
             await ctx.reply(f"\N{WHITE HEAVY CHECK MARK} Success - note that this does not retrigger a build")
         else:
@@ -303,8 +303,6 @@ class GoonhubTestmerges(commands.Cog):
                 errors.append(f"[{testMerge['server_id']}] {e}")
                 continue
 
-        await self.testmerge_announce("\N{CROSS MARK} **Cancelled** testmerge", pr=pr, servers=removingFromServers)
-
         if ctx.interaction:
             await ctx.reply(f"\N{WHITE HEAVY CHECK MARK} Success - note that this does not retrigger a build")
         else:
@@ -343,21 +341,3 @@ class GoonhubTestmerges(commands.Cog):
             await ctx.reply(
                 "\n".join(self.Goonhub.bot.get_channel(int(ch)).mention for ch in channel_ids)
             )
-            
-    async def testmerge_announce(self, message: str, pr: int, servers: List[Any], commit: Optional[str] = None):
-        channels = await self.config.testmerge_channels()
-        if not len(channels):
-            return
-        repo = await self.Goonhub.config.repo()
-        msg = message + "\n"
-        msg += f"https://github.com/{repo}/pull/{pr}\n"
-        if commit:
-            msg += f"on commit https://github.com/{repo}/pull/{pr}/commits/{commit}"
-        if len(servers):
-            msg += "on servers "
-            for server in servers:
-                msg += server.short_name + " "
-        for channel_id in channels:
-            channel = self.Goonhub.bot.get_channel(int(channel_id))
-            if channel:
-                await channel.send(msg)
