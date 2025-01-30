@@ -10,7 +10,7 @@ from redbot.core.bot import Red
 from typing import *
 import re
 import time
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from uvicorn import Server, Config
@@ -97,7 +97,8 @@ class GeneralApi(commands.Cog):
         asyncio.ensure_future(self.start_api_server())
 
     def cog_unload(self):
-        self.server.should_exit = True
+        if self.server:
+            self.server.should_exit = True
 
     @commands.Cog.listener()
     async def on_cog_add(self, cog: commands.Cog) -> None:
