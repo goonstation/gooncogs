@@ -21,7 +21,7 @@ class Goonhub(commands.Cog):
         tokens = await self.bot.get_shared_api_tokens('goonhub')
         return key == tokens['incoming_api_key']
     
-    @commands.hybrid_group(name="gh", aliases=["goonhub"])
+    @commands.hybrid_group(name="goonhub")
     @checks.admin()
     async def ghgroup(self, ctx: commands.Context):
         """Goonhub."""
