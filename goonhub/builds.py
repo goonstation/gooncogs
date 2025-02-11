@@ -108,7 +108,7 @@ class GoonhubBuilds(commands.Cog):
             return await ctx.reply("Your account needs to be linked to use this")
         
         goonservers = self.Goonhub.bot.get_cog("GoonServers")
-        server = goonservers.resolve_server_or_category(server)
+        server = goonservers.resolve_server(server)
         if not server: return await ctx.reply("Unknown server.")
         
         try:
