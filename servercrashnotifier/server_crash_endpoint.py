@@ -47,6 +47,7 @@ class ServerCrashEndpoint(commands.Cog):
         pass
     
     @scegroup.command()
+    @checks.admin()
     async def addchannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Subscribe a channel to receive server crash notifications."""
         if channel is None:
@@ -58,6 +59,7 @@ class ServerCrashEndpoint(commands.Cog):
         )
 
     @scegroup.command()
+    @checks.admin()
     async def removechannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Unsubscribe a channel from server crash notifications."""
         if channel is None:
@@ -69,6 +71,7 @@ class ServerCrashEndpoint(commands.Cog):
         )
 
     @scegroup.command()
+    @checks.admin()
     async def checkchannels(self, ctx: commands.Context):
         """Check channels subscribed to server crash notifications."""
         channel_ids = await self.config.channels()
