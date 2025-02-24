@@ -22,6 +22,7 @@ class GoonhubBuilds(commands.Cog):
         pass
 
     @cigroup.command(name="status")
+    @checks.admin()
     async def status(self, ctx: commands.Context):
         """Check status of CI builds."""
         await ctx.defer() if ctx.interaction else await ctx.typing()
@@ -64,6 +65,7 @@ class GoonhubBuilds(commands.Cog):
             return await ctx.reply(f":warning: {e}")
 
     @cigroup.command(name="build")
+    @checks.admin()
     @app_commands.describe(server = "The server or server group to build")
     @app_commands.autocomplete(server=servers_autocomplete_all)
     async def build(self, ctx: commands.Context, server: str):
@@ -95,6 +97,7 @@ class GoonhubBuilds(commands.Cog):
             await success_response(ctx)
     
     @cigroup.command(name="cancel")
+    @checks.admin()
     @app_commands.describe(server = "The server or server group to cancel builds on")
     @app_commands.autocomplete(server=servers_autocomplete)
     async def cancel(self, ctx: commands.Context, server: str):
@@ -121,6 +124,7 @@ class GoonhubBuilds(commands.Cog):
         await success_response(ctx)
 
     @cigroup.command(name="branch")
+    @checks.admin()
     @app_commands.describe(
         server = "The server or server group to lookup",
         branch = "The branch name to set (Optional)"
@@ -173,6 +177,7 @@ class GoonhubBuilds(commands.Cog):
             await ctx.reply(embed=embed)
 
     @cigroup.command()
+    @checks.admin()
     async def addchannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Subscribe a channel to receive CI build updates."""
         if channel is None:
@@ -184,6 +189,7 @@ class GoonhubBuilds(commands.Cog):
         )
 
     @cigroup.command()
+    @checks.admin()
     async def removechannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Unsubscribe a channel from CI build updates."""
         if channel is None:
@@ -195,6 +201,7 @@ class GoonhubBuilds(commands.Cog):
         )
 
     @cigroup.command()
+    @checks.admin()
     async def checkchannels(self, ctx: commands.Context):
         """Check channels subscribed to CI build updates."""
         channel_ids = await self.config.channels()
