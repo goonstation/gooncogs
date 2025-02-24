@@ -24,6 +24,7 @@ class GoonhubTestmerges(commands.Cog):
         pass
 
     @tmgroup.command(name="list")
+    @checks.admin()
     @app_commands.describe(
         server = "The server to show testmerges for (Optional: default shows all servers)",
     )
@@ -131,6 +132,7 @@ class GoonhubTestmerges(commands.Cog):
             await ctx.reply(embed=pages[0])
             
     @tmgroup.command(name="merge")
+    @checks.admin()
     @app_commands.describe(
         pr = "The pull request ID to merge",
         server = "The server to apply this merge to (Optional: default applies to all servers)",
@@ -174,6 +176,7 @@ class GoonhubTestmerges(commands.Cog):
             await ctx.send("Success - note that this does not retrigger a build")
             
     @tmgroup.command(name="update")
+    @checks.admin()
     @app_commands.describe(
         pr = "The pull request ID to merge",
         server = "The server to apply this merge to (Optional: default applies to all servers)",
@@ -245,6 +248,7 @@ class GoonhubTestmerges(commands.Cog):
             await ctx.send("Success - note that this does not retrigger a build")
             
     @tmgroup.command(name="cancel")
+    @checks.admin()
     @app_commands.autocomplete(server=servers_autocomplete_all)
     @app_commands.describe(
         pr = "The pull request ID to merge",
@@ -310,6 +314,7 @@ class GoonhubTestmerges(commands.Cog):
             await ctx.send("Success - note that this does not retrigger a build")
             
     @tmgroup.command()
+    @checks.admin()
     async def addchannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Subscribe a channel to receive testmerge updates."""
         if channel is None:
@@ -321,6 +326,7 @@ class GoonhubTestmerges(commands.Cog):
         )
 
     @tmgroup.command()
+    @checks.admin()
     async def removechannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Unsubscribe a channel from testmerge updates."""
         if channel is None:
@@ -332,6 +338,7 @@ class GoonhubTestmerges(commands.Cog):
         )
 
     @tmgroup.command()
+    @checks.admin()
     async def checkchannels(self, ctx: commands.Context):
         """Check channels subscribed to testmerge updates."""
         channel_ids = await self.config.testmerge_channels()
