@@ -31,6 +31,7 @@ class Goonhub(commands.Cog):
         pass
     
     @ghgroup.command(name="setrepo")
+    @checks.admin()
     @app_commands.describe(repo = "The repo path without URL. E.g. goonstation/goonstation")
     async def setrepo(self, ctx: commands.Context, repo: str):
         """Set GitHub repo for commit link purposes."""
@@ -38,6 +39,7 @@ class Goonhub(commands.Cog):
         await ctx.reply(f"Repo set to `{repo}`.")
         
     @ghgroup.command(name="restart")
+    @checks.admin()
     @app_commands.describe(server = "The server to restart")
     @app_commands.autocomplete(server=servers_autocomplete)
     async def restart(self, ctx: commands.Context, server: str):
