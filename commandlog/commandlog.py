@@ -9,7 +9,7 @@ class CommandLog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command(self, ctx):
-        server = ctx.guild.name
+        server = ctx.guild.name if ctx.guild else "direct message"
         user = ctx.author
         command = ctx.command
         channel = self.bot.get_channel(412381738510319626)
