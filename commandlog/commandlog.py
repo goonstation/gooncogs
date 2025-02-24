@@ -1,6 +1,7 @@
 import discord
 from redbot.core import commands
 from redbot.core.bot import Red
+import logging
 
 class CommandLog(commands.Cog):
     def __init__(self, bot: Red):
@@ -12,5 +13,6 @@ class CommandLog(commands.Cog):
         server = ctx.guild.name if ctx.guild else "direct message"
         user = ctx.author
         command = ctx.command
-        channel = self.bot.get_channel(412381738510319626)
-        await channel.send('{} used {} in {}'.format(user, command, server))
+        #channel = self.bot.get_channel(412381738510319626)
+        #await channel.send('{} used {} in {}'.format(user, command, server))
+        logging.info('{} used {} in {}'.format(user, command, server))
