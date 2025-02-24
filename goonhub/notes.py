@@ -63,6 +63,7 @@ class GoonhubNotes(commands.Cog):
         return { 'embed': embed, 'view': view }
     
     @notesgroup.command(name="show")
+    @checks.admin()
     @app_commands.describe(ckey="The Byond ckey of the player")
     async def show(self, ctx: commands.Context, ckey: str):
         """Show notes for a player"""
@@ -74,6 +75,7 @@ class GoonhubNotes(commands.Cog):
             await ctx.reply(f"{e}")
             
     @notesgroup.command(name="clean")
+    @checks.admin()
     @app_commands.describe(ckey="The Byond ckey of the player")
     async def clean(self, ctx: commands.Context, ckey: str):
         """Show notes for a player but stripped of admin names"""
@@ -85,6 +87,7 @@ class GoonhubNotes(commands.Cog):
             await ctx.reply(f"{e}")
             
     @notesgroup.command(name="add")
+    @checks.admin()
     @app_commands.describe(ckey="The Byond ckey of the player", note="The note to add")
     async def add(self, ctx: commands.Context, ckey: str, note: str):
         """Add a note to a player"""
