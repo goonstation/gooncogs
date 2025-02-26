@@ -21,7 +21,7 @@ class CommandLog(commands.Cog):
             'command_name',
             'message'
         ]
-        self.log_file = 'commands_log.csv'
+        self.log_file = '/data/commands_log.csv'
         if not os.path.isfile(self.log_file):
             with open(self.log_file, 'w') as f:
                 writer = csv.DictWriter(f, fieldnames=self.log_csv_headers, quoting=csv.QUOTE_ALL)
