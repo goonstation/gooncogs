@@ -132,3 +132,5 @@ dmypy.json
 *~
 *.swp
 *.swo
+
+commands_log.csv
