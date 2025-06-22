@@ -195,6 +195,12 @@ class GoonMisc(commands.Cog):
         try:
             if logo_url in presets:
                 logo_url = presets[logo_url]
+            # At some point Discord image URLs end up being temporary when opened outside of Discord itself.
+            # We need to repost it to get a new expiry time and then use that.
+            if logo_url and "discordapp.com" in logo_url:
+                tmp_msg = await ctx.reply(f"For Discord reasons I need to send the image in a temporary message, don't mind me.\n{logo_url}")
+                logo_url = tmp_msg.embeds[0].image.url or tmp_msg.embeds[0].thumbnail.url or logo_url
+                await tmp_msg.delete()
             if logo_url:
                 icon = requests.get(logo_url).content
             elif len(ctx.message.attachments) > 0:
