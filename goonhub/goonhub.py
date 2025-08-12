@@ -4,6 +4,7 @@ from redbot.core import commands, app_commands, checks, Config
 from redbot.core.bot import Red
 from .request import GoonhubRequest
 from .utilities import servers_autocomplete, success_response
+from .goonhub_hooks import GoonhubHooks
 import logging
 
 class Goonhub(commands.Cog):
@@ -15,6 +16,9 @@ class Goonhub(commands.Cog):
 
     def cog_unload(self):
         asyncio.create_task(self.session.close())
+
+    def register_to_general_api(self, app):
+        GoonhubHooks(self.config, self, app)
 
     async def build_url(self, path):
         tokens = await self.bot.get_shared_api_tokens('goonhub')

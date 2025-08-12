@@ -15,6 +15,7 @@ import re
 import secrets
 import itertools
 import discord.ui as ui
+from goonhub.request import GoonhubRequest
 
 PLAYER_ROLE_ID = 182284445837950977
 GUILD_ID = 182249960895545344
@@ -497,6 +498,15 @@ class SpacebeeCentcom(commands.Cog):
                 logging.info(f"Successfully added player role to {member.mention}")
             else:
                 logging.info(f"Failed to add player role to {member.mention}")
+            try:
+                goonhub = self.bot.get_cog("Goonhub")
+                req = await GoonhubRequest(self.bot, goonhub.session)
+                await req.post('users/discord-link', data = {
+                    'discord_id': user_id,
+                    'ckey': ckey
+                })
+            except Exception as e:
+                logging.info(f"Failed to call Goonhub link for discord id {user_id} and ckey {ckey} for {member.mention}: {e}")
             return self.SUCCESS_REPLY
 
     def ckeyify(self, text):
@@ -567,6 +577,15 @@ class SpacebeeCentcom(commands.Cog):
             member = guild.get_member(target.id)
             if member:
                 await member.remove_roles(guild.get_role(PLAYER_ROLE_ID))
+            try:
+                goonhub = self.bot.get_cog("Goonhub")
+                req = await GoonhubRequest(self.bot, goonhub.session)
+                await req.post('users/discord-unlink', data = {
+                    'discord_id': target.id,
+                    'ckey': current_ckey
+                })
+            except Exception as e:
+                logging.info(f"Failed to call Goonhub unlink for discord id {target.id} and ckey {current_ckey}: {e}")
         else:
             await ctx.send("They have no linked ckey")
 
@@ -580,6 +599,15 @@ class SpacebeeCentcom(commands.Cog):
             await self.config.user_from_id(user_id).linked_ckey.set(None)
             await self.config.custom("ckey", ckey).discord_id.set(None)
             await ctx.send(f"Unlinked ckey `{ckey}` from {self.userid_mention(user_id)}")
+            try:
+                goonhub = self.bot.get_cog("Goonhub")
+                req = await GoonhubRequest(self.bot, goonhub.session)
+                await req.post('users/discord-unlink', data = {
+                    'discord_id': user_id,
+                    'ckey': ckey
+                })
+            except Exception as e:
+                logging.info(f"Failed to call Goonhub unlink for discord id {user_id} and ckey {ckey}: {e}")
         else:
             await ctx.send("They have no linked Discord account")
 
@@ -611,6 +639,15 @@ class SpacebeeCentcom(commands.Cog):
         member = guild.get_member(target.id)
         if member:
             await member.add_roles(guild.get_role(PLAYER_ROLE_ID))
+        try:
+            goonhub = self.bot.get_cog("Goonhub")
+            req = await GoonhubRequest(self.bot, goonhub.session)
+            await req.post('users/discord-link', data = {
+                'discord_id': target.id,
+                'ckey': ckey
+            })
+        except Exception as e:
+            logging.info(f"Failed to call Goonhub link for discord id {target.id} and ckey {ckey}: {e}")
         await ctx.send(msg)
 
     async def user_to_ckey(self, user):
