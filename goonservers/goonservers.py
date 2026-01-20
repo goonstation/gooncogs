@@ -5,6 +5,7 @@ from redbot.core.utils.chat_formatting import pagify
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
+from enum import IntEnum, Enum
 import socket
 import re
 import datetime
@@ -13,6 +14,8 @@ from collections import OrderedDict
 import functools
 import json
 import aiohttp
+from dataclasses import dataclass
+from worldtopic import WorldTopic
 
 
 class UnknownServerError(Exception):
@@ -44,6 +47,62 @@ class Subtype:
         ]
         await asyncio.gather(*tasks)
 
+@dataclass(frozen=True)
+class StatusInfo:
+    class GameState(IntEnum):
+        Invalid = 0
+        PreMapLoad = 1
+        MapLoad = 2
+        WorldInit = 3
+        WorldNew = 4
+        PreGame = 5
+        SettingUp = 6
+        Playing = 7
+        Finished = 8
+
+    class ShuttleLocation(Enum):
+        CentCom = 0
+        Station = 1
+        Transit = 1.5
+        Returned = 2
+
+    class ShuttleDirection(IntEnum):
+        Station = 1
+        CentCom = -1
+
+    server_info: OrderedDict
+
+    version: str
+    host: Optional[str] = None
+    respawn: bool
+    enter: bool
+    ai: bool
+    
+    round_id: str
+    gamestate: GameState = GameState.Invalid
+    mode: Union[Literal["secret"], str] = "secret"
+    players: int
+    round_duration: int
+
+    station_name: str
+    map_name: str
+    map_id: str
+
+    shuttle_timer: Optional[float] = None
+    shuttle_location: Optional[ShuttleLocation] = None
+    shuttle_direction: Optional[ShuttleDirection] = None
+
+    def __post_init__(self):
+        if self.server_info.get("error") is not None: return
+
+        self.players = int(self.players)
+        self.round_duration = int(self.round_duration)
+
+        self.respawn = bool(self.respawn)
+        self.enter = bool(self.enter)
+        self.ai = bool(self.ai)
+        if self.shuttle_timer:
+            self.shuttle_timer = float(self.shuttle_timer)
 
 class Server:
     def __init__(self, data, cog):
@@ -241,110 +300,92 @@ class GoonServers(commands.Cog):
         minutes, seconds = divmod(remainder, 60)
         return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
 
-    def status_format_elapsed(self, status):
-        elapsed = (
-            status.get("elapsed")
-            or status.get("round_duration")
-            or status.get("stationtime")
-        )
-        if elapsed == "pre":
-            elapsed = "preround"
-        elif elapsed == "post":
-            elapsed = "finished"
-        elif elapsed is not None:
-            try:
-                elapsed = self.seconds_to_hhmmss(int(elapsed))
-            except ValueError:
-                pass
-        return elapsed
+    def status_format_eta(self, status: StatusInfo) -> str:
+        if status.shuttle_location >= StatusInfo.ShuttleLocation.Returned:
+            return ""
+        elif status.shuttle_location == StatusInfo.ShuttleLocation.Station:
+            return "ETD"
+        elif status.shuttle_location == StatusInfo.ShuttleLocation.Transit:
+            return "ESC"
+        elif status.shuttle_direction == StatusInfo.ShuttleDirection.CentCom:
+            return "RCL"
+        else:
+            return "ETA"
 
-    async def get_status_info(self, server, worldtopic):
+
+    async def get_status_info(self, server, worldtopic: WorldTopic) -> StatusInfo:
         result = OrderedDict()
         result["full_name"] = server.full_name
         result["url"] = server.url
         result["type"] = server.type
         result["error"] = None
+        response = None
         try:
             response = await worldtopic.send((server.host, server.port), "status")
-        except (asyncio.exceptions.TimeoutError, TimeoutError) as e:
+        except (asyncio.exceptions.TimeoutError, TimeoutError):
             result["error"] = "Server not responding."
-            return result
-        except (socket.gaierror, ConnectionRefusedError) as e:
+        except (socket.gaierror, ConnectionRefusedError):
             result["error"] = "Unable to connect."
-            return result
         except ConnectionResetError:
             result["error"] = "Connection reset by server (possibly just restarted)."
-            return result
         if response is None:
             result["error"] = "Invalid server response."
-            return result
-        status = worldtopic.params_to_dict(response)
-        if len(response) < 20 or ("players" in status and len(status["players"]) > 5):
-            response = await worldtopic.send((server.host, server.port), "status&format=json")
-            status = json.loads(response)
-        result["station_name"] = status.get("station_name")
-        try:
-            result["players"] = int(status["players"]) if "players" in status else None
-        except ValueError:
-            result["players"] = None
-        result["map"] = status.get("map_name")
-        result["mode"] = status.get("mode")
-        result["time"] = self.status_format_elapsed(status)
-        result["shuttle"] = None
-        result["shuttle_eta"] = None
-        if "shuttle_time" in status and status["shuttle_time"] != "welp":
-            shuttle_time = int(status["shuttle_time"])
-            if shuttle_time != 360:
-                eta = "ETA" if shuttle_time >= 0 else "ETD"
-                shuttle_time = abs(shuttle_time)
-                result["shuttle"] = self.seconds_to_hhmmss(shuttle_time)
-                result["shuttle_eta"] = eta
-        return result
+        
+        if result["error"] is not None:
+            return StatusInfo(server_info = result)
 
-    def status_result_parts(self, status_info):
+        status = StatusInfo(**worldtopic.params_to_dict(response), server_info = result)
+        return status
+
+    def status_result_parts(self, status_info: StatusInfo):
         result_parts = []
-        if status_info["station_name"]:
-            result_parts.append(status_info["station_name"])
-        if status_info["players"] is not None:
+        if status_info.station_name:
+            result_parts.append(status_info.station_name)
+        if status_info.players is not None:
             result_parts.append(
-                f"{status_info['players']} player"
-                + ("s" if status_info["players"] != 1 else "")
+                f"{status_info.players} player"
+                + ("s" if status_info.players != 1 else "")
             )
-        if status_info["map"]:
-            result_parts.append(f"map: {status_info['map']}")
-        if status_info["mode"] and status_info["mode"] != "secret":
-            result_parts.append(f"mode: {status_info['mode']}")
-        if status_info["time"]:
-            result_parts.append(f"time: {status_info['time']}")
-        if status_info["shuttle_eta"]:
+        if status_info.map_name:
+            result_parts.append(f"map: {status_info.map_name}")
+        if status_info.mode not in (None, "secret"):
+            result_parts.append(f"mode: {status_info.mode}")
+
+        time_part = f"time: {status_info.round_duration}"
+        if status_info.gamestate <= StatusInfo.GameState.PreGame: time_part += " (preround)"
+        elif status_info.gamestate == StatusInfo.GameState.Finished: time_part += " (finished)"
+        result_parts.append(time_part)
+
+        if status_info.gamestate >= StatusInfo.GameState.Finished:
+            result_parts.append("round over")
+        if status_info.shuttle_location not in (None, StatusInfo.ShuttleLocation.CentCom):
             result_parts.append(
-                f"shuttle {status_info['shuttle_eta']}: {status_info['shuttle']}"
+                f"shuttle {self.status_format_eta(status_info)}: {self.seconds_to_hhmmss(status_info.shuttle_timer)}"
             )
         return result_parts
 
-    def generate_status_text(self, status_info, embed_url=False):
-        result = status_info["full_name"]
-        if embed_url and status_info["url"]:
-            result = f"[{result}]({status_info['url']})"
+    def generate_status_text(self, status_info: StatusInfo, embed_url=False):
+        result = status_info.server_info["full_name"]
+        if embed_url and status_info.server_info["url"]:
+            result = f"[{result}]({status_info.server_info['url']})"
         result = f"**{result}** "
-        if status_info["error"]:
-            return result + status_info["error"]
+        if status_info.server_info["error"]:
+            return result + status_info.server_info["error"]
         result += " | ".join(self.status_result_parts(status_info))
-        if not embed_url and status_info["url"]:
-            result += " " + status_info["url"]
+        if not embed_url and status_info.server_info["url"]:
+            result += " " + status_info.server_info["url"]
         return result
 
-    def generate_status_embed(self, status_info, embed=None):
+    def generate_status_embed(self, status_info: StatusInfo, embed=None):
         if embed is None:
             embed = discord.Embed()
-        embed.title = status_info["full_name"]
-        if status_info["url"]:
-            embed.url = status_info["url"]
-        if status_info["error"]:
-            embed.description = status_info["error"]
+        embed.title = status_info.server_info["full_name"]
+        embed.url = status_info.server_info["url"]
+        if status_info.server_info["error"]:
+            embed.description = status_info.server_info["error"]
             embed.colour = self.COLOR_ERROR
             return embed
-        if status_info["type"] == "goon":
+        if status_info.server_info["type"] == "goon":
             embed.colour = self.COLOR_GOON
         else:
             embed.colour = self.COLOR_OTHER
