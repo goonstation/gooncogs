@@ -5,7 +5,7 @@ from redbot.core.utils.chat_formatting import pagify
 import discord.errors
 from redbot.core.bot import Red
 from typing import *
-from enum import IntEnum, Enum
+from enum import Enum
 import socket
 import re
 import datetime
@@ -15,7 +15,6 @@ import functools
 import json
 import aiohttp
 from dataclasses import dataclass
-from worldtopic import WorldTopic
 
 
 class UnknownServerError(Exception):
@@ -47,9 +46,11 @@ class Subtype:
         ]
         await asyncio.gather(*tasks)
 
-@dataclass(frozen=True)
+# Representation of a status query as a dataclass
+# Frozen because the status of the server at any given moment is immutable
+@dataclass(frozen=True, kw_only=True, match_args=False)
 class StatusInfo:
-    class GameState(IntEnum):
+    class GameState(int, Enum):
         Invalid = 0
         PreMapLoad = 1
         MapLoad = 2
@@ -60,34 +61,37 @@ class StatusInfo:
         Playing = 7
         Finished = 8
 
-    class ShuttleLocation(Enum):
+    class ShuttleLocation(float, Enum):
         CentCom = 0
         Station = 1
         Transit = 1.5
         Returned = 2
 
-    class ShuttleDirection(IntEnum):
+    class ShuttleDirection(int, Enum):
         Station = 1
         CentCom = -1
 
     server_info: OrderedDict
 
-    version: str
+    # The names of the below properties are expected to be 1:1 with the status topic
+
+    version: str = None
     host: Optional[str] = None
-    respawn: bool
-    enter: bool
-    ai: bool
+    respawn: bool = None
+    enter: bool = None
+    ai: bool = None
     
-    round_id: str
+    round_id: str = None
     gamestate: GameState = GameState.Invalid
     mode: Union[Literal["secret"], str] = "secret"
-    players: int
-    round_duration: int
+    players: int = None
+    round_duration: int = None
 
-    station_name: str
-    map_name: str
-    map_id: str
+    station_name: str = None
+    map_name: str = None
+    map_id: str = None
 
+    shuttle_online: Optional[bool] = None
     shuttle_timer: Optional[float] = None
     shuttle_location: Optional[ShuttleLocation] = None
     shuttle_direction: Optional[ShuttleDirection] = None
@@ -95,14 +99,20 @@ class StatusInfo:
     def __post_init__(self):
         if self.server_info.get("error") is not None: return
 
-        self.players = int(self.players)
-        self.round_duration = int(self.round_duration)
+        # this pattern has to be done to get around frozen dataclasses
+        # i'm sorry. I really am.
+        object.__setattr__(self, 'players', int(self.players))
+        object.__setattr__(self, 'round_duration', int(self.round_duration))
+        object.__setattr__(self, 'gamestate', int(self.gamestate))
 
-        self.respawn = bool(self.respawn)
-        self.enter = bool(self.enter)
-        self.ai = bool(self.ai)
+        object.__setattr__(self, 'respawn', bool(self.respawn))
+        object.__setattr__(self, 'enter', bool(self.enter))
+        object.__setattr__(self, 'ai', bool(self.ai))
         if self.shuttle_timer:
-            self.shuttle_timer = float(self.shuttle_timer)
+            object.__setattr__(self, 'shuttle_online', bool(self.shuttle_online))
+            object.__setattr__(self, 'shuttle_timer', float(self.shuttle_timer))
+            object.__setattr__(self, 'shuttle_location', float(self.shuttle_location))
+            object.__setattr__(self, 'shuttle_direction', int(self.shuttle_direction))
 
 class Server:
     def __init__(self, data, cog):
@@ -255,7 +265,6 @@ class GoonServers(commands.Cog):
     async def send_to_server_safe(
         self, server, message, messageable, to_dict=False, react_success=False
     ):
-        worldtopic = self.bot.get_cog("WorldTopic")
         error_fn = None
         if hasattr(messageable, "reply"):
             error_fn = messageable.reply
@@ -313,7 +322,7 @@ class GoonServers(commands.Cog):
             return "ETA"
 
 
-    async def get_status_info(self, server, worldtopic: WorldTopic) -> StatusInfo:
+    async def get_status_info(self, server, worldtopic) -> StatusInfo:
         result = OrderedDict()
         result["full_name"] = server.full_name
         result["url"] = server.url
@@ -330,7 +339,7 @@ class GoonServers(commands.Cog):
             result["error"] = "Connection reset by server (possibly just restarted)."
         if response is None:
             result["error"] = "Invalid server response."
-        
+
         if result["error"] is not None:
             return StatusInfo(server_info = result)
 
@@ -351,14 +360,12 @@ class GoonServers(commands.Cog):
         if status_info.mode not in (None, "secret"):
             result_parts.append(f"mode: {status_info.mode}")
 
-        time_part = f"time: {status_info.round_duration}"
+        time_part = f"time: {self.seconds_to_hhmmss(status_info.round_duration)}"
         if status_info.gamestate <= StatusInfo.GameState.PreGame: time_part += " (preround)"
         elif status_info.gamestate == StatusInfo.GameState.Finished: time_part += " (finished)"
         result_parts.append(time_part)
 
-        if status_info.gamestate >= StatusInfo.GameState.Finished:
-            result_parts.append("round over")
-        if status_info.shuttle_location not in (None, StatusInfo.ShuttleLocation.CentCom):
+        if status_info.shuttle_online and status_info.shuttle_location not in (None, StatusInfo.ShuttleLocation.Returned):
             result_parts.append(
                 f"shuttle {self.status_format_eta(status_info)}: {self.seconds_to_hhmmss(status_info.shuttle_timer)}"
             )
