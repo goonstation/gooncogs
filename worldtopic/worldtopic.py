@@ -84,6 +84,7 @@ class WorldTopic(commands.Cog):
     def params_to_dict(self, params: str):
         result = OrderedDict()
         for pair in params.split("&"):
+            if not pair: continue # pair == ""
             key, *rest = pair.split("=")
             value = urllib.parse.unquote_plus(rest[0]) if rest else None
             result[key] = value
