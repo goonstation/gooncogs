@@ -100,7 +100,7 @@ class SpacebeeCommands(commands.Cog):
         goonservers = self.bot.get_cog("GoonServers")
         servers = [s for s in goonservers.servers if s.type == "goon"]
         futures = [
-            asyncio.Task(goonservers.send_to_server(s, "status", to_dict=True))
+            asyncio.Task(goonservers.send_to_server(s, "who", to_dict=True))
             for s in servers
         ]
         message = None

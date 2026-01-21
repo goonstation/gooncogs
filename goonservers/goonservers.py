@@ -73,7 +73,7 @@ class StatusInfo:
 
     server_info: OrderedDict
 
-    # The names of the below properties are expected to be 1:1 with the status topic
+    # The names of the below properties are expected to be 1:1 with the status topic's response
 
     version: str = None
     host: Optional[str] = None
@@ -100,7 +100,7 @@ class StatusInfo:
         if self.server_info.get("error") is not None: return
 
         # this pattern has to be done to get around frozen dataclasses
-        # i'm sorry. I really am.
+        # i'm sorry. i really am.
         object.__setattr__(self, 'players', int(self.players))
         object.__setattr__(self, 'round_duration', int(self.round_duration))
         object.__setattr__(self, 'gamestate', int(self.gamestate))
@@ -371,7 +371,7 @@ class GoonServers(commands.Cog):
             )
         return result_parts
 
-    def generate_status_text(self, status_info: StatusInfo, embed_url=False):
+    def generate_status_text(self, status_info: StatusInfo, embed_url = False):
         result = status_info.server_info["full_name"]
         if embed_url and status_info.server_info["url"]:
             result = f"[{result}]({status_info.server_info['url']})"
