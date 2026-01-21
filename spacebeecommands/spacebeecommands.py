@@ -167,7 +167,7 @@ class SpacebeeCommands(commands.Cog):
         )
         if response is None:
             return
-        players = response.values()
+        players = list(response.values())
         players.sort()
         if players:
             await ctx.message.reply(", ".join(players))
@@ -186,7 +186,7 @@ class SpacebeeCommands(commands.Cog):
         )
         if response is None:
             return
-        players = response.values()
+        players = list(response.values())
         players.sort()
         if not players:
             await ctx.message.reply("No players.")
