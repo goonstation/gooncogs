@@ -930,7 +930,7 @@ class GoonMisc(commands.Cog):
     @commands.command()
     async def privacypolicy(self, ctx: commands.Context):
         """Links to the bot's privacy policy."""
-        await ctx.send("https://github.com/goonstation/gooncogs/blob/main/README.md")
+        await ctx.send("https://github.com/goonstation/gooncogs/blob/main/PRIVACY.md")
 
     @commands.command()
     async def readme(self, ctx: commands.Context):
