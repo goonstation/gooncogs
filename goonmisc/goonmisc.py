@@ -928,6 +928,11 @@ class GoonMisc(commands.Cog):
             await message.delete()
 
     @commands.command()
+    async def privacypolicy(self, ctx: commands.Context):
+        """Links to the bot's privacy policy."""
+        await ctx.send("https://github.com/goonstation/gooncogs/blob/main/README.md")
+
+    @commands.command()
     async def readme(self, ctx: commands.Context):
         """Shows a passive aggressive message about how users should read the guides."""
         ctx.send("Users are reminded that the official code guides and readmes exist for a *reason*, \

@@ -13,5 +13,5 @@
         "administration",
         "reports"
     ],
-    "end_user_data_statement": ""
+    "end_user_data_statement": "This cog does not persistently store user data"
 }

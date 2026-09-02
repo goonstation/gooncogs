@@ -12,5 +12,6 @@
     "tags": [
 	"git",
 	"github"
-    ]
+    ],
+    "end_user_data_statement": "This cog does not persistently store user data"
 }

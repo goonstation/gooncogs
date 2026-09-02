@@ -8,5 +8,6 @@
     "tags": [
 	"administration",
 	"roles"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores Discord user, guild, and role IDs so that users' roles can be restored after they leave and rejoin a guild."
 }

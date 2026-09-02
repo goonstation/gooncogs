@@ -10,5 +10,6 @@
     "tags": [
 	"fun",
 	"misc"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores each participating Discord user's point balance and permission to give points."
 }
