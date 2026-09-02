@@ -10,5 +10,6 @@
     ],
     "tags": [
 	"emoji"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores emoji URLs and configured Discord guild and channel IDs, but does not persistently store data associated with individual users."
 }

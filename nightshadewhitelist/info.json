@@ -10,5 +10,6 @@
     "tags": [
 	"ss13",
 	"byond"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores users' BYOND ckeys associated with their Discord user IDs and transmits whitelist changes to Nightshade servers."
 }

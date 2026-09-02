@@ -5,9 +5,8 @@
     ],
     "short": "Commands that let people list threads they have access to",
     "requirements": "Commands that let people list threads they have access to.",
-    "requirements": [
-    ],
     "tags": [
       "threads"
-    ]
+    ],
+    "end_user_data_statement": "This cog does not persistently store user data"
 }
