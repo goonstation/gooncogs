@@ -24,6 +24,7 @@ import json
 import contextlib
 from .moonymath import moony
 from .colorstuff import *
+from goonutils import safe_typing
 
 class GoonMisc(commands.Cog):
     def __init__(self, bot: Red):
@@ -526,7 +527,7 @@ class GoonMisc(commands.Cog):
         if bg_color is not None:
             bg = PIL.Image.open(datapath / "logo_bg_color.png")
             executor = ThreadPoolExecutor(max_workers=1)
-            async with ctx.typing():
+            async with safe_typing(ctx):
                 await asyncio.get_running_loop().run_in_executor(
                     executor,
                     self._pretty_paint,

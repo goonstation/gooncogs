@@ -5,6 +5,7 @@ from redbot.core.utils.chat_formatting import pagify
 from redbot.core.bot import Red
 from typing import *
 from collections import OrderedDict
+from goonutils import safe_typing
 
 class ListThreads(commands.Cog):
     def __init__(self, bot: Red):
@@ -49,7 +50,7 @@ class ListThreads(commands.Cog):
         """
         if not isinstance(ctx.author, discord.Member):
             return await ctx.reply("Threads can only exist in servers")
-        async with ctx.typing():
+        async with safe_typing(ctx):
             await self._listthreads(ctx, ctx.author, detailed=True, include_archived=True, with_names=True)
 
     @commands.cooldown(1, 60)
@@ -62,7 +63,7 @@ class ListThreads(commands.Cog):
         """
         if not isinstance(ctx.author, discord.Member):
             return await ctx.reply("Threads can only exist in servers")
-        async with ctx.typing():
+        async with safe_typing(ctx):
             await self._listthreads(ctx, ctx.author,  include_archived=True, with_names=True)
 
     async def _listthreads(self, ctx: commands.Context, member: discord.Member, detailed: bool = False, include_archived = False, with_names = False):

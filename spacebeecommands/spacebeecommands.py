@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
+from goonutils import safe_typing
 import yt_dlp
 import base64
 from PIL import Image
@@ -449,7 +450,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if not query:
             await ctx.reply("You need to provide a search query")
             return
-        async with ctx.typing():
+        async with safe_typing(ctx):
             data = [f"{title} - {url}" for (title, url) in await self.youtube_search(query, count)]
         if not data:
             await ctx.reply("No results found!")
@@ -485,7 +486,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         ):
         if interaction is not None:
             await interaction.response.defer(thinking=True)
-        async with ctx.typing() if interaction is None else empty_context_manager():
+        async with safe_typing(ctx) if interaction is None else empty_context_manager():
             try:
                 response = await self.youtube_play(ctx, url, server_id)
             except yt_dlp.utils.DownloadError as e:
@@ -601,7 +602,7 @@ RTT: {elapsed * 1000:.2f}ms"""
             return
         if link is not None and ("youtube.com" in link or "youtu.be" in link):
             response = None
-            async with ctx.typing():
+            async with safe_typing(ctx):
                 try:
                     response = await self.youtube_play(ctx, link, server_id)
                 except yt_dlp.utils.DownloadError as e:

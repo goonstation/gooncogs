@@ -9,6 +9,7 @@ import requests
 import random
 import math
 import pprint
+from goonutils import safe_typing
 
 
 class GithubStuff(commands.Cog):
@@ -210,7 +211,7 @@ class GithubStuff(commands.Cog):
     @github.command()
     async def file(self, ctx: commands.Context, file: str):
         """Gets a link to files matching the `file` argument. You can also put a line or a line range after a semicolon like `pali.dm:69-420`."""
-        async with ctx.typing():
+        async with safe_typing(ctx):
             sha = (await self.branch).commit.sha
             tree = (await self.repo).get_git_tree(sha, recursive=True).tree
             start_line = None
@@ -263,7 +264,7 @@ class GithubStuff(commands.Cog):
         """Picks a random open issue."""
         query = query.strip()
         query += " is:issue is:open repo:" + await self.config.repo()
-        async with ctx.typing():
+        async with safe_typing(ctx):
             results = self.gh.search_issues(query, sort="updated", order="desc")
         if not results.totalCount:
             await ctx.send("No issues found.")
@@ -279,7 +280,7 @@ class GithubStuff(commands.Cog):
     ):
         embeds = []
         query += " repo:" + await self.config.repo()
-        async with ctx.typing():
+        async with safe_typing(ctx):
             results = self.gh.search_issues(query, sort="updated", order="desc")
             embed_colour = await (
                 ctx.embed_colour()
@@ -351,7 +352,7 @@ class GithubStuff(commands.Cog):
         embeds = []
         MAX_PAGES = 4
         query += " repo:" + await self.config.repo()
-        async with ctx.typing():
+        async with safe_typing(ctx):
             results = self.gh.search_commits(query, sort="author-date", order="desc")
             embed_colour = await (
                 ctx.embed_colour()

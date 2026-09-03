@@ -1,0 +1,13 @@
+{
+    "name": "GoonUtils",
+    "author": [
+        "pali (pali#0439)"
+    ],
+    "short": "Shared utilities for Goonstation cogs.",
+    "description": "Provides shared runtime helpers used by other cogs in this repository.",
+    "requirements": [],
+    "tags": [
+        "library"
+    ],
+    "end_user_data_statement": "This cog does not persistently store end-user data or metadata."
+}

@@ -6,6 +6,7 @@ from .request import GoonhubRequest
 from .utilities import servers_autocomplete, success_response
 from .goonhub_hooks import GoonhubHooks
 import logging
+from goonutils import defer_or_typing
 
 class Goonhub(commands.Cog):
     def __init__(self, bot: Red):
@@ -48,7 +49,7 @@ class Goonhub(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete)
     async def restart(self, ctx: commands.Context, server: str):
         """Restart a game server."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         req = await GoonhubRequest(self.bot, self.session)
         
         goonservers = self.bot.get_cog("GoonServers")

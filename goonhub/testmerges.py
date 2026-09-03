@@ -7,6 +7,7 @@ from .request import GoonhubRequest
 from .utilities import servers_autocomplete_all, servers_autocomplete
 from .testmerge_hooks import TestmergeHooks
 import logging
+from goonutils import defer_or_typing
 
 class GoonhubTestmerges(commands.Cog):
     def __init__(self, Goonhub):
@@ -31,7 +32,7 @@ class GoonhubTestmerges(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete)
     async def list(self, ctx: commands.Context, server: Optional[str]):
         """List active testmerges on a given server or globally."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         goonservers = self.Goonhub.bot.get_cog("GoonServers")
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")
         server_id = None
@@ -141,7 +142,7 @@ class GoonhubTestmerges(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete_all)
     async def merge(self, ctx: commands.Context, pr: int, server: Optional[str], commit: Optional[str]):
         """Testmerges a given PR number at the latest or given GitHub commit to a given server or globally."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         goonservers = self.Goonhub.bot.get_cog("GoonServers")
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")
         author_ckey = await spacebeecentcom.get_ckey(ctx.author)
@@ -185,7 +186,7 @@ class GoonhubTestmerges(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete_all)
     async def update(self, ctx: commands.Context, pr: int, server: Optional[str], commit: Optional[str]):
         """Updates a given testmerge to the latest or given GitHub commit on a given server or globally."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         goonservers = self.Goonhub.bot.get_cog("GoonServers")
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")
         author_ckey = await spacebeecentcom.get_ckey(ctx.author)
@@ -256,7 +257,7 @@ class GoonhubTestmerges(commands.Cog):
     )
     async def cancel(self, ctx: commands.Context, pr: int, server: Optional[str]):
         """Cancels a given testmerge on a given server or globally."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         goonservers = self.Goonhub.bot.get_cog("GoonServers")
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")
         author_ckey = await spacebeecentcom.get_ckey(ctx.author)

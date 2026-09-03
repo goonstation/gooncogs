@@ -5,6 +5,9 @@
     ],
     "short": "Cog to store list of Goonstation servers and query their status.",
     "description": "Cog to store list of Goonstation servers and query their status.",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "tags": [
 	"ss13",
 	"byond"
