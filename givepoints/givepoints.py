@@ -31,7 +31,7 @@ class PointType:
         return self.plural or f"{self.name}s"
 
 
-def make_check_command(point_type: PointType):
+def make_check_command(cog_name: str, point_type: PointType):
     command_name = point_type.check_command or point_type.plural_name
 
     async def callback(
@@ -42,13 +42,14 @@ def make_check_command(point_type: PointType):
         await self.check_points(ctx, point_type, user)
 
     callback.__name__ = f"check_{point_type.name}_points"
+    callback.__qualname__ = f"{cog_name}.{callback.__name__}"
     return commands.command(
         name=command_name,
         help=f"Check how many {point_type.plural_name} someone has.",
     )(callback)
 
 
-def make_give_command(point_type: PointType):
+def make_give_command(cog_name: str, point_type: PointType):
     command_name = point_type.give_command or f"give{point_type.name}"
 
     async def callback(
@@ -59,13 +60,14 @@ def make_give_command(point_type: PointType):
         await self.give_points(ctx, point_type, user)
 
     callback.__name__ = f"give_{point_type.name}_points"
+    callback.__qualname__ = f"{cog_name}.{callback.__name__}"
     return commands.command(
         name=command_name,
         help=f"Give someone a {point_type.name} if you can.",
     )(callback)
 
 
-def make_allow_command(point_type: PointType):
+def make_allow_command(cog_name: str, point_type: PointType):
     if point_type.allow_command is None:
         raise ValueError(f"No allow command configured for {point_type.name}.")
 
@@ -77,6 +79,7 @@ def make_allow_command(point_type: PointType):
         await self.allow_give_points(ctx, point_type, user)
 
     callback.__name__ = f"allow_giving_{point_type.name}_points"
+    callback.__qualname__ = f"{cog_name}.{callback.__name__}"
     return commands.command(
         name=point_type.allow_command,
         help=f"Let someone give {point_type.plural_name} if you can.",
@@ -88,11 +91,11 @@ class PointCogMeta(commands.CogMeta):
         command_names = set()
         for point_type in attrs.get("point_types", ()):
             point_commands = [
-                make_check_command(point_type),
-                make_give_command(point_type),
+                make_check_command(name, point_type),
+                make_give_command(name, point_type),
             ]
             if point_type.allow_command is not None:
-                point_commands.append(make_allow_command(point_type))
+                point_commands.append(make_allow_command(name, point_type))
 
             for command in point_commands:
                 if command.name in command_names:
