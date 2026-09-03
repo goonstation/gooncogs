@@ -233,22 +233,34 @@ class GoonMisc(commands.Cog):
                 await ctx.send("You aren't in a proper text channel")
                 return
             channel = ctx.channel
-        if not channel.permissions_for(ctx.author).read_message_history:
+        author_permissions = channel.permissions_for(ctx.author)
+        if not author_permissions.view_channel or not author_permissions.read_message_history:
             await ctx.send("You don't have the permission to read that channel's history")
+            return
+        bot_permissions = channel.permissions_for(ctx.me)
+        if not bot_permissions.view_channel:
+            await ctx.send("I don't have permission to view that channel")
+            return
+        if not bot_permissions.read_message_history:
+            await ctx.send("I don't have permission to read that channel's message history")
             return
         time = datetime.datetime.now()
         time -= datetime.timedelta(days=365)
-        async for message in channel.history(limit=1, before=time):
-            if len(message.clean_content) > 0:
-                message_text = "> " + "\n> ".join(message.clean_content.split("\n"))
-            else:
-                message_text = "[no text]"
-            embeds = message.embeds
-            attachments = message.attachments
-            files = []
-            for attachment in attachments:
-                files.append(await attachment.to_file())
-            await ctx.send(message_text, embeds=embeds, files=files)
+        try:
+            async for message in channel.history(limit=1, before=time):
+                if len(message.clean_content) > 0:
+                    message_text = "> " + "\n> ".join(message.clean_content.split("\n"))
+                else:
+                    message_text = "[no text]"
+                embeds = message.embeds
+                attachments = message.attachments
+                files = []
+                for attachment in attachments:
+                    files.append(await attachment.to_file())
+                await ctx.send(message_text, embeds=embeds, files=files)
+                return
+        except discord.Forbidden:
+            await ctx.send("I don't have permission to read that channel's message history.")
             return
         await ctx.send("No message found!")
 
