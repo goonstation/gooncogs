@@ -293,11 +293,7 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.message.delete()
-            await ctx.send(
-                f"{ctx.author.mention} Please use this command in DMs with the bot (or use the /report version)."
-            )
-            return
+            return await self._redirect_report_to_dms(ctx)
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
 
     @commands.group(name="reportanon", invoke_without_command=True)
@@ -308,11 +304,18 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.send(
-                "Please use this command in DMs with the bot (or use the /report version)."
-            )
-            return
+            return await self._redirect_report_to_dms(ctx)
         return await self._report(ctx=ctx, _report=_report, anonymous=True)
+
+    async def _redirect_report_to_dms(self, ctx: commands.Context):
+        message = "Please use this command in DMs with the bot (or use the /report version)."
+        if ctx.channel.permissions_for(ctx.guild.me).manage_messages:
+            with contextlib.suppress(discord.Forbidden, discord.NotFound):
+                await ctx.message.delete()
+        try:
+            await ctx.author.send(message)
+        except discord.Forbidden:
+            await ctx.send(f"{ctx.author.mention} {message}")
 
     async def _report(
         self,
