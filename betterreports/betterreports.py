@@ -130,7 +130,9 @@ class BetterReports(commands.Cog):
             await ctx.send(_("Reporting is now disabled."))
 
     async def internal_filter(self, m: discord.Member, mod=False, perms=None):
-        if perms and m.guild_permissions >= perms:
+        if perms is None and not mod:
+            return True
+        if perms is not None and m.guild_permissions >= perms:
             return True
         if mod and await self.bot.is_mod(m):
             return True
@@ -138,6 +140,7 @@ class BetterReports(commands.Cog):
         # in Red, though I'm not sure it makes sense to use here.
         if await self.bot.is_owner(m):
             return True
+        return False
 
     async def discover_guild(
         self,
@@ -155,7 +158,7 @@ class BetterReports(commands.Cog):
         """
         shared_guilds = []
         if permissions is None:
-            perms = discord.Permissions()
+            perms = None
         elif isinstance(permissions, discord.Permissions):
             perms = permissions
         else:
