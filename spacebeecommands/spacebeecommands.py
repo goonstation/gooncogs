@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
 from concurrent.futures.thread import ThreadPoolExecutor
-from goonutils import safe_typing
+from goonutils import ckeyify, safe_typing
 import yt_dlp
 import base64
 from PIL import Image
@@ -90,14 +90,11 @@ class SpacebeeCommands(commands.Cog):
             return "\n".join(out)
         return "No one found."
 
-    def ckeyify(self, text):
-        return "".join(c.lower() for c in text if c.isalnum())
-
     @checks.admin()
     @commands.command()
     async def locate(self, ctx: commands.Context, *, who: str):
         """Locates a ckey on all servers."""
-        who = self.ckeyify(who)
+        who = ckeyify(who)
         goonservers = self.bot.get_cog("GoonServers")
         servers = [s for s in goonservers.servers if s.type == "goon"]
         futures = [
@@ -118,7 +115,7 @@ class SpacebeeCommands(commands.Cog):
                     result = f.result()
                     server_found = []
                     for k, v in result.items():
-                        if k.startswith("player") and who in self.ckeyify(v):
+                        if k.startswith("player") and who in ckeyify(v):
                             server_found.append(v)
                     if not server_found:
                         continue
@@ -517,7 +514,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if "watch?v=" in file_name:
             file_name = file_name.split("watch?v=")[1]
         else:
-            file_name = self.ckeyify(file_name)
+            file_name = ckeyify(file_name)
         tmp_file_name = file_name + ".webm"
         play_file_name = file_name + ".mp3"
         tmp_file_path = file_folder / tmp_file_name
@@ -651,7 +648,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         generalapi = self.bot.get_cog("GeneralApi")
         speech_folder = generalapi.static_path / "speech"
         speech_folder.mkdir(exist_ok=True)
-        file_name = f"{self.ckeyify(text)[:128]}.mp3"
+        file_name = f"{ckeyify(text)[:128]}.mp3"
         file_path = speech_folder / file_name
         if not file_path.is_file():
             p = await asyncio.create_subprocess_shell(
@@ -758,7 +755,7 @@ RTT: {elapsed * 1000:.2f}ms"""
         if ckey is None:
             ckey = ctx.author
         if isinstance(ckey, str):
-            ckey = self.ckeyify(ckey)
+            ckey = ckeyify(ckey)
         else:
             spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
             ckey = await spacebeecentcom.user_to_ckey(ckey)

@@ -117,8 +117,5 @@ def random_emoji(unicode_version=8, rnd=random):
 
     return (emoji, emoji_codepoint)
 
-def ckeyify(text: str) -> str:
-    return ''.join(c.lower() for c in text if c.isalnum())
-
 def timestampify(time: str) -> str:
     return f"<t:{int(datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())}:f>"

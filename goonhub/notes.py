@@ -1,6 +1,8 @@
 from redbot.core import commands, checks, app_commands, Config
 from typing import *
-from .utilities import ckeyify, success_response
+from goonutils import ckeyify
+
+from .utilities import success_response
 from .paginator import PaginatorView
 from .request import GoonhubRequest
 import logging
