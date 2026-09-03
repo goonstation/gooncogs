@@ -565,12 +565,10 @@ class BetterReports(commands.Cog):
         if ctx.channel.id != channel_id:
             return await ctx.send(f"Go to <#{channel_id}> to use this command.")
         rec = await self.config.custom("REPORT", guild.id, ticket_number).report()
-
-        try:
-            user = guild.get_member(rec.get("user_id"))
-        except KeyError:
+        if not rec or "user_id" not in rec:
             return await ctx.send(_("That ticket doesn't seem to exist"))
 
+        user = guild.get_member(rec["user_id"])
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 
@@ -624,12 +622,10 @@ class BetterReports(commands.Cog):
         if ticket_number is None:
             ticket_number = (await self.config.guild(guild).next_ticket()) - 1
         rec = await self.config.custom("REPORT", guild.id, ticket_number).report()
-
-        try:
-            user = guild.get_member(rec.get("user_id"))
-        except KeyError:
+        if not rec or "user_id" not in rec:
             return await ctx.send(_("That ticket doesn't seem to exist"))
 
+        user = guild.get_member(rec["user_id"])
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 
