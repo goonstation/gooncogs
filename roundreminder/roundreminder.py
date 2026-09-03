@@ -172,20 +172,3 @@ class RoundReminder(commands.Cog):
                         match_strings.remove(match_string)
                         await self.config.user(user).match_strings.set(match_strings)
                     break
-
-    @commands.Cog.listener()
-    async def on_message_without_command(self, message: discord.Message):
-        try:
-            if (
-                message.channel.id != 421047584623427584
-            ):  # TODO unhardcode #game-updates
-                return
-            if message.author == self.bot.user:
-                return
-            if len(message.embeds) > 0:
-                embed = message.embeds[0]
-                await process_embed(embed)
-        except:
-            import traceback
-
-            return await self.bot.send_to_owners(traceback.format_exc())
