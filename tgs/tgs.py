@@ -10,6 +10,7 @@ import datetime
 import re
 from pprint import pformat
 from redbot.core.utils.chat_formatting import box, pagify
+from goonutils import safe_typing
 
 
 class LoginError(Exception):
@@ -192,7 +193,7 @@ class TGS(commands.Cog):
         """Commands for managing TGS SS13 server instances."""
 
     async def run_request(self, ctx: commands.Context, request):
-        async with ctx.typing():
+        async with safe_typing(ctx):
             try:
                 response = await request
                 if response is None:

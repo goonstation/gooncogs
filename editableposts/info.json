@@ -5,6 +5,9 @@
     ],
     "short": "Lets administrators create and edit posts via the bot.",
     "description": "Lets administrators create and edit posts via the bot. For example for a rules post etc.",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "tags": [
 	"administration"
     ],

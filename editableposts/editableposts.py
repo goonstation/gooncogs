@@ -6,6 +6,7 @@ from copy import copy
 import re
 from typing import Optional, Union
 from redbot.core.utils.chat_formatting import pagify
+from goonutils import safe_typing
 
 
 class EditablePosts(commands.Cog):
@@ -83,7 +84,7 @@ class EditablePosts(commands.Cog):
     @checks.admin()
     async def list(self, ctx: commands.Context):
         """Lists all editable posts on this server."""
-        async with ctx.typing():
+        async with safe_typing(ctx):
             messages = []
             lines = []
             for msg_id, data in (

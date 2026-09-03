@@ -1,9 +1,12 @@
 from redbot.core import commands, checks, app_commands, Config
 from typing import *
-from .utilities import ckeyify, success_response
+from goonutils import ckeyify
+
+from .utilities import success_response
 from .paginator import PaginatorView
 from .request import GoonhubRequest
 import logging
+from goonutils import defer_or_typing
 
 class GoonhubNotes(commands.Cog):
     def __init__(self, Goonhub):
@@ -67,7 +70,7 @@ class GoonhubNotes(commands.Cog):
     @app_commands.describe(ckey="The Byond ckey of the player")
     async def show(self, ctx: commands.Context, ckey: str):
         """Show notes for a player"""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         try:
             res = await self.show_notes(ctx, ckey)
             res['view'].message = await ctx.reply(embed=res['embed'], view=res['view'])
@@ -79,7 +82,7 @@ class GoonhubNotes(commands.Cog):
     @app_commands.describe(ckey="The Byond ckey of the player")
     async def clean(self, ctx: commands.Context, ckey: str):
         """Show notes for a player but stripped of admin names"""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         try:
             res = await self.show_notes(ctx, ckey, clean=True)
             res['view'].message = await ctx.reply(embed=res['embed'], view=res['view'])
@@ -91,7 +94,7 @@ class GoonhubNotes(commands.Cog):
     @app_commands.describe(ckey="The Byond ckey of the player", note="The note to add")
     async def add(self, ctx: commands.Context, ckey: str, note: str):
         """Add a note to a player"""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         req = await GoonhubRequest(self.Goonhub.bot, self.Goonhub.session)
         
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")

@@ -85,8 +85,8 @@ class BetterReports(commands.Cog):
                 if not steps % 100:
                     await asyncio.sleep(0)  # yield context
 
-            if ticket.get("report", {}).get("user_id", 0) == user_id:
-                paths.append((guild_id_str, ticket_number))
+                if ticket.get("report", {}).get("user_id", 0) == user_id:
+                    paths.append((guild_id_str, ticket_number))
 
         async with self.config.custom("REPORT").all() as all_reports:
             async for guild_id_str, ticket_number in AsyncIter(paths, steps=100):
@@ -130,7 +130,9 @@ class BetterReports(commands.Cog):
             await ctx.send(_("Reporting is now disabled."))
 
     async def internal_filter(self, m: discord.Member, mod=False, perms=None):
-        if perms and m.guild_permissions >= perms:
+        if perms is None and not mod:
+            return True
+        if perms is not None and m.guild_permissions >= perms:
             return True
         if mod and await self.bot.is_mod(m):
             return True
@@ -138,6 +140,7 @@ class BetterReports(commands.Cog):
         # in Red, though I'm not sure it makes sense to use here.
         if await self.bot.is_owner(m):
             return True
+        return False
 
     async def discover_guild(
         self,
@@ -155,7 +158,7 @@ class BetterReports(commands.Cog):
         """
         shared_guilds = []
         if permissions is None:
-            perms = discord.Permissions()
+            perms = None
         elif isinstance(permissions, discord.Permissions):
             perms = permissions
         else:
@@ -290,11 +293,7 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.message.delete()
-            await ctx.send(
-                f"{ctx.author.mention} Please use this command in DMs with the bot (or use the /report version)."
-            )
-            return
+            return await self._redirect_report_to_dms(ctx)
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
 
     @commands.group(name="reportanon", invoke_without_command=True)
@@ -305,11 +304,18 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.send(
-                "Please use this command in DMs with the bot (or use the /report version)."
-            )
-            return
+            return await self._redirect_report_to_dms(ctx)
         return await self._report(ctx=ctx, _report=_report, anonymous=True)
+
+    async def _redirect_report_to_dms(self, ctx: commands.Context):
+        message = "Please use this command in DMs with the bot (or use the /report version)."
+        if ctx.channel.permissions_for(ctx.guild.me).manage_messages:
+            with contextlib.suppress(discord.Forbidden, discord.NotFound):
+                await ctx.message.delete()
+        try:
+            await ctx.author.send(message)
+        except discord.Forbidden:
+            await ctx.send(f"{ctx.author.mention} {message}")
 
     async def _report(
         self,
@@ -559,12 +565,10 @@ class BetterReports(commands.Cog):
         if ctx.channel.id != channel_id:
             return await ctx.send(f"Go to <#{channel_id}> to use this command.")
         rec = await self.config.custom("REPORT", guild.id, ticket_number).report()
-
-        try:
-            user = guild.get_member(rec.get("user_id"))
-        except KeyError:
+        if not rec or "user_id" not in rec:
             return await ctx.send(_("That ticket doesn't seem to exist"))
 
+        user = guild.get_member(rec["user_id"])
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 
@@ -618,12 +622,10 @@ class BetterReports(commands.Cog):
         if ticket_number is None:
             ticket_number = (await self.config.guild(guild).next_ticket()) - 1
         rec = await self.config.custom("REPORT", guild.id, ticket_number).report()
-
-        try:
-            user = guild.get_member(rec.get("user_id"))
-        except KeyError:
+        if not rec or "user_id" not in rec:
             return await ctx.send(_("That ticket doesn't seem to exist"))
 
+        user = guild.get_member(rec["user_id"])
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 

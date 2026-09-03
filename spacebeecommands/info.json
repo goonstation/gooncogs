@@ -5,6 +5,9 @@
     ],
     "short": "TODO",
     "description": "TODO",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "requirements": [
       "yt-dlp"
     ],

@@ -16,6 +16,7 @@ import secrets
 import itertools
 import discord.ui as ui
 from goonhub.request import GoonhubRequest
+from goonutils import ckeyify
 
 PLAYER_ROLE_ID = 182284445837950977
 GUILD_ID = 182249960895545344
@@ -509,9 +510,6 @@ class SpacebeeCentcom(commands.Cog):
                 logging.info(f"Failed to call Goonhub link for discord id {user_id} and ckey {ckey} for {member.mention}: {e}")
             return self.SUCCESS_REPLY
 
-    def ckeyify(self, text):
-        return "".join(c.lower() for c in text if c.isalnum())
-
     async def get_ckey(self, member: discord.Member):
         return await self.config.user(member).linked_ckey()
 
@@ -593,7 +591,7 @@ class SpacebeeCentcom(commands.Cog):
     @checks.admin()
     async def unlinkotherckey(self, ctx: commands.Context, ckey: str):
         """Unlinks a ckey from their Discord account."""
-        ckey = self.ckeyify(ckey)
+        ckey = ckeyify(ckey)
         user_id = await self.config.custom("ckey", ckey).discord_id()
         if user_id:
             await self.config.user_from_id(user_id).linked_ckey.set(None)
@@ -617,7 +615,7 @@ class SpacebeeCentcom(commands.Cog):
         self, ctx: commands.Context, target: discord.User, *, ckey: str
     ):
         """Directly links a Discord user to a BYOND ckey."""
-        ckey = self.ckeyify(ckey)
+        ckey = ckeyify(ckey)
         current_ckey = await self.config.user(target).linked_ckey()
         if current_ckey:
             await ctx.send(
@@ -667,7 +665,7 @@ class SpacebeeCentcom(commands.Cog):
             else:
                 await ctx.send(f"{target.mention} has not linked their account")
         else:
-            ckey = self.ckeyify(target)
+            ckey = ckeyify(target)
             user_id = await self.config.custom("ckey", ckey).discord_id()
             if user_id:
                 await ctx.send(

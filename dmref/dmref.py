@@ -10,6 +10,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, box, quote
 from html.parser import HTMLParser
 from collections import OrderedDict
+from goonutils import ckeyify
 
 BYOND_REF_URL = "http://www.byond.com/docs/ref/info.html"
 
@@ -188,13 +189,10 @@ class DMRef(commands.Cog):
     def cog_unload(self):
         asyncio.create_task(self.session.close())
 
-    def ckeyify(self, text):
-        return ''.join(c.lower() for c in text if c.isalnum())
-
     def find_entries(self, search):
         search = search.lower().strip()
-        csearch = self.ckeyify(search)
-        search_words = [self.ckeyify(w) for w in search.split()]
+        csearch = ckeyify(search)
+        search_words = [ckeyify(w) for w in search.split()]
         result_tiers = [[] for x in range(6)]
         for key, value in self.entries.items():
             if search == key.split('/')[-1]:
@@ -205,7 +203,7 @@ class DMRef(commands.Cog):
                 result_tiers[2].append(value)
             elif search in value.title:
                 result_tiers[3].append(value)
-            elif csearch in self.ckeyify(value.title) or csearch in self.ckeyify(key):
+            elif csearch in ckeyify(value.title) or csearch in ckeyify(key):
                 result_tiers[4].append(value)
             elif all(w in value.title or w in key for w in search_words):
                 result_tiers[5].append(value)
