@@ -5,6 +5,9 @@
     ],
     "short": "Various GitHub-related useful things. TODO better description.",
     "description": "Various GitHub-related useful things. TODO better description.",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "requirements": [
         "pygithub",
         "requests"
@@ -12,5 +15,6 @@
     "tags": [
 	"git",
 	"github"
-    ]
+    ],
+    "end_user_data_statement": "This cog does not persistently store user data"
 }

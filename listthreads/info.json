@@ -5,9 +5,11 @@
     ],
     "short": "Commands that let people list threads they have access to",
     "requirements": "Commands that let people list threads they have access to.",
-    "requirements": [
-    ],
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "tags": [
       "threads"
-    ]
+    ],
+    "end_user_data_statement": "This cog does not persistently store user data"
 }

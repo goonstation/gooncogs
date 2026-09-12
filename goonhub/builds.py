@@ -5,6 +5,7 @@ from .build_hooks import BuildHooks
 from .request import GoonhubRequest
 from .utilities import servers_autocomplete_all, servers_autocomplete, success_response
 import logging
+from goonutils import defer_or_typing
 
 class GoonhubBuilds(commands.Cog):
     def __init__(self, Goonhub):
@@ -25,7 +26,7 @@ class GoonhubBuilds(commands.Cog):
     @checks.admin()
     async def status(self, ctx: commands.Context):
         """Check status of CI builds."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         req = await GoonhubRequest(self.Goonhub.bot, self.Goonhub.session)
         try:
             res = await req.get('game-builds/status')
@@ -70,7 +71,7 @@ class GoonhubBuilds(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete_all)
     async def build(self, ctx: commands.Context, server: str):
         """Build a server or group of servers."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         req = await GoonhubRequest(self.Goonhub.bot, self.Goonhub.session)
         
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")
@@ -102,7 +103,7 @@ class GoonhubBuilds(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete)
     async def cancel(self, ctx: commands.Context, server: str):
         """Cancel a build or group of builds"""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         req = await GoonhubRequest(self.Goonhub.bot, self.Goonhub.session)
         
         spacebeecentcom = self.Goonhub.bot.get_cog("SpacebeeCentcom")
@@ -132,7 +133,7 @@ class GoonhubBuilds(commands.Cog):
     @app_commands.autocomplete(server=servers_autocomplete_all)
     async def branch(self, ctx: commands.Context, server: str, branch: Optional[str]):
         """Gets or sets the branch for a server or group of servers."""
-        await ctx.defer() if ctx.interaction else await ctx.typing()
+        await defer_or_typing(ctx)
         
         goonservers = self.Goonhub.bot.get_cog("GoonServers")
         servers = goonservers.resolve_server_or_category(server)

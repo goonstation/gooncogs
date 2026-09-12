@@ -9,5 +9,6 @@
     ],
     "tags": [
 	"github"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores links between GitHub contributor names and Discord user IDs and posts received GitHub workflow metadata to configured Discord channels."
 }

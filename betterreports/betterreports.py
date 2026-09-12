@@ -7,7 +7,7 @@ import contextlib
 import discord
 import gc
 
-from redbot.core import Config, checks, commands
+from redbot.core import Config, app_commands, checks, commands
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.chat_formatting import pagify, box
 from redbot.core.utils.antispam import AntiSpam
@@ -15,10 +15,6 @@ from redbot.core.bot import Red
 from redbot.core.i18n import Translator, cog_i18n, set_contextual_locales_from_guild
 from redbot.core.utils.predicates import MessagePredicate
 from redbot.core.utils.tunnel import Tunnel
-
-from discord_slash import SlashCommand, SlashContext
-from discord_slash.cog_ext import cog_slash
-
 
 _ = Translator("Reports", __file__)
 
@@ -63,14 +59,10 @@ class BetterReports(commands.Cog):
         self.tunnel_store = {}
         # (guild, ticket#):
         #   {'tun': Tunnel, 'msgs': List[int]}
-        self.bot.slash.get_cog_commands(self)
 
     @property
     def default_guild(self):
         return self.bot.get_guild(182249960895545344)
-
-    def cog_unload(self):
-        self.bot.slash.remove_cog_commands(self)
 
     async def red_delete_data_for_user(
         self,
@@ -93,8 +85,8 @@ class BetterReports(commands.Cog):
                 if not steps % 100:
                     await asyncio.sleep(0)  # yield context
 
-            if ticket.get("report", {}).get("user_id", 0) == user_id:
-                paths.append((guild_id_str, ticket_number))
+                if ticket.get("report", {}).get("user_id", 0) == user_id:
+                    paths.append((guild_id_str, ticket_number))
 
         async with self.config.custom("REPORT").all() as all_reports:
             async for guild_id_str, ticket_number in AsyncIter(paths, steps=100):
@@ -138,7 +130,9 @@ class BetterReports(commands.Cog):
             await ctx.send(_("Reporting is now disabled."))
 
     async def internal_filter(self, m: discord.Member, mod=False, perms=None):
-        if perms and m.guild_permissions >= perms:
+        if perms is None and not mod:
+            return True
+        if perms is not None and m.guild_permissions >= perms:
             return True
         if mod and await self.bot.is_mod(m):
             return True
@@ -146,6 +140,7 @@ class BetterReports(commands.Cog):
         # in Red, though I'm not sure it makes sense to use here.
         if await self.bot.is_owner(m):
             return True
+        return False
 
     async def discover_guild(
         self,
@@ -163,7 +158,7 @@ class BetterReports(commands.Cog):
         """
         shared_guilds = []
         if permissions is None:
-            perms = discord.Permissions()
+            perms = None
         elif isinstance(permissions, discord.Permissions):
             perms = permissions
         else:
@@ -217,7 +212,9 @@ class BetterReports(commands.Cog):
     ):
 
         msg_obj = isinstance(msg, discord.Message)
-        author = guild.get_member(msg.author.id if msg_obj else ctx.author_id)
+        author = guild.get_member(msg.author.id if msg_obj else ctx.author.id)
+        if author is None:
+            return None
         report = msg.clean_content if msg_obj else msg
 
         channel_id = await self.config.guild(guild).output_channel()
@@ -251,7 +248,7 @@ class BetterReports(commands.Cog):
                     report_url = message.jump_url
             except discord.errors.Forbidden:
                 pass
-        if await self.bot.embed_requested(channel, author):
+        if await self.bot.embed_requested(channel):
             embed_colour = await (
                 ctx.embed_colour()
                 if hasattr(ctx, "embed_colour")
@@ -262,7 +259,7 @@ class BetterReports(commands.Cog):
             em = discord.Embed(description=desc, colour=embed_colour)
             em.set_author(
                 name=title,
-                icon_url=author.avatar_url
+                icon_url=author.display_avatar.url
                 if not anonymous
                 else "https://cdn.discordapp.com/attachments/826191787991367721/826203765467381780/unknown.png",
             )
@@ -296,11 +293,7 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.message.delete()
-            await ctx.send(
-                f"{ctx.author.mention} Please use this command in DMs with the bot (or use the /report version)."
-            )
-            return
+            return await self._redirect_report_to_dms(ctx)
         return await self._report(ctx=ctx, _report=_report, anonymous=False)
 
     @commands.group(name="reportanon", invoke_without_command=True)
@@ -311,11 +304,18 @@ class BetterReports(commands.Cog):
         `[p]report <text>` to use it non-interactively.
         """
         if ctx.guild:
-            await ctx.send(
-                "Please use this command in DMs with the bot (or use the /report version)."
-            )
-            return
+            return await self._redirect_report_to_dms(ctx)
         return await self._report(ctx=ctx, _report=_report, anonymous=True)
+
+    async def _redirect_report_to_dms(self, ctx: commands.Context):
+        message = "Please use this command in DMs with the bot (or use the /report version)."
+        if ctx.channel.permissions_for(ctx.guild.me).manage_messages:
+            with contextlib.suppress(discord.Forbidden, discord.NotFound):
+                await ctx.message.delete()
+        try:
+            await ctx.author.send(message)
+        except discord.Forbidden:
+            await ctx.send(f"{ctx.author.mention} {message}")
 
     async def _report(
         self,
@@ -369,7 +369,7 @@ class BetterReports(commands.Cog):
 
         if _report:
             _m = _report
-            if ctx.message:
+            if ctx.message and ctx.interaction is None:
                 _m = copy(ctx.message)
                 _m.content = _report
                 _m.content = _m.clean_content
@@ -445,33 +445,45 @@ class BetterReports(commands.Cog):
                 except discord.NotFound:
                     pass
 
-    async def _report_slash(self, ctx: SlashContext, report: str, anonymous: bool):
+    async def _report_slash(
+        self, interaction: discord.Interaction, report: str, anonymous: bool
+    ):
         try:
-            result = await self._report(
+            await interaction.response.defer(ephemeral=True)
+            ctx = await commands.Context.from_interaction(interaction)
+            await self._report(
                 ctx=ctx,
                 _report=report,
                 anonymous=anonymous,
                 default_guild=self.default_guild,
-                reply_command=lambda x: ctx.send(x, hidden=True),
+                reply_command=lambda message: interaction.followup.send(
+                    message, ephemeral=True
+                ),
             )
-            if ctx.author.id in self.user_cache:
-                self.user_cache.remove(ctx.author.id)
-        except Exception as e:
+        except Exception:
             import traceback
 
-            await ctx.send("Something broke, sorry!", hidden=True)
-            return await ctx.bot.send_to_owners(traceback.format_exc())
+            await interaction.followup.send("Something broke, sorry!", ephemeral=True)
+            await self.bot.send_to_owners(traceback.format_exc())
+        finally:
+            if interaction.user.id in self.user_cache:
+                self.user_cache.remove(interaction.user.id)
 
-    @cog_slash(name="report", description="Report something to the administrators. Use in-game adminhelp instead for in-game matters.")
-    async def slash_report(self, ctx: SlashContext, report: str):
-        await self._report_slash(ctx, report, False)
+    @app_commands.command(
+        name="report",
+        description="Report something to the administrators. Use in-game adminhelp for in-game matters.",
+    )
+    @app_commands.describe(report="The report to send to the administrators.")
+    async def slash_report(self, interaction: discord.Interaction, report: str):
+        await self._report_slash(interaction, report, False)
 
-    @cog_slash(
+    @app_commands.command(
         name="reportanon",
         description="Report something to the administrators anonymously.",
     )
-    async def slash_reportanon(self, ctx: SlashContext, report: str):
-        await self._report_slash(ctx, report, True)
+    @app_commands.describe(report="The anonymous report to send to the administrators.")
+    async def slash_reportanon(self, interaction: discord.Interaction, report: str):
+        await self._report_slash(interaction, report, True)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -553,12 +565,10 @@ class BetterReports(commands.Cog):
         if ctx.channel.id != channel_id:
             return await ctx.send(f"Go to <#{channel_id}> to use this command.")
         rec = await self.config.custom("REPORT", guild.id, ticket_number).report()
-
-        try:
-            user = guild.get_member(rec.get("user_id"))
-        except KeyError:
+        if not rec or "user_id" not in rec:
             return await ctx.send(_("That ticket doesn't seem to exist"))
 
+        user = guild.get_member(rec["user_id"])
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 
@@ -612,12 +622,10 @@ class BetterReports(commands.Cog):
         if ticket_number is None:
             ticket_number = (await self.config.guild(guild).next_ticket()) - 1
         rec = await self.config.custom("REPORT", guild.id, ticket_number).report()
-
-        try:
-            user = guild.get_member(rec.get("user_id"))
-        except KeyError:
+        if not rec or "user_id" not in rec:
             return await ctx.send(_("That ticket doesn't seem to exist"))
 
+        user = guild.get_member(rec["user_id"])
         if user is None:
             return await ctx.send(_("That user isn't here anymore."))
 

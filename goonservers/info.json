@@ -5,8 +5,12 @@
     ],
     "short": "Cog to store list of Goonstation servers and query their status.",
     "description": "Cog to store list of Goonstation servers and query their status.",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "tags": [
 	"ss13",
 	"byond"
-    ]
+    ],
+    "end_user_data_statement": "This cog does not persistently store user data"
 }

@@ -11,6 +11,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import Levenshtein
 import html
 from itertools import chain
+from goonutils import safe_typing
 
 __author__ = "PhasecoreX, pali"
 
@@ -70,7 +71,7 @@ class Wikiss13(commands.Cog):
     @commands.command(aliases=["wiki13", "w13"])
     async def wikiss13(self, ctx: commands.Context, *, query: str):
         """Get information from Goonstation Wiki."""
-        async with ctx.typing():
+        async with safe_typing(ctx):
             payload = self.generate_payload(query)
             async with aiohttp.ClientSession() as session:
                 async with session.get(

@@ -9,5 +9,6 @@
 	"ss13",
 	"byond",
 	"library"
-    ]
+    ],
+    "end_user_data_statement": "This cog does not persistently store user data"
 }

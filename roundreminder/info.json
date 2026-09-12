@@ -8,5 +8,6 @@
     "tags": [
 	 "ss13",
 	 "reminder"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores users' round-reminder search strings associated with their Discord user IDs."
 }

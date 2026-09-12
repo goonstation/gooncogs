@@ -6,9 +6,13 @@
     "short": "Keeps track of used emoji and lets people use them using a slash command.",
     "description": "Keeps track of used emoji and lets people use them using a slash command.",
     "install_msg": "The slash commands may take a while to appear. If you want to be able to use deleted emoji you'll need to create a guild and assign it as a storage guild for temporary emoji using ]set_emoji_guild. You can also do ]set_emoji_log to set a channel to log emoji added / removed in that guild.",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "requirements": [
     ],
     "tags": [
 	"emoji"
-    ]
+    ],
+    "end_user_data_statement": "This cog persistently stores emoji URLs and configured Discord guild and channel IDs, but does not persistently store data associated with individual users."
 }

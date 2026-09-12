@@ -5,9 +5,13 @@
   ],
   "short": "TODO",
   "description": "TODO",
+  "required_cogs": {
+    "goonutils": "https://github.com/goonstation/gooncogs"
+  },
   "requirements": [
     "aiohttp"
   ],
   "tags": [
-  ]
+  ],
+  "end_user_data_statement": "This cog does not persistently store user data"
 }

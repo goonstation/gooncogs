@@ -69,7 +69,6 @@ class CommandLog(commands.Cog):
     # @checks.admin()
     # async def report(self, ctx: commands.Context):
     #     """Show command log history"""
-    #     await ctx.defer() if ctx.interaction else await ctx.typing()
     #     with open(self.log_file, 'r') as f:
     #         reader = csv.DictReader(f)
     #         for row in reader:

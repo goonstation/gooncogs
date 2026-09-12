@@ -10,6 +10,7 @@ from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from typing import Optional
+from goonutils import safe_typing
 
 
 class EmojiEverywhere(commands.Cog):
@@ -127,7 +128,7 @@ class EmojiEverywhere(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def save_usable_emoji(self, ctx: commands.Context):
-        async with ctx.typing():
+        async with safe_typing(ctx):
             count = 0
             for emoji in self.bot.emojis:
                 count += await self.add_url(emoji.name, str(emoji.url))
@@ -261,7 +262,7 @@ class EmojiEverywhere(commands.Cog):
         self, ctx: commands.Context, msg: discord.Message, limit=100
     ):
         found_count = 0
-        async with ctx.typing():
+        async with safe_typing(ctx):
             async for message in msg.channel.history(before=msg, limit=limit):
                 found_count += await self.scan_for_emoji(message)
         await ctx.send(f"New emoji found: {found_count}")

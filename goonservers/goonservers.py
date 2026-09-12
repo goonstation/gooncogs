@@ -15,6 +15,7 @@ import functools
 import json
 import aiohttp
 from dataclasses import dataclass
+from goonutils import safe_typing
 
 
 class UnknownServerError(Exception):
@@ -421,7 +422,7 @@ class GoonServers(commands.Cog):
         futures = [asyncio.Task(self.get_status_info(s, worldtopic)) for s in servers]
         done, pending = [], futures
         message = None
-        async with ctx.typing():
+        async with safe_typing(ctx):
             while pending:
                 when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
                 done, pending = await asyncio.wait(
@@ -471,7 +472,7 @@ class GoonServers(commands.Cog):
         all_goon = all(server.type == "goon" for server in servers)
         if not all_goon:
             embed.colour = self.COLOR_OTHER
-        async with ctx.typing():
+        async with safe_typing(ctx):
             while pending:
                 when = asyncio.FIRST_COMPLETED if message else asyncio.ALL_COMPLETED
                 done, pending = await asyncio.wait(

@@ -5,6 +5,9 @@
     ],
     "short": "Misc/fun stuff for Goonstation servers.",
     "description": "Stuff specific to Goonstation that didn't fit elsewhere.",
+    "required_cogs": {
+        "goonutils": "https://github.com/goonstation/gooncogs"
+    },
     "requirements": [
         "githubpy",
 	"requests",

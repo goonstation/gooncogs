@@ -11,5 +11,6 @@
     ],
     "tags": [
 	"video"
-    ]
+    ],
+    "end_user_data_statement": "This cog temporarily downloads videos linked in Discord messages for analysis but does not persistently store user data."
 }

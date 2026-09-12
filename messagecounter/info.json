@@ -6,5 +6,6 @@
     "short": "",
     "description": "",
     "tags": [
-    ]
+    ],
+    "end_user_data_statement": "This cog only stores statistical information about messages."
 }
