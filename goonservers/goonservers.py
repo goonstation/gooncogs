@@ -81,7 +81,7 @@ class StatusInfo:
     respawn: bool = None
     enter: bool = None
     ai: bool = None
-    
+
     round_id: str = None
     gamestate: GameState = GameState.Invalid
     mode: Union[Literal["secret"], str] = "secret"
@@ -98,22 +98,26 @@ class StatusInfo:
     shuttle_direction: Optional[ShuttleDirection] = None
 
     def __post_init__(self):
-        if self.server_info.get("error") is not None: return
+        if self.server_info.get("error") is not None:
+            return
 
         # this pattern has to be done to get around frozen dataclasses
         # i'm sorry. i really am.
-        object.__setattr__(self, 'players', int(self.players))
-        object.__setattr__(self, 'round_duration', int(self.round_duration))
-        object.__setattr__(self, 'gamestate', int(self.gamestate))
-
-        object.__setattr__(self, 'respawn', bool(self.respawn))
-        object.__setattr__(self, 'enter', bool(self.enter))
-        object.__setattr__(self, 'ai', bool(self.ai))
-        if self.shuttle_timer:
-            object.__setattr__(self, 'shuttle_online', bool(self.shuttle_online))
-            object.__setattr__(self, 'shuttle_timer', float(self.shuttle_timer))
-            object.__setattr__(self, 'shuttle_location', float(self.shuttle_location))
-            object.__setattr__(self, 'shuttle_direction', int(self.shuttle_direction))
+        for name, converter in (
+            ("players", int),
+            ("round_duration", int),
+            ("gamestate", int),
+            ("respawn", lambda value: bool(int(value))),
+            ("enter", lambda value: bool(int(value))),
+            ("ai", lambda value: bool(int(value))),
+            ("shuttle_online", lambda value: bool(int(value))),
+            ("shuttle_timer", float),
+            ("shuttle_location", float),
+            ("shuttle_direction", int),
+        ):
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, converter(value))
 
 class Server:
     def __init__(self, data, cog):
@@ -338,14 +342,31 @@ class GoonServers(commands.Cog):
             result["error"] = "Unable to connect."
         except ConnectionResetError:
             result["error"] = "Connection reset by server (possibly just restarted)."
-        if response is None:
+        if response is None and result["error"] is None:
             result["error"] = "Invalid server response."
 
         if result["error"] is not None:
             return StatusInfo(server_info = result)
 
-        status = StatusInfo(**worldtopic.params_to_dict(response), server_info = result)
-        return status
+        status = worldtopic.params_to_dict(response)
+        if len(response) < 20 or ("players" in status and len(status["players"]) > 5):
+            response = await worldtopic.send((server.host, server.port), "status&format=json")
+            status = json.loads(response)
+
+        legacy_duration = status.get("elapsed") or status.get("stationtime")
+        if "round_duration" not in status:
+            if legacy_duration == "pre":
+                status["gamestate"] = StatusInfo.GameState.PreGame
+            elif legacy_duration == "post":
+                status["gamestate"] = StatusInfo.GameState.Finished
+            elif legacy_duration is not None:
+                status["round_duration"] = legacy_duration
+        if "map_name" not in status and "map" in status:
+            status["map_name"] = status["map"]
+
+        valid_fields = set(StatusInfo.__dataclass_fields__) - {"server_info"}
+        status = {key: value for key, value in status.items() if key in valid_fields}
+        return StatusInfo(**status, server_info = result)
 
     def status_result_parts(self, status_info: StatusInfo):
         result_parts = []
@@ -361,10 +382,20 @@ class GoonServers(commands.Cog):
         if status_info.mode not in (None, "secret"):
             result_parts.append(f"mode: {status_info.mode}")
 
-        time_part = f"time: {self.seconds_to_hhmmss(status_info.round_duration)}"
-        if status_info.gamestate <= StatusInfo.GameState.PreGame: time_part += " (preround)"
-        elif status_info.gamestate == StatusInfo.GameState.Finished: time_part += " (finished)"
-        result_parts.append(time_part)
+        if status_info.round_duration is not None:
+            time_part = f"time: {self.seconds_to_hhmmss(status_info.round_duration)}"
+            if status_info.gamestate <= StatusInfo.GameState.PreGame:
+                time_part += " (preround)"
+            elif status_info.gamestate == StatusInfo.GameState.Finished:
+                time_part += " (finished)"
+            result_parts.append(time_part)
+        elif status_info.gamestate == StatusInfo.GameState.Finished:
+            result_parts.append("time: finished")
+        elif (
+            status_info.gamestate != StatusInfo.GameState.Invalid
+            and status_info.gamestate <= StatusInfo.GameState.PreGame
+        ):
+            result_parts.append("time: preround")
 
         if status_info.shuttle_online and status_info.shuttle_location not in (None, StatusInfo.ShuttleLocation.Returned):
             result_parts.append(
