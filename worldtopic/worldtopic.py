@@ -84,6 +84,8 @@ class WorldTopic(commands.Cog):
     def params_to_dict(self, params: str):
         result = OrderedDict()
         for pair in params.split("&"):
+            if not pair:
+                continue
             key, *rest = pair.split("=")
             value = urllib.parse.unquote_plus(rest[0]) if rest else None
             result[key] = value
@@ -130,9 +132,14 @@ class WorldTopic(commands.Cog):
         response_message = []
         if isinstance(response, str):
             dict_response = self.params_to_dict(response)
-            if len(dict_response) > 1:
-                response_message.append("")
-            if len(dict_response) > 1 or next(iter(dict_response.values())) is not None:
+            if not dict_response:
+                response_message = [response]
+            elif (
+                len(dict_response) > 1
+                or next(iter(dict_response.values())) is not None
+            ):
+                if len(dict_response) > 1:
+                    response_message.append("")
                 for k, v in dict_response.items():
                     response_message.append(f"{k}: {v}")
             else:

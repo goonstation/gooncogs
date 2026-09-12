@@ -98,7 +98,7 @@ class SpacebeeCommands(commands.Cog):
         goonservers = self.bot.get_cog("GoonServers")
         servers = [s for s in goonservers.servers if s.type == "goon"]
         futures = [
-            asyncio.Task(goonservers.send_to_server(s, "status", to_dict=True))
+            asyncio.Task(goonservers.send_to_server(s, "who", to_dict=True))
             for s in servers
         ]
         message = None
@@ -160,18 +160,12 @@ class SpacebeeCommands(commands.Cog):
     async def players(self, ctx: commands.Context, server_id: str):
         """Lists players on a given Goonstation server."""
         goonservers = self.bot.get_cog("GoonServers")
-        response = await goonservers.send_to_server_safe(
-            server_id, "status", ctx.message, to_dict=True
+        response: dict = await goonservers.send_to_server_safe(
+            server_id, "who", ctx.message, to_dict=True
         )
         if response is None:
             return
-        players = []
-        try:
-            for i in range(int(response["players"])):
-                players.append(response[f"player{i}"])
-        except KeyError:
-            await ctx.message.reply("That server is not responding correctly.")
-            return
+        players = list(response.values())
         players.sort()
         if players:
             await ctx.message.reply(", ".join(players))
@@ -185,18 +179,12 @@ class SpacebeeCommands(commands.Cog):
         goonservers = self.bot.get_cog("GoonServers")
         spacebeecentcom = self.bot.get_cog("SpacebeeCentcom")
         nightshadewhitelist = self.bot.get_cog("NightshadeWhitelist")
-        response = await goonservers.send_to_server_safe(
-            server_id, "status", ctx.message, to_dict=True
+        response: dict = await goonservers.send_to_server_safe(
+            server_id, "who", ctx.message, to_dict=True
         )
         if response is None:
             return
-        players = []
-        try:
-            for i in range(int(response["players"])):
-                players.append(response[f"player{i}"])
-        except KeyError:
-            await ctx.message.reply("That server is not responding correctly.")
-            return
+        players = list(response.values())
         players.sort()
         if not players:
             await ctx.message.reply("No players.")
